@@ -29,7 +29,7 @@ Tested with **Heltec MeshPocket** (ESP32 + LoRa). Should work with any Meshtasti
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/meshly.git
-cd meshly/meshfamily
+cd meshly
 flutter pub get
 flutter run
 ```
