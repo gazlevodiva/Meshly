@@ -209,7 +209,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final messages = _messages;
     final conv = widget.conversation;
     return Scaffold(
       appBar: AppBar(
@@ -261,17 +260,23 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
           Expanded(
-            child: messages.isEmpty
-                ? const Center(
-                    child: Text('Напишите первое сообщение!',
-                        style: TextStyle(color: Colors.grey)))
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(12),
-                    itemCount: messages.length,
-                    itemBuilder: (_, i) =>
-                        _MessageBubble(msg: messages[i], store: _store),
-                  ),
+            child: ListenableBuilder(
+              listenable: _store,
+              builder: (context, _) {
+                final messages = _messages;
+                return messages.isEmpty
+                    ? const Center(
+                        child: Text('Напишите первое сообщение!',
+                            style: TextStyle(color: Colors.grey)))
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(12),
+                        itemCount: messages.length,
+                        itemBuilder: (_, i) =>
+                            _MessageBubble(msg: messages[i], store: _store),
+                      );
+              },
+            ),
           ),
           _InputBar(controller: _controller, onSend: _send),
         ],

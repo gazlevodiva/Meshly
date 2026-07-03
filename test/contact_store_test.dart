@@ -104,6 +104,35 @@ void main() {
       expect(updated.status, equals(MessageStatus.acked));
     });
 
+    test('updateMessageStatus notifies listeners and persists new status', () async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      store.resetForTesting(db);
+      await store.init();
+
+      final contact = Contact(nodeId: '!44445555', displayName: 'Тётя');
+      await store.saveContact(contact);
+
+      const convId = 'dm_!44445555';
+      await store.addMessage(Message(
+        meshId: 300,
+        fromNodeId: '!44445555',
+        conversationId: convId,
+        text: 'статус-нотиф',
+        time: DateTime.now(),
+        isMe: true,
+      ));
+
+      var notified = false;
+      store.addListener(() => notified = true);
+      await store.updateMessageStatus(300, MessageStatus.acked);
+      expect(notified, isTrue);
+
+      // Reopen the same DB (simulates app restart) — status must persist.
+      store.resetForTesting(db);
+      await store.init();
+      expect(store.messagesFor(convId).first.status, equals(MessageStatus.acked));
+    });
+
     test('createChannel + channelById returns the channel', () async {
       final ch = await store.createChannel(
         name: 'семья',

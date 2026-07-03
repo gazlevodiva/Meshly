@@ -359,6 +359,7 @@ class ContactStore extends ChangeNotifier {
           await (_db.update(_db.messages)
             ..where((t) => t.meshId.equals(meshId)))
             .write(MessagesCompanion(status: Value(status.name)));
+          notifyListeners();
           return;
         }
       }
