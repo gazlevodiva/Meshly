@@ -23,6 +23,7 @@ class MeshService {
   BluetoothCharacteristic? _fromRadio;
   BluetoothCharacteristic? _fromNum;
   Timer? _pollTimer;
+  StreamSubscription<BluetoothConnectionState>? _connStateSub;
   bool _disposed = false;
 
   int? _myNodeNum;
@@ -41,8 +42,10 @@ class MeshService {
   final _incomingController = StreamController<Message>.broadcast();
   Stream<Message> get incomingMessages => _incomingController.stream;
 
-  final _deviceNameController = StreamController<String?>.broadcast();
-  Stream<String?> get connectedDeviceName => _deviceNameController.stream;
+  // Имя подключённого девайса (null = нет подключения).
+  // ValueNotifier вместо broadcast-стрима: новые подписчики (экраны,
+  // созданные ПОСЛЕ connect()) сразу видят текущее значение.
+  final ValueNotifier<String?> deviceName = ValueNotifier(null);
 
   String? get myNodeId => _myNodeNum != null
       ? '!${_myNodeNum!.toRadixString(16).padLeft(8, '0')}'
@@ -60,16 +63,15 @@ class MeshService {
   Future<void> connect(BluetoothDevice device) async {
     await device.connect(license: License.nonprofit);
     _device = device;
-    _deviceNameController.add(
-      device.platformName.isNotEmpty ? device.platformName : device.remoteId.str,
-    );
+    deviceName.value =
+        device.platformName.isNotEmpty ? device.platformName : device.remoteId.str;
 
     final services = await device.discoverServices();
     final meshSvc = _findService(services, _meshServiceUuid);
     if (meshSvc == null) {
       final found = services.map((s) => '  ${s.serviceUuid}').join('\n');
       await device.disconnect();
-      _device = null;
+      _cleanupConnection();
       throw Exception('Meshtastic-сервис не найден.\nНайденные сервисы:\n$found');
     }
 
@@ -80,7 +82,7 @@ class MeshService {
     if (_toRadio == null || _fromRadio == null) {
       final found = meshSvc.characteristics.map((c) => '  ${c.characteristicUuid}').join('\n');
       await device.disconnect();
-      _device = null;
+      _cleanupConnection();
       throw Exception('Не найдены нужные характеристики.\nДоступные:\n$found');
     }
 
@@ -92,6 +94,15 @@ class MeshService {
     await _toRadio!.write(MeshtasticProto.encodeWantConfig());
     await _drainFromRadio();
     _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) => _drainFromRadio());
+
+    // Следим за реальным BLE-состоянием: если девайс отвалился
+    // (вышел из зоны, разрядился) — отражаем это в UI.
+    _connStateSub = device.connectionState.listen((state) {
+      if (state == BluetoothConnectionState.disconnected) {
+        print('[BLE] device disconnected');
+        _cleanupConnection();
+      }
+    });
   }
 
   // Отправить сырые байты в ToRadio (для AdminMessage и др.)
@@ -101,13 +112,24 @@ class MeshService {
   }
 
   Future<void> disconnect() async {
+    final device = _device;
+    _cleanupConnection();
+    await device?.disconnect();
+  }
+
+  // Идемпотентная очистка состояния подключения. Вызывается и из
+  // disconnect(), и из слушателя connectionState при реальном BLE-разрыве —
+  // повторный вызов (например, disconnect() сам триггерит событие
+  // disconnected) безопасен.
+  void _cleanupConnection() {
+    unawaited(_connStateSub?.cancel());
+    _connStateSub = null;
     _pollTimer?.cancel();
     _pollTimer = null;
-    await _device?.disconnect();
     _device = null;
     _toRadio = _fromRadio = _fromNum = null;
     _lastHeard.clear();
-    _deviceNameController.add(null);
+    if (!_disposed) deviceName.value = null;
   }
 
   // Отправить текст в conversation (DM или канал)
@@ -302,8 +324,10 @@ class MeshService {
 
   void dispose() {
     _disposed = true;
+    unawaited(_connStateSub?.cancel());
+    _connStateSub = null;
     _pollTimer?.cancel();
     unawaited(_incomingController.close());
-    unawaited(_deviceNameController.close());
+    deviceName.dispose();
   }
 }

@@ -53,10 +53,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // ── Устройство ───────────────────────────────────────
           const _SectionHeader('Устройство'),
-          StreamBuilder<String?>(
-            stream: widget.meshService.connectedDeviceName,
-            builder: (_, snap) {
-              final name = snap.data;
+          ValueListenableBuilder<String?>(
+            valueListenable: widget.meshService.deviceName,
+            builder: (_, name, _) {
               final connected = widget.meshService.isConnected;
               if (name != null || connected) {
                 return ListTile(

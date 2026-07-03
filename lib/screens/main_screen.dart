@@ -50,10 +50,10 @@ class _MainScreenState extends State<MainScreen> {
             top: 0,
             left: 0,
             right: 0,
-            child: StreamBuilder<String?>(
-              stream: widget.meshService.connectedDeviceName,
-              builder: (context, snap) {
-                final connected = snap.data != null;
+            child: ValueListenableBuilder<String?>(
+              valueListenable: widget.meshService.deviceName,
+              builder: (context, name, _) {
+                final connected = name != null;
                 return AnimatedSlide(
                   offset: connected ? const Offset(0, -1) : Offset.zero,
                   duration: const Duration(milliseconds: 300),

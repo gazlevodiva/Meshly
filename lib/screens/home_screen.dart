@@ -109,10 +109,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 onChanged: (value) => setState(() => _query = value),
               )
-            : StreamBuilder<String?>(
-                stream: widget.meshService.connectedDeviceName,
-                builder: (_, snap) {
-                  final deviceName = snap.data;
+            : ValueListenableBuilder<String?>(
+                valueListenable: widget.meshService.deviceName,
+                builder: (_, deviceName, _) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
