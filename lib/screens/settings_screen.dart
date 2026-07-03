@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:meshly/screens/blocked_nodes_screen.dart';
 import 'package:meshly/screens/my_card_screen.dart';
 import 'package:meshly/screens/notification_settings_screen.dart';
 import 'package:meshly/screens/scan_screen.dart';
+import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/notification_settings.dart';
 
@@ -93,6 +95,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   context,
                   MaterialPageRoute<void>(
                     builder: (_) => const NotificationSettingsScreen(),
+                  ),
+                )),
+              );
+            },
+          ),
+
+          // ── Заблокированные ──────────────────────────────────
+          const _SectionHeader('Заблокированные'),
+          ListenableBuilder(
+            listenable: ContactStore.instance,
+            builder: (context, _) {
+              final count = ContactStore.instance.blockedNodes.length;
+              return ListTile(
+                leading: const Icon(Icons.block),
+                title: const Text('Заблокированные ноды'),
+                subtitle: Text(count == 0 ? 'Нет заблокированных нод' : 'Заблокировано: $count'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => unawaited(Navigator.push<void>(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => const BlockedNodesScreen(),
                   ),
                 )),
               );

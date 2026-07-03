@@ -214,6 +214,9 @@ class MeshService {
     // Не показываем собственные эхо-пакеты
     if (fromNodeId == myNodeId) return;
 
+    // Игнорируем сообщения от заблокированных нод
+    if (store.isBlocked(fromNodeId)) return;
+
     // Определяем conversation
     Conversation? conv;
     if (decoded.isDm) {

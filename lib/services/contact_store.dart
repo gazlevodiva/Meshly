@@ -28,6 +28,7 @@ class ContactStore extends ChangeNotifier {
   final Map<String, m.MeshChannel> _channels = {};
   final Map<String, m.Conversation> _conversations = {};
   final Map<String, List<m.Message>> _messages = {};
+  final Set<String> _blocked = {};
 
   /// For unit tests only: replaces the db instance and clears in-memory state.
   void resetForTesting(AppDatabase db) {
@@ -37,6 +38,7 @@ class ContactStore extends ChangeNotifier {
     _channels.clear();
     _conversations.clear();
     _messages.clear();
+    _blocked.clear();
   }
 
   Future<void> init() async {
@@ -165,6 +167,11 @@ class ContactStore extends ChangeNotifier {
       _messages.putIfAbsent(msg.conversationId, () => []).add(msg);
     }
 
+    _blocked.clear();
+    for (final row in await _db.select(_db.blockedNodes).get()) {
+      _blocked.add(row.nodeId);
+    }
+
     // Attach lastMessage to conversations
     for (final entry in _messages.entries) {
       final conv = _conversations[entry.key];
@@ -210,6 +217,32 @@ class ContactStore extends ChangeNotifier {
       _conversations.remove(dmId);
       await (_db.delete(_db.conversations)..where((t) => t.id.equals(dmId))).go();
     }
+    notifyListeners();
+  }
+
+  // ── Blocked nodes ─────────────────────────────────────────
+
+  List<String> get blockedNodes => _blocked.toList()..sort();
+
+  bool isBlocked(String nodeId) => _blocked.contains(nodeId);
+
+  Future<void> blockNode(String nodeId) async {
+    await _db.into(_db.blockedNodes).insertOnConflictUpdate(
+      BlockedNodesCompanion.insert(nodeId: nodeId),
+    );
+    _blocked.add(nodeId);
+    // Remove the associated DM conversation (same as deleteContact)
+    final dmId = 'dm_$nodeId';
+    if (_conversations.containsKey(dmId)) {
+      _conversations.remove(dmId);
+      await (_db.delete(_db.conversations)..where((t) => t.id.equals(dmId))).go();
+    }
+    notifyListeners();
+  }
+
+  Future<void> unblockNode(String nodeId) async {
+    await (_db.delete(_db.blockedNodes)..where((t) => t.nodeId.equals(nodeId))).go();
+    _blocked.remove(nodeId);
     notifyListeners();
   }
 

@@ -298,6 +298,47 @@ void main() {
       expect(notified, isTrue);
     });
 
+    // ── Blocked nodes ─────────────────────────────────────────
+
+    test('isBlocked is false by default', () {
+      expect(store.isBlocked('!12341234'), isFalse);
+    });
+
+    test('blockNode + unblockNode toggle isBlocked and notify listeners', () async {
+      var notifyCount = 0;
+      store.addListener(() => notifyCount++);
+
+      await store.blockNode('!badbadba');
+      expect(store.isBlocked('!badbadba'), isTrue);
+      expect(notifyCount, equals(1));
+
+      await store.unblockNode('!badbadba');
+      expect(store.isBlocked('!badbadba'), isFalse);
+      expect(notifyCount, equals(2));
+    });
+
+    test('blockNode removes the DM conversation', () async {
+      final contact = Contact(nodeId: '!66667777', displayName: 'Спамер');
+      await store.saveContact(contact);
+      expect(store.dmForNode('!66667777'), isNotNull);
+
+      await store.blockNode('!66667777');
+      expect(store.dmForNode('!66667777'), isNull);
+    });
+
+    test('blocked nodes persist across reload', () async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      store.resetForTesting(db);
+      await store.init();
+
+      await store.blockNode('!88889999');
+
+      store.resetForTesting(db);
+      await store.init();
+      expect(store.isBlocked('!88889999'), isTrue);
+      expect(store.blockedNodes, equals(['!88889999']));
+    });
+
     test('addMessage persists to DB — reload reflects correct state', () async {
       // Use a named in-memory DB so we can reopen it after reset.
       final db = AppDatabase.forTesting(NativeDatabase.memory());

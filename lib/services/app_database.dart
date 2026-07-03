@@ -54,13 +54,29 @@ class Messages extends Table {
   Set<Column> get primaryKey => {meshId};
 }
 
-@DriftDatabase(tables: [Contacts, Channels, Conversations, Messages])
+class BlockedNodes extends Table {
+  TextColumn get nodeId => text()();
+
+  @override
+  Set<Column> get primaryKey => {nodeId};
+}
+
+@DriftDatabase(tables: [Contacts, Channels, Conversations, Messages, BlockedNodes])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.createTable(blockedNodes);
+      }
+    },
+  );
 
   static QueryExecutor _openConnection() {
     return LazyDatabase(() async {

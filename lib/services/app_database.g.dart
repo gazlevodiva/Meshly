@@ -1620,6 +1620,166 @@ class MessagesCompanion extends UpdateCompanion<Message> {
   }
 }
 
+class $BlockedNodesTable extends BlockedNodes
+    with TableInfo<$BlockedNodesTable, BlockedNode> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BlockedNodesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _nodeIdMeta = const VerificationMeta('nodeId');
+  @override
+  late final GeneratedColumn<String> nodeId = GeneratedColumn<String>(
+    'node_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [nodeId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'blocked_nodes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BlockedNode> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('node_id')) {
+      context.handle(
+        _nodeIdMeta,
+        nodeId.isAcceptableOrUnknown(data['node_id']!, _nodeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nodeIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {nodeId};
+  @override
+  BlockedNode map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BlockedNode(
+      nodeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}node_id'],
+      )!,
+    );
+  }
+
+  @override
+  $BlockedNodesTable createAlias(String alias) {
+    return $BlockedNodesTable(attachedDatabase, alias);
+  }
+}
+
+class BlockedNode extends DataClass implements Insertable<BlockedNode> {
+  final String nodeId;
+  const BlockedNode({required this.nodeId});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['node_id'] = Variable<String>(nodeId);
+    return map;
+  }
+
+  BlockedNodesCompanion toCompanion(bool nullToAbsent) {
+    return BlockedNodesCompanion(nodeId: Value(nodeId));
+  }
+
+  factory BlockedNode.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BlockedNode(nodeId: serializer.fromJson<String>(json['nodeId']));
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{'nodeId': serializer.toJson<String>(nodeId)};
+  }
+
+  BlockedNode copyWith({String? nodeId}) =>
+      BlockedNode(nodeId: nodeId ?? this.nodeId);
+  BlockedNode copyWithCompanion(BlockedNodesCompanion data) {
+    return BlockedNode(
+      nodeId: data.nodeId.present ? data.nodeId.value : this.nodeId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BlockedNode(')
+          ..write('nodeId: $nodeId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => nodeId.hashCode;
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BlockedNode && other.nodeId == this.nodeId);
+}
+
+class BlockedNodesCompanion extends UpdateCompanion<BlockedNode> {
+  final Value<String> nodeId;
+  final Value<int> rowid;
+  const BlockedNodesCompanion({
+    this.nodeId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BlockedNodesCompanion.insert({
+    required String nodeId,
+    this.rowid = const Value.absent(),
+  }) : nodeId = Value(nodeId);
+  static Insertable<BlockedNode> custom({
+    Expression<String>? nodeId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (nodeId != null) 'node_id': nodeId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BlockedNodesCompanion copyWith({Value<String>? nodeId, Value<int>? rowid}) {
+    return BlockedNodesCompanion(
+      nodeId: nodeId ?? this.nodeId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (nodeId.present) {
+      map['node_id'] = Variable<String>(nodeId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BlockedNodesCompanion(')
+          ..write('nodeId: $nodeId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1627,6 +1787,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ChannelsTable channels = $ChannelsTable(this);
   late final $ConversationsTable conversations = $ConversationsTable(this);
   late final $MessagesTable messages = $MessagesTable(this);
+  late final $BlockedNodesTable blockedNodes = $BlockedNodesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1636,6 +1797,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     channels,
     conversations,
     messages,
+    blockedNodes,
   ];
 }
 
@@ -2486,6 +2648,118 @@ typedef $$MessagesTableProcessedTableManager =
       Message,
       PrefetchHooks Function()
     >;
+typedef $$BlockedNodesTableCreateCompanionBuilder =
+    BlockedNodesCompanion Function({required String nodeId, Value<int> rowid});
+typedef $$BlockedNodesTableUpdateCompanionBuilder =
+    BlockedNodesCompanion Function({Value<String> nodeId, Value<int> rowid});
+
+class $$BlockedNodesTableFilterComposer
+    extends Composer<_$AppDatabase, $BlockedNodesTable> {
+  $$BlockedNodesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get nodeId => $composableBuilder(
+    column: $table.nodeId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$BlockedNodesTableOrderingComposer
+    extends Composer<_$AppDatabase, $BlockedNodesTable> {
+  $$BlockedNodesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get nodeId => $composableBuilder(
+    column: $table.nodeId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BlockedNodesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BlockedNodesTable> {
+  $$BlockedNodesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get nodeId =>
+      $composableBuilder(column: $table.nodeId, builder: (column) => column);
+}
+
+class $$BlockedNodesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BlockedNodesTable,
+          BlockedNode,
+          $$BlockedNodesTableFilterComposer,
+          $$BlockedNodesTableOrderingComposer,
+          $$BlockedNodesTableAnnotationComposer,
+          $$BlockedNodesTableCreateCompanionBuilder,
+          $$BlockedNodesTableUpdateCompanionBuilder,
+          (
+            BlockedNode,
+            BaseReferences<_$AppDatabase, $BlockedNodesTable, BlockedNode>,
+          ),
+          BlockedNode,
+          PrefetchHooks Function()
+        > {
+  $$BlockedNodesTableTableManager(_$AppDatabase db, $BlockedNodesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BlockedNodesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BlockedNodesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BlockedNodesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> nodeId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BlockedNodesCompanion(nodeId: nodeId, rowid: rowid),
+          createCompanionCallback:
+              ({
+                required String nodeId,
+                Value<int> rowid = const Value.absent(),
+              }) => BlockedNodesCompanion.insert(nodeId: nodeId, rowid: rowid),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$BlockedNodesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BlockedNodesTable,
+      BlockedNode,
+      $$BlockedNodesTableFilterComposer,
+      $$BlockedNodesTableOrderingComposer,
+      $$BlockedNodesTableAnnotationComposer,
+      $$BlockedNodesTableCreateCompanionBuilder,
+      $$BlockedNodesTableUpdateCompanionBuilder,
+      (
+        BlockedNode,
+        BaseReferences<_$AppDatabase, $BlockedNodesTable, BlockedNode>,
+      ),
+      BlockedNode,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2498,4 +2772,6 @@ class $AppDatabaseManager {
       $$ConversationsTableTableManager(_db, _db.conversations);
   $$MessagesTableTableManager get messages =>
       $$MessagesTableTableManager(_db, _db.messages);
+  $$BlockedNodesTableTableManager get blockedNodes =>
+      $$BlockedNodesTableTableManager(_db, _db.blockedNodes);
 }

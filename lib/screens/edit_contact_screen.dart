@@ -120,6 +120,36 @@ class _EditContactScreenState extends State<EditContactScreen> {
     ));
   }
 
+  Future<void> _blockNode() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Заблокировать?'),
+        content: const Text(
+          'Нода больше не будет отображаться в мессенджере. '
+          'Сообщения от неё будут игнорироваться.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Заблокировать'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await _store.blockNode(widget.contact.nodeId);
+      if (mounted) Navigator.pop(context, 'deleted');
+    }
+  }
+
   Future<void> _deleteContact() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -443,6 +473,17 @@ class _EditContactScreenState extends State<EditContactScreen> {
             subtitle: const Text('Node ID, время последнего соединения и другая информация'),
             trailing: const Icon(Icons.chevron_right),
             onTap: _showAdditionalInfo,
+          ),
+
+          const Divider(height: 1),
+
+          ListTile(
+            leading: const Icon(Icons.block, color: Colors.orange),
+            title: const Text(
+              'Заблокировать',
+              style: TextStyle(color: Colors.orange),
+            ),
+            onTap: _blockNode,
           ),
 
           const Divider(height: 1),
