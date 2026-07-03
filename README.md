@@ -1,6 +1,6 @@
 # Meshly
 
-A simple messenger built on top of the [Meshtastic](https://meshtastic.org/) LoRa mesh network. Designed for families — minimal UI, one tap to connect and chat.
+A simple messenger built on top of the [Meshtastic](https://meshtastic.org/) LoRa mesh network. Designed for people you trust — minimal UI, one tap to connect and chat.
 
 > **Goal:** Strip everything unnecessary from the official Meshtastic app and leave just one thing — send a message. Your mom should be able to use it on the first try.
 
@@ -28,7 +28,7 @@ Tested with **Heltec MeshPocket** (ESP32 + LoRa). Should work with any Meshtasti
 ## Getting Started
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/meshly.git
+git clone https://github.com/gazlevodiva/Meshly.git
 cd meshly
 flutter pub get
 flutter run
@@ -106,6 +106,15 @@ If your device uses different UUIDs, update the constants in `lib/services/mesh_
 - ⚠️ Push notifications work in foreground only — background BLE on iOS requires additional native setup
 - ⚠️ Protobuf encoding is implemented manually (no official Meshtastic Dart package exists)
 - ⚠️ iOS free developer certificate expires every 7 days — use Apple Developer Program ($99/yr) for permanent install
+
+## Security & Privacy
+
+Be honest with yourself about what this protects:
+
+- **Channels** are AES-256 encrypted by Meshtastic, with the pre-shared key (PSK) exchanged via QR code.
+- **Direct messages** currently go over the primary channel (slot 0) with the default well-known PSK — anyone running Meshtastic nearby can read them. Do not treat DMs as private yet.
+- **Channel PSKs** are stored unencrypted in the local SQLite database on the phone.
+- **Notifications**: incoming message text appears in local push notifications on the lock screen.
 
 ## Contributing
 

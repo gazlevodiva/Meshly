@@ -26,7 +26,6 @@ void main() {
       final contact = Contact(
         nodeId: '!aabbccdd',
         displayName: 'Папа',
-        avatarEmoji: null,
       );
       final url = QrService.encodeContact(contact);
       final decoded = QrService.decodeContact(url);
@@ -37,7 +36,9 @@ void main() {
 
     test('encodeChannel / decodeChannel roundtrip', () {
       final psk = Uint8List(32);
-      for (int i = 0; i < 32; i++) psk[i] = i;
+      for (var i = 0; i < 32; i++) {
+        psk[i] = i;
+      }
 
       final channel = MeshChannel(
         id: 'test-uuid',
@@ -63,7 +64,6 @@ void main() {
         name: 'gazchannel',
         psk: psk,
         slotIndex: 3,
-        avatarEmoji: null,
       );
       final url = QrService.encodeChannel(channel);
       final decoded = QrService.decodeChannel(url);

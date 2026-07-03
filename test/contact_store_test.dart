@@ -1,9 +1,9 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:meshly/services/app_database.dart' hide Contact, Message, Conversation, Channel;
-import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/models/contact.dart';
 import 'package:meshly/models/message.dart';
+import 'package:meshly/services/app_database.dart' hide Channel, Contact, Conversation, Message;
+import 'package:meshly/services/contact_store.dart';
 
 void main() {
   final store = ContactStore.instance;
@@ -48,7 +48,7 @@ void main() {
       final contact = Contact(nodeId: '!deadbeef', displayName: 'Сестра');
       await store.saveContact(contact);
 
-      final convId = 'dm_!deadbeef';
+      const convId = 'dm_!deadbeef';
       final msg = Message(
         meshId: 42,
         fromNodeId: '!deadbeef',
@@ -68,7 +68,7 @@ void main() {
       final contact = Contact(nodeId: '!00001111', displayName: 'Брат');
       await store.saveContact(contact);
 
-      final convId = 'dm_!00001111';
+      const convId = 'dm_!00001111';
       final msg = Message(
         meshId: 100,
         fromNodeId: '!00001111',
@@ -87,7 +87,7 @@ void main() {
       final contact = Contact(nodeId: '!22223333', displayName: 'Дядя');
       await store.saveContact(contact);
 
-      final convId = 'dm_!22223333';
+      const convId = 'dm_!22223333';
       final msg = Message(
         meshId: 200,
         fromNodeId: '!22223333',
@@ -95,7 +95,6 @@ void main() {
         text: 'статус',
         time: DateTime.now(),
         isMe: true,
-        status: MessageStatus.sending,
       );
       await store.addMessage(msg);
       await store.updateMessageStatus(200, MessageStatus.acked);
@@ -169,7 +168,7 @@ void main() {
     test('addMessage updates conversation lastMessage atomically', () async {
       final contact = Contact(nodeId: '!aaaabbbb', displayName: 'Тест');
       await store.saveContact(contact);
-      final convId = 'dm_!aaaabbbb';
+      const convId = 'dm_!aaaabbbb';
 
       final msg = Message(
         meshId: 1,
@@ -189,7 +188,7 @@ void main() {
     test('addMessage increments unreadCount only for incoming messages', () async {
       final contact = Contact(nodeId: '!ccccdddd', displayName: 'Тест2');
       await store.saveContact(contact);
-      final convId = 'dm_!ccccdddd';
+      const convId = 'dm_!ccccdddd';
 
       final incoming = Message(
         meshId: 10,
@@ -219,7 +218,7 @@ void main() {
     test('markRead sets unreadCount to 0', () async {
       final contact = Contact(nodeId: '!11112222', displayName: 'Тест4');
       await store.saveContact(contact);
-      final convId = 'dm_!11112222';
+      const convId = 'dm_!11112222';
 
       await store.addMessage(Message(
         meshId: 50,
@@ -238,7 +237,7 @@ void main() {
     test('markRead notifies listeners', () async {
       final contact = Contact(nodeId: '!33334444', displayName: 'Тест5');
       await store.saveContact(contact);
-      final convId = 'dm_!33334444';
+      const convId = 'dm_!33334444';
       await store.addMessage(Message(
         meshId: 60,
         fromNodeId: '!33334444',
@@ -257,7 +256,7 @@ void main() {
     test('markRead is no-op when unreadCount is already 0', () async {
       final contact = Contact(nodeId: '!55556666', displayName: 'Тест6');
       await store.saveContact(contact);
-      final convId = 'dm_!55556666';
+      const convId = 'dm_!55556666';
 
       var notifyCount = 0;
       store.addListener(() => notifyCount++);
@@ -347,7 +346,7 @@ void main() {
 
       final contact = Contact(nodeId: '!eeeeffff', displayName: 'Тест3');
       await store.saveContact(contact);
-      final convId = 'dm_!eeeeffff';
+      const convId = 'dm_!eeeeffff';
 
       final msg = Message(
         meshId: 99,

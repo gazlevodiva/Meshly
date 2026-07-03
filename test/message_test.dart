@@ -10,7 +10,6 @@ void main() {
       text: 'hello',
       time: DateTime(2024),
       isMe: false,
-      status: MessageStatus.sending,
     );
 
     test('copyWith returns a new object', () {
@@ -36,8 +35,8 @@ void main() {
     });
 
     test('mutating copy status does not affect original', () {
-      final copy = original.copyWith();
-      copy.status = MessageStatus.failed;
+      final copy = original.copyWith()..status = MessageStatus.failed;
+      expect(copy.status, equals(MessageStatus.failed));
       expect(original.status, equals(MessageStatus.sending));
     });
   });

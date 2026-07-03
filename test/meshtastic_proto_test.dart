@@ -13,7 +13,7 @@ void main() {
     List<int> toFromRadio(List<int> toRadioBytes) {
       // Parse ToRadio: field1 (wire type 2) = MeshPacket
       final bytes = List<int>.from(toRadioBytes);
-      int pos = 0;
+      var pos = 0;
 
       List<int>? packetBytes;
       while (pos < bytes.length) {
@@ -22,7 +22,8 @@ void main() {
         final wireType = tagByte & 7;
         if (wireType == 2) {
           // read length-delimited
-          int len = 0, shift = 0;
+          var len = 0;
+          var shift = 0;
           while (true) {
             final b = bytes[pos++];
             len |= (b & 0x7F) << shift;
@@ -43,7 +44,7 @@ void main() {
       // Tag for field2, wire type 2 = (2 << 3) | 2 = 18
       final tagBytes = [18];
       // Encode length as varint
-      int len = packetBytes.length;
+      var len = packetBytes.length;
       final lenBytes = <int>[];
       while (len > 0x7F) {
         lenBytes.add((len & 0x7F) | 0x80);

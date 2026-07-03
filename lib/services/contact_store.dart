@@ -43,12 +43,12 @@ class ContactStore extends ChangeNotifier {
 
   Future<void> init() async {
     if (_ready) return;
-    // ignore: avoid_catches_without_on_clauses
     try {
       await _migrateFromPrefs();
+      // Migration failure is non-fatal. Intentionally catches both Exception
+      // and Error (e.g. binding not initialized in test environments).
+      // ignore: avoid_catches_without_on_clauses
     } catch (e) {
-      // Migration failure is non-fatal. Catches both Exception and Error
-      // (e.g. binding not initialized in test environments).
       print('[Store] migration skipped: $e');
     }
     await _loadAll();

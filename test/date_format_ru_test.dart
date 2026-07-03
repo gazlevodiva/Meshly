@@ -7,7 +7,7 @@ void main() {
   group('absoluteDateRu', () {
     test('formats a specific date correctly', () {
       expect(absoluteDateRu(DateTime(2026, 5, 2)), '2 мая 2026');
-      expect(absoluteDateRu(DateTime(2025, 1, 1)), '1 января 2025');
+      expect(absoluteDateRu(DateTime(2025)), '1 января 2025');
       expect(absoluteDateRu(DateTime(2024, 12, 31)), '31 декабря 2024');
       expect(absoluteDateRu(DateTime(2026, 3, 8)), '8 марта 2026');
     });
