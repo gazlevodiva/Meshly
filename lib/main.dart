@@ -3,10 +3,12 @@ import 'package:meshly/screens/scan_screen.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/notification_service.dart';
+import 'package:meshly/services/notification_settings.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ContactStore.instance.init();
+  await NotificationSettings.instance.load();
   await NotificationService.instance.init();
   await NotificationService.instance.requestPermissions();
   runApp(const MeshlyApp());

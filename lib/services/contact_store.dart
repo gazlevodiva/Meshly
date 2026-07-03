@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:drift/drift.dart';
 import 'package:meshly/models/contact.dart' as m;
@@ -393,8 +394,7 @@ class ContactStore {
   // ── Generate random 32-byte PSK ───────────────────────────
 
   static Uint8List _generatePsk() {
-    final r = List<int>.generate(32, (_) =>
-        DateTime.now().microsecondsSinceEpoch & 0xFF ^ _uuid.v4().hashCode & 0xFF);
-    return Uint8List.fromList(r);
+    final rng = Random.secure();
+    return Uint8List.fromList(List<int>.generate(32, (_) => rng.nextInt(256)));
   }
 }

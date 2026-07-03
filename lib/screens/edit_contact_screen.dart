@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:meshly/models/contact.dart';
 import 'package:meshly/services/contact_store.dart';
+import 'package:meshly/services/notification_settings.dart';
 import 'package:meshly/services/qr_service.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -280,6 +281,32 @@ class _EditContactScreenState extends State<EditContactScreen> {
           ),
 
           const SizedBox(height: 32),
+          const Divider(),
+
+          // Notifications mute — rebuilds automatically via ChangeNotifier
+          ListenableBuilder(
+            listenable: NotificationSettings.instance,
+            builder: (context, _) {
+              final convId = 'dm_${widget.contact.nodeId}';
+              final settings = NotificationSettings.instance;
+              final muted = settings.isMuted(convId);
+              return SwitchListTile(
+                secondary: Icon(muted
+                    ? Icons.notifications_off_outlined
+                    : Icons.notifications_outlined),
+                title: const Text('Уведомления'),
+                value: !muted,
+                onChanged: (v) async {
+                  if (v) {
+                    await settings.unmuteConversation(convId);
+                  } else {
+                    await settings.muteConversation(convId);
+                  }
+                },
+              );
+            },
+          ),
+
           const Divider(),
 
           // Share

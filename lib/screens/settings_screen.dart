@@ -2,9 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:meshly/screens/my_card_screen.dart';
+import 'package:meshly/screens/notification_settings_screen.dart';
 import 'package:meshly/screens/scan_screen.dart';
 import 'package:meshly/services/mesh_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:meshly/services/notification_settings.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({required this.meshService, super.key});
@@ -16,33 +17,11 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _notificationsEnabled = true;
-
-  @override
-  void initState() {
-    super.initState();
-    unawaited(_loadPrefs());
-  }
-
-  Future<void> _loadPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _notificationsEnabled =
-          prefs.getBool('notifications_enabled') ?? true;
-    });
-  }
-
-  Future<void> _setNotifications(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('notifications_enabled', value);
-    setState(() => _notificationsEnabled = value);
-  }
-
   Future<void> _disconnect() async {
     await widget.meshService.disconnect();
     if (mounted) {
       unawaited(Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
+        MaterialPageRoute<void>(
             builder: (_) => ScanScreen(meshService: widget.meshService)),
         (_) => false,
       ));
@@ -62,9 +41,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             leading: const Icon(Icons.qr_code),
             title: const Text('Мой профиль и QR-код'),
             subtitle: const Text('Поделитесь своим контактом'),
-            onTap: () => unawaited(Navigator.push(
+            onTap: () => unawaited(Navigator.push<void>(
               context,
-              MaterialPageRoute(
+              MaterialPageRoute<void>(
                 builder: (_) => MyCardScreen(meshService: widget.meshService),
               ),
             )),
@@ -87,8 +66,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 );
               } else {
                 return const ListTile(
-                  leading:
-                      Icon(Icons.bluetooth_disabled, color: Colors.grey),
+                  leading: Icon(Icons.bluetooth_disabled, color: Colors.grey),
                   title: Text('Нет подключения'),
                 );
               }
@@ -97,11 +75,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // ── Уведомления ──────────────────────────────────────
           const _SectionHeader('Уведомления'),
-          SwitchListTile(
-            secondary: const Icon(Icons.notifications_outlined),
-            title: const Text('Уведомления о сообщениях'),
-            value: _notificationsEnabled,
-            onChanged: _setNotifications,
+          ListenableBuilder(
+            listenable: NotificationSettings.instance,
+            builder: (context, _) {
+              final enabled = NotificationSettings.instance.enabled;
+              return ListTile(
+                leading: Icon(
+                  enabled
+                      ? Icons.notifications_outlined
+                      : Icons.notifications_off_outlined,
+                  color: enabled ? null : Colors.grey,
+                ),
+                title: const Text('Настройки уведомлений'),
+                subtitle: Text(enabled ? 'Включены' : 'Выключены'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => unawaited(Navigator.push<void>(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => const NotificationSettingsScreen(),
+                  ),
+                )),
+              );
+            },
           ),
 
           // ── О приложении ─────────────────────────────────────
@@ -118,8 +113,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content:
-                      Text('github.com/gazlevodiva/Meshly'),
+                  content: Text('github.com/gazlevodiva/Meshly'),
                 ),
               );
             },

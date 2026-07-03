@@ -7,6 +7,7 @@ import 'package:meshly/models/message.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/meshtastic_proto.dart';
 import 'package:meshly/services/notification_service.dart';
+import 'package:meshly/services/notification_settings.dart';
 
 // Prints are used for BLE debug logging in MeshService.
 // ignore_for_file: avoid_print
@@ -253,11 +254,17 @@ class MeshService {
     } else {
       notifTitle = fromNodeId;
     }
-    await NotificationService.instance.showMessage(
-      title: notifTitle,
-      body: msg.text,
-      conversationId: conv.id,
+    final shouldNotify = NotificationSettings.instance.shouldNotify(
+      convId: conv.id,
+      isDm: conv.isDm,
     );
+    if (shouldNotify) {
+      await NotificationService.instance.showMessage(
+        title: notifTitle,
+        body: msg.text,
+        conversationId: conv.id,
+      );
+    }
   }
 
   // ── Helpers ───────────────────────────────────────────────

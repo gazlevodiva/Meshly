@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:meshly/models/mesh_channel.dart';
 import 'package:meshly/services/contact_store.dart';
+import 'package:meshly/services/notification_settings.dart';
 import 'package:meshly/services/qr_service.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -122,6 +123,31 @@ class ChannelInfoScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 32),
+
+            // Уведомления
+            ListenableBuilder(
+              listenable: NotificationSettings.instance,
+              builder: (context, _) {
+                final convId = 'ch_${channel.id}';
+                final settings = NotificationSettings.instance;
+                final muted = settings.isMuted(convId);
+                return SwitchListTile(
+                  secondary: Icon(muted
+                      ? Icons.notifications_off_outlined
+                      : Icons.notifications_outlined),
+                  title: const Text('Уведомления'),
+                  value: !muted,
+                  onChanged: (v) async {
+                    if (v) {
+                      await settings.unmuteConversation(convId);
+                    } else {
+                      await settings.muteConversation(convId);
+                    }
+                  },
+                );
+              },
+            ),
+            const SizedBox(height: 16),
 
             // Инфо
             const _InfoRow(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:meshly/models/conversation.dart';
 import 'package:meshly/models/message.dart';
 import 'package:meshly/services/contact_store.dart';
+import 'package:meshly/services/notification_settings.dart';
 
 class ConversationTile extends StatelessWidget {
   const ConversationTile({
@@ -24,34 +25,55 @@ class ConversationTile extends StatelessWidget {
     final last = conv.lastMessage;
     final hasUnread = conv.unreadCount > 0;
 
-    return ListTile(
-      onTap: onTap,
-      leading: _Avatar(emoji: emoji, title: title, isOnline: isOnline && conv.isDm),
-      title: Text(
-        title,
-        style: TextStyle(fontWeight: hasUnread ? FontWeight.w700 : FontWeight.w500),
-      ),
-      subtitle: last != null ? _LastMessageRow(msg: last) : null,
-      trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (last != null)
-            Text(
-              _formatTime(last.time),
-              style: TextStyle(
-                fontSize: 11,
-                color: hasUnread
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.grey,
+    return ListenableBuilder(
+      listenable: NotificationSettings.instance,
+      builder: (context, _) {
+        final muted = NotificationSettings.instance.isMuted(conv.id);
+        return ListTile(
+          onTap: onTap,
+          leading:
+              _Avatar(emoji: emoji, title: title, isOnline: isOnline && conv.isDm),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                      fontWeight: hasUnread ? FontWeight.w700 : FontWeight.w500),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-          if (hasUnread) ...[
-            const SizedBox(height: 4),
-            _Badge(count: conv.unreadCount),
-          ],
-        ],
-      ),
+              if (muted)
+                const Padding(
+                  padding: EdgeInsets.only(left: 4),
+                  child: Icon(Icons.notifications_off_outlined,
+                      size: 14, color: Colors.grey),
+                ),
+            ],
+          ),
+          subtitle: last != null ? _LastMessageRow(msg: last) : null,
+          trailing: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (last != null)
+                Text(
+                  _formatTime(last.time),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: hasUnread
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.grey,
+                  ),
+                ),
+              if (hasUnread) ...[
+                const SizedBox(height: 4),
+                _Badge(count: conv.unreadCount),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 

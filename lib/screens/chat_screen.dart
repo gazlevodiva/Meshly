@@ -220,7 +220,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 if (ch != null) {
                   unawaited(Navigator.push(
                     context,
-                    MaterialPageRoute(
+                    MaterialPageRoute<void>(
                       builder: (_) => ChannelInfoScreen(channel: ch),
                     ),
                   ));
