@@ -7,106 +7,97 @@ import 'package:meshly/screens/chat_screen.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
 
-class ContactsScreen extends StatefulWidget {
+class ContactsScreen extends StatelessWidget {
   const ContactsScreen({required this.meshService, super.key});
 
   final MeshService meshService;
 
-  @override
-  State<ContactsScreen> createState() => _ContactsScreenState();
-}
-
-class _ContactsScreenState extends State<ContactsScreen> {
-  final ContactStore _store = ContactStore.instance;
-
-  List<Contact> get _contacts => _store.contacts;
-
-  void _openChat(Contact contact) {
+  void _openChat(BuildContext context, Contact contact) {
     final store = ContactStore.instance;
-    final conv = store.dmForNode(contact.nodeId) ??
-        store.conversations
-            .where((c) => c.isDm && c.peerId == contact.nodeId)
-            .firstOrNull;
+    final conv = store.dmForNode(contact.nodeId);
     if (conv == null) return;
     unawaited(store.markRead(conv.id));
     unawaited(Navigator.push<void>(
       context,
       MaterialPageRoute<void>(
         builder: (_) => ChatScreen(
-          meshService: widget.meshService,
+          meshService: meshService,
           conversation: conv,
         ),
       ),
-    ).then((_) => setState(() {})));
+    ));
+    // No setState — ContactStore.notifyListeners() drives rebuilds.
   }
 
-  void _openAddContact() {
+  void _openAddContact(BuildContext context) {
     unawaited(Navigator.push<void>(
       context,
       MaterialPageRoute<void>(builder: (_) => const AddContactScreen()),
-    ).then((_) => setState(() {})));
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
-    final contacts = _contacts;
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Контакты'),
-      ),
-      body: contacts.isEmpty
-          ? const Center(
-              child: Text(
-                'Нет контактов. Добавьте через +',
-                style: TextStyle(color: Colors.grey),
-              ),
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.only(bottom: 96),
-              itemCount: contacts.length,
-              separatorBuilder: (_, sep) =>
-                  const Divider(height: 1, indent: 72),
-              itemBuilder: (_, i) {
-                final contact = contacts[i];
-                final online =
-                    widget.meshService.isOnline(contact.nodeId);
-                return ListTile(
-                  leading: Stack(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: Colors.transparent,
-                        child: Text(
-                          contact.avatarEmoji ?? '👤',
-                          style: const TextStyle(fontSize: 22),
-                        ),
-                      ),
-                      if (online)
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: Colors.green,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Theme.of(context).scaffoldBackgroundColor,
-                                width: 2,
-                              ),
+      appBar: AppBar(title: const Text('Контакты')),
+      body: ListenableBuilder(
+        listenable: ContactStore.instance,
+        builder: (context, _) {
+          final contacts = ContactStore.instance.contacts;
+          return contacts.isEmpty
+              ? const Center(
+                  child: Text(
+                    'Нет контактов. Добавьте через +',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.only(bottom: 96),
+                  itemCount: contacts.length,
+                  separatorBuilder: (_, _) =>
+                      const Divider(height: 1, indent: 72),
+                  itemBuilder: (_, i) {
+                    final contact = contacts[i];
+                    final online = meshService.isOnline(contact.nodeId);
+                    return ListTile(
+                      leading: Stack(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: Colors.transparent,
+                            child: Text(
+                              contact.avatarEmoji ?? '👤',
+                              style: const TextStyle(fontSize: 22),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
-                  title: Text(contact.displayName),
-                  onTap: () => _openChat(contact),
+                          if (online)
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: Colors.green,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color:
+                                        Theme.of(context).scaffoldBackgroundColor,
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      title: Text(contact.displayName),
+                      onTap: () => _openChat(context, contact),
+                    );
+                  },
                 );
-              },
-            ),
+        },
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _openAddContact,
+        onPressed: () => _openAddContact(context),
         child: const Icon(Icons.person_add),
       ),
     );

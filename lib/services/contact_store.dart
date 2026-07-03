@@ -41,9 +41,14 @@ class ContactStore extends ChangeNotifier {
 
   Future<void> init() async {
     if (_ready) return;
-    // SharedPreferences may throw Error (not Exception) in test environments without binding.
     // ignore: avoid_catches_without_on_clauses
-    try { await _migrateFromPrefs(); } catch (_) {}
+    try {
+      await _migrateFromPrefs();
+    } catch (e) {
+      // Migration failure is non-fatal. Catches both Exception and Error
+      // (e.g. binding not initialized in test environments).
+      print('[Store] migration skipped: $e');
+    }
     await _loadAll();
     _ready = true;
     print('[Store] loaded: ${_contacts.length} contacts, ${_channels.length} channels, ${_conversations.length} conversations');

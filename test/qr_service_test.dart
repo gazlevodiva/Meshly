@@ -106,5 +106,47 @@ void main() {
         isNull,
       );
     });
+
+    // ── Slot bounds validation ─────────────────────────────
+
+    test('decodeChannel returns null for slot=0 (reserved)', () {
+      expect(
+        QrService.decodeChannel('mesh://channel/test?psk=AAAA&slot=0'),
+        isNull,
+      );
+    });
+
+    test('decodeChannel returns null for slot=8 (out of range)', () {
+      expect(
+        QrService.decodeChannel('mesh://channel/test?psk=AAAA&slot=8'),
+        isNull,
+      );
+    });
+
+    test('decodeChannel returns null for slot=99 (malicious QR)', () {
+      expect(
+        QrService.decodeChannel('mesh://channel/test?psk=AAAA&slot=99'),
+        isNull,
+      );
+    });
+
+    test('decodeChannel returns null for non-numeric slot', () {
+      expect(
+        QrService.decodeChannel('mesh://channel/test?psk=AAAA&slot=abc'),
+        isNull,
+      );
+    });
+
+    test('decodeChannel accepts valid slot boundaries 1 and 7', () {
+      final psk = Uint8List(32);
+      final channel = MeshChannel(id: 'x', name: 'ch', psk: psk, slotIndex: 1);
+      final url1 = QrService.encodeChannel(channel);
+      expect(QrService.decodeChannel(url1)?.slotIndex, equals(1));
+
+      final channel7 =
+          MeshChannel(id: 'y', name: 'ch7', psk: psk, slotIndex: 7);
+      final url7 = QrService.encodeChannel(channel7);
+      expect(QrService.decodeChannel(url7)?.slotIndex, equals(7));
+    });
   });
 }

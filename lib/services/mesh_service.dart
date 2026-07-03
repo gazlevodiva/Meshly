@@ -23,6 +23,7 @@ class MeshService {
   BluetoothCharacteristic? _fromRadio;
   BluetoothCharacteristic? _fromNum;
   Timer? _pollTimer;
+  bool _disposed = false;
 
   int? _myNodeNum;
   final Map<String, DateTime> _lastHeard = {};
@@ -124,7 +125,11 @@ class MeshService {
     } else if (conv.isChannel && conv.channelId != null) {
       // Канал: broadcast, нужный слот
       final ch = store.channelById(conv.channelId!);
-      channelSlot = ch?.slotIndex ?? 2;
+      if (ch == null) {
+        print('[Mesh] sendText: channel ${conv.channelId} not found, aborting');
+        return;
+      }
+      channelSlot = ch.slotIndex;
     } else {
       return;
     }
@@ -156,7 +161,7 @@ class MeshService {
   // ── Incoming packet dispatch ───────────────────────────────
 
   Future<void> _drainFromRadio() async {
-    if (_fromRadio == null) return;
+    if (_disposed || _fromRadio == null) return;
     for (var i = 0; i < 20; i++) {
       try {
         final bytes = await _fromRadio!.read();
@@ -289,6 +294,7 @@ class MeshService {
       );
 
   void dispose() {
+    _disposed = true;
     _pollTimer?.cancel();
     unawaited(_incomingController.close());
     unawaited(_deviceNameController.close());

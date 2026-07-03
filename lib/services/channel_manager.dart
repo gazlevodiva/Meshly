@@ -53,13 +53,17 @@ class ChannelManager {
   }
 
   // Добавить канал полученный по QR (уже есть PSK и slot)
-  Future<MeshChannel> addFromQr({
+  Future<MeshChannel?> addFromQr({
     required String name,
     required Uint8List psk,
     required int slotIndex,
     required String? avatarEmoji,
     required MeshService meshService,
   }) async {
+    if (slotIndex < _minSlot || slotIndex > _maxSlot) {
+      print('[ChannelMgr] addFromQr: invalid slotIndex $slotIndex, aborting');
+      return null;
+    }
     final store = ContactStore.instance;
     final ch = await store.createChannel(
       name: name,

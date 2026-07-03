@@ -64,10 +64,12 @@ class QrService {
       final pskStr = uri.queryParameters['psk'];
       final slotStr = uri.queryParameters['slot'];
       if (name == null || pskStr == null || slotStr == null) return null;
+      final slotIndex = int.tryParse(slotStr);
+      if (slotIndex == null || slotIndex < 1 || slotIndex > 7) return null;
       return ChannelQrData(
         name: name,
         psk: base64Url.decode(pskStr),
-        slotIndex: int.parse(slotStr),
+        slotIndex: slotIndex,
         avatarEmoji: uri.queryParameters['emoji'],
       );
     } on Exception catch (_) {
