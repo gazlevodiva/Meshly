@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:meshly/screens/onboarding_screen.dart';
 import 'package:meshly/screens/scan_screen.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/notification_service.dart';
 import 'package:meshly/services/notification_settings.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,11 +13,15 @@ void main() async {
   await NotificationSettings.instance.load();
   await NotificationService.instance.init();
   await NotificationService.instance.requestPermissions();
-  runApp(const MeshlyApp());
+  final prefs = await SharedPreferences.getInstance();
+  final onboardingDone = prefs.getBool('onboarding_done_v1') ?? false;
+  runApp(MeshlyApp(onboardingDone: onboardingDone));
 }
 
 class MeshlyApp extends StatefulWidget {
-  const MeshlyApp({super.key});
+  const MeshlyApp({required this.onboardingDone, super.key});
+
+  final bool onboardingDone;
 
   @override
   State<MeshlyApp> createState() => _MeshlyAppState();
@@ -39,7 +45,9 @@ class _MeshlyAppState extends State<MeshlyApp> {
         colorSchemeSeed: Colors.blue,
         useMaterial3: true,
       ),
-      home: ScanScreen(meshService: _meshService),
+      home: widget.onboardingDone
+          ? ScanScreen(meshService: _meshService)
+          : OnboardingScreen(meshService: _meshService),
     );
   }
 }
