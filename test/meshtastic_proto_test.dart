@@ -162,6 +162,53 @@ void main() {
       expect(sender, isNull);
     });
 
+    // ── Packet id / ACK correlation ────────────────────────
+
+    test('encodeTextMessage writes explicit id into MeshPacket.id (field 6)', () {
+      const msgId = 0x12345678;
+      final toRadio = MeshtasticProto.encodeTextMessage(
+        'ack me',
+        fromNode: 0x11111111,
+        id: msgId,
+      );
+      final fromRadio = toFromRadio(toRadio);
+      final result = MeshtasticProto.decodeFromRadio(fromRadio);
+      expect(result.meshId, equals(msgId));
+    });
+
+    test('encodeTextMessage id roundtrips for max 31-bit value', () {
+      const msgId = 0x7FFFFFFF; // как в sendText: millisecondsSinceEpoch & 0x7FFFFFFF
+      final toRadio = MeshtasticProto.encodeTextMessage(
+        'edge',
+        fromNode: 0x22222222,
+        id: msgId,
+      );
+      final fromRadio = toFromRadio(toRadio);
+      final result = MeshtasticProto.decodeFromRadio(fromRadio);
+      expect(result.meshId, equals(msgId));
+    });
+
+    test('decodeRoutingAck reads request_id matching the sent packet id', () {
+      const requestId = 0x0A0B0C0D;
+      // Data: field1=portnum(5=ROUTING_APP), field2=Routing payload,
+      // field6=request_id (fixed32, tag = (6<<3)|5 = 0x35)
+      final routing = [0x18, 0x00]; // Routing.error_reason (field3 varint) = 0 = NONE
+      final data = [
+        0x08, 0x05, // portnum = 5
+        0x12, routing.length, ...routing,
+        0x35, 0x0D, 0x0C, 0x0B, 0x0A, // request_id fixed32 LE
+      ];
+      // MeshPacket.field4 = Data (tag 34)
+      final packet = [0x22, data.length, ...data];
+      // FromRadio.field2 = MeshPacket (tag 18)
+      final fromRadio = [0x12, packet.length, ...packet];
+
+      final ack = MeshtasticProto.decodeRoutingAck(fromRadio);
+      expect(ack, isNotNull);
+      expect(ack!.meshId, equals(requestId));
+      expect(ack.errorCode, equals(0));
+    });
+
     // ── Malformed UTF-8 resilience ─────────────────────────
 
     test('decodeFromRadio does not throw on malformed UTF-8 in text payload', () {

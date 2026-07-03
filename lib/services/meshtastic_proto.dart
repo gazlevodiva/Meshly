@@ -58,10 +58,13 @@ class MeshtasticProto {
     return _buf([_msg(1, packet)]);
   }
 
-  static Uint8List encodeTextMessage(String text, {int? to, int channel = 0, int? fromNode}) {
+  // `id` — наш packet id (MeshPacket.id, field 6). Радио использует его как есть,
+  // и ROUTING ACK приходит с этим же id в Data.request_id — так мы сопоставляем
+  // подтверждение доставки с сообщением в store.
+  static Uint8List encodeTextMessage(String text, {int? to, int channel = 0, int? fromNode, int? id}) {
     final dest = to ?? _broadcastAddr;
     final textBytes = Uint8List.fromList(utf8.encode(text));
-    final msgId = DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF;
+    final msgId = id ?? (DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF);
 
     final data = _buf([
       _varint(1, _portTextMessage),

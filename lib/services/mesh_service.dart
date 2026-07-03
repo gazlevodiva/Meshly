@@ -134,17 +134,21 @@ class MeshService {
       return;
     }
 
+    // Генерируем packet id заранее и передаём его в encodeTextMessage,
+    // чтобы радио отправило пакет с НАШИМ id — тогда ROUTING ACK (request_id)
+    // совпадёт с meshId сохранённого сообщения и статус обновится на acked.
+    final msgId = DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF;
     final encoded = MeshtasticProto.encodeTextMessage(
       text,
       to: toNode,
       channel: channelSlot,
       fromNode: _myNodeNum,
+      id: msgId,
     );
 
     await _toRadio!.write(encoded);
 
     // Добавляем исходящее сообщение в store
-    final msgId = DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF;
     final msg = Message(
       meshId: msgId,
       fromNodeId: myNodeId ?? '!00000000',
