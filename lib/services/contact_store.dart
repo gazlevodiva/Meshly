@@ -1,13 +1,15 @@
 import 'dart:convert';
+
 import 'package:drift/drift.dart';
+import 'package:meshly/models/contact.dart' as m;
+import 'package:meshly/models/conversation.dart' as m;
+import 'package:meshly/models/mesh_channel.dart' as m;
+import 'package:meshly/models/message.dart' as m;
+import 'package:meshly/services/app_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-import '../models/contact.dart' as m;
-import '../models/conversation.dart' as m;
-import '../models/mesh_channel.dart' as m;
-import '../models/message.dart' as m;
-import 'app_database.dart';
 
+// Prints are used for debug logging in ContactStore.
 // ignore_for_file: avoid_print
 
 const _uuid = Uuid();
@@ -37,6 +39,8 @@ class ContactStore {
 
   Future<void> init() async {
     if (_ready) return;
+    // SharedPreferences may throw Error (not Exception) in test environments without binding.
+    // ignore: avoid_catches_without_on_clauses
     try { await _migrateFromPrefs(); } catch (_) {}
     await _loadAll();
     _ready = true;
@@ -120,7 +124,7 @@ class ContactStore {
           }
         }
       }
-    } catch (e) {
+    } on Exception catch (e) {
       print('[Store] Migration error: $e');
     }
 
@@ -312,8 +316,9 @@ class ContactStore {
     // Update conversation
     final conv = _conversations[msg.conversationId];
     if (conv != null) {
-      conv.lastMessage = msg;
-      conv.updatedAt = msg.time;
+      conv
+        ..lastMessage = msg
+        ..updatedAt = msg.time;
       if (!msg.isMe) conv.unreadCount++;
       await saveConversation(conv);
     }

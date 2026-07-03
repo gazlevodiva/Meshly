@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
-import '../models/conversation.dart';
-import '../models/message.dart';
-import '../services/contact_store.dart';
+import 'package:meshly/models/conversation.dart';
+import 'package:meshly/models/message.dart';
+import 'package:meshly/services/contact_store.dart';
 
 class ConversationTile extends StatelessWidget {
+  const ConversationTile({
+    required this.conv,
+    required this.title,
+    required this.onTap,
+    super.key,
+    this.emoji,
+    this.isOnline = false,
+  });
+
   final Conversation conv;
   final String title;
   final String? emoji;
   final bool isOnline;
   final VoidCallback onTap;
-
-  const ConversationTile({
-    super.key,
-    required this.conv,
-    required this.title,
-    required this.onTap,
-    this.emoji,
-    this.isOnline = false,
-  });
 
   @override
   Widget build(BuildContext context) {
@@ -65,11 +65,11 @@ class ConversationTile extends StatelessWidget {
 }
 
 class _Avatar extends StatelessWidget {
+  const _Avatar({required this.title, this.emoji, this.isOnline = false});
+
   final String? emoji;
   final String title;
   final bool isOnline;
-
-  const _Avatar({this.emoji, required this.title, this.isOnline = false});
 
   @override
   Widget build(BuildContext context) {
@@ -110,9 +110,9 @@ class _Avatar extends StatelessWidget {
 }
 
 class _LastMessageRow extends StatelessWidget {
-  final Message msg;
-
   const _LastMessageRow({required this.msg});
+
+  final Message msg;
 
   @override
   Widget build(BuildContext context) {
@@ -128,8 +128,9 @@ class _LastMessageRow extends StatelessWidget {
 }
 
 class _Badge extends StatelessWidget {
-  final int count;
   const _Badge({required this.count});
+
+  final int count;
 
   @override
   Widget build(BuildContext context) {

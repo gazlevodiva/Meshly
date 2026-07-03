@@ -1,13 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:meshly/screens/main_screen.dart';
+import 'package:meshly/services/mesh_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/mesh_service.dart';
-import 'home_screen.dart';
 
 class ScanScreen extends StatefulWidget {
+  const ScanScreen({required this.meshService, super.key});
+
   final MeshService meshService;
-  const ScanScreen({super.key, required this.meshService});
 
   @override
   State<ScanScreen> createState() => _ScanScreenState();
@@ -21,11 +24,8 @@ class _ScanScreenState extends State<ScanScreen> {
   String? _connectingName;
   String? _lastDeviceName;
 
-  List<ScanResult> get _results {
-    final list = _resultsMap.values.where(_isRelevant).toList();
-    list.sort((a, b) => b.rssi.compareTo(a.rssi));
-    return list;
-  }
+  List<ScanResult> get _results => _resultsMap.values.where(_isRelevant).toList()
+    ..sort((a, b) => b.rssi.compareTo(a.rssi));
 
   bool _isRelevant(ScanResult r) {
     if (r.device.platformName.isEmpty) return false;
@@ -42,7 +42,7 @@ class _ScanScreenState extends State<ScanScreen> {
   @override
   void initState() {
     super.initState();
-    _tryAutoConnect();
+    unawaited(_tryAutoConnect());
   }
 
   Future<void> _tryAutoConnect() async {
@@ -67,7 +67,7 @@ class _ScanScreenState extends State<ScanScreen> {
     }
 
     // Scan for up to 10 seconds to find the device
-    bool found = false;
+    var found = false;
     final subscription = widget.meshService.scan().listen((results) {
       for (final r in results) {
         if (r.device.remoteId.str == lastId) {
@@ -79,7 +79,7 @@ class _ScanScreenState extends State<ScanScreen> {
       }
     });
 
-    await Future.delayed(const Duration(seconds: 10));
+    await Future<void>.delayed(const Duration(seconds: 10));
     await widget.meshService.stopScan();
     await subscription.cancel();
 
@@ -125,16 +125,16 @@ class _ScanScreenState extends State<ScanScreen> {
       _resultsMap.clear();
     });
 
-    widget.meshService.scan().listen((results) {
+    unawaited(widget.meshService.scan().listen((results) {
       if (!mounted) return;
       setState(() {
         for (final r in results) {
           _resultsMap[r.device.remoteId.str] = r;
         }
       });
-    });
+    }).asFuture());
 
-    await Future.delayed(const Duration(seconds: 10));
+    await Future<void>.delayed(const Duration(seconds: 10));
     await widget.meshService.stopScan();
     if (mounted) setState(() => _state = _ScreenState.idle);
   }
@@ -165,17 +165,17 @@ class _ScanScreenState extends State<ScanScreen> {
       await prefs.setString('last_device_name', device.platformName);
 
       if (mounted) {
-        Navigator.pushReplacement(
+        unawaited(Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => HomeScreen(meshService: widget.meshService),
+            builder: (_) => MainScreen(meshService: widget.meshService),
           ),
-        );
+        ));
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (mounted) {
         setState(() => _state = _ScreenState.idle);
-        showDialog(
+        unawaited(showDialog(
           context: context,
           builder: (_) => AlertDialog(
             title: const Text('Ошибка подключения'),
@@ -187,12 +187,12 @@ class _ScanScreenState extends State<ScanScreen> {
               ),
             ],
           ),
-        );
+        ));
       }
     }
   }
 
-  void _cancelAutoConnect() async {
+  Future<void> _cancelAutoConnect() async {
     await widget.meshService.stopScan();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('last_device_id');
@@ -216,16 +216,16 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   Widget _buildHeader() {
-    return Column(
+    return const Column(
       children: [
-        const Icon(Icons.bluetooth, size: 72, color: Colors.blue),
-        const SizedBox(height: 12),
-        const Text(
+        Icon(Icons.bluetooth, size: 72, color: Colors.blue),
+        SizedBox(height: 12),
+        Text(
           'Meshly',
           style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 4),
-        const Text(
+        SizedBox(height: 4),
+        Text(
           'Mesh messenger for people you trust',
           style: TextStyle(fontSize: 14, color: Colors.grey),
           textAlign: TextAlign.center,

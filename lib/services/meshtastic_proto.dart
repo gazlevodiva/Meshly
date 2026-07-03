@@ -90,7 +90,7 @@ class MeshtasticProto {
       final myInfo = _readMsg(bytes, 3);
       if (myInfo == null) return null;
       return _readVarint(myInfo, 1); // MyNodeInfo.my_node_num
-    } catch (_) {
+    } on Exception catch (_) {
       return null;
     }
   }
@@ -119,7 +119,7 @@ class MeshtasticProto {
         longName: longBytes != null ? utf8.decode(longBytes) : '',
         shortName: shortBytes != null ? utf8.decode(shortBytes) : '',
       );
-    } catch (e) {
+    } on Exception catch (_) {
       return null;
     }
   }
@@ -161,7 +161,7 @@ class MeshtasticProto {
       final text = utf8.decode(payload);
       debugPrint('[Proto] received text="$text"');
       return (text: text, from: fromStr, channel: channel, meshId: meshId, isDm: isDm);
-    } catch (e) {
+    } on Exception catch (e) {
       debugPrint('[Proto] decode error: $e');
       return empty;
     }
@@ -177,7 +177,7 @@ class MeshtasticProto {
       final fromNode = _readFixed32(packet, 1);
       if (fromNode == null || fromNode == 0) return null;
       return '!${(fromNode & 0xFFFFFFFF).toRadixString(16).padLeft(8, '0')}';
-    } catch (_) {
+    } on Exception catch (_) {
       return null;
     }
   }
@@ -197,7 +197,7 @@ class MeshtasticProto {
       final routingPayload = _readMsg(decoded, 2);
       final errorCode = routingPayload != null ? (_readVarint(routingPayload, 3) ?? 0) : 0;
       return (meshId: requestId, errorCode: errorCode);
-    } catch (_) {
+    } on Exception catch (_) {
       return null;
     }
   }
@@ -236,18 +236,19 @@ class MeshtasticProto {
 
   static List<int> _encVarint(int v) {
     final out = <int>[];
-    while (v > 0x7F) {
-      out.add((v & 0x7F) | 0x80);
-      v >>>= 7;
+    var value = v;
+    while (value > 0x7F) {
+      out.add((value & 0x7F) | 0x80);
+      value >>>= 7;
     }
-    out.add(v & 0x7F);
+    out.add(value & 0x7F);
     return out;
   }
 
   // ── Decoding ──────────────────────────────────────────────
 
   static Uint8List? _readMsg(Uint8List data, int field) {
-    int pos = 0;
+    var pos = 0;
     while (pos < data.length) {
       final r = _decVarint(data, pos);
       pos = r.$2;
@@ -278,7 +279,7 @@ class MeshtasticProto {
   }
 
   static int? _readVarint(Uint8List data, int field) {
-    int pos = 0;
+    var pos = 0;
     while (pos < data.length) {
       final r = _decVarint(data, pos);
       pos = r.$2;
@@ -307,7 +308,7 @@ class MeshtasticProto {
 
   // Read a fixed32 field (wire type 5, 4 bytes little-endian)
   static int? _readFixed32(Uint8List data, int field) {
-    int pos = 0;
+    var pos = 0;
     while (pos < data.length) {
       final r = _decVarint(data, pos);
       pos = r.$2;
@@ -337,13 +338,15 @@ class MeshtasticProto {
   }
 
   static (int, int) _decVarint(Uint8List data, int pos) {
-    int result = 0, shift = 0;
-    while (pos < data.length) {
-      final b = data[pos++];
+    var result = 0;
+    var shift = 0;
+    var currentPos = pos;
+    while (currentPos < data.length) {
+      final b = data[currentPos++];
       result |= (b & 0x7F) << shift;
       if ((b & 0x80) == 0) break;
       shift += 7;
     }
-    return (result, pos);
+    return (result, currentPos);
   }
 }

@@ -1,27 +1,29 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
-import '../models/conversation.dart';
-import '../services/contact_store.dart';
-import '../services/mesh_service.dart';
-import '../services/notification_service.dart';
-import '../widgets/conversation_tile.dart';
-import 'add_contact_screen.dart';
-import 'chat_screen.dart';
-import 'my_card_screen.dart';
-import 'new_channel_screen.dart';
-import 'scan_screen.dart';
+import 'package:meshly/models/conversation.dart';
+import 'package:meshly/models/message.dart';
+import 'package:meshly/screens/add_contact_screen.dart';
+import 'package:meshly/screens/chat_screen.dart';
+import 'package:meshly/screens/my_card_screen.dart';
+import 'package:meshly/screens/new_channel_screen.dart';
+import 'package:meshly/services/contact_store.dart';
+import 'package:meshly/services/mesh_service.dart';
+import 'package:meshly/services/notification_service.dart';
+import 'package:meshly/widgets/conversation_tile.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({required this.meshService, super.key});
+
   final MeshService meshService;
-  const HomeScreen({super.key, required this.meshService});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _store = ContactStore.instance;
-  StreamSubscription? _msgSub;
+  final ContactStore _store = ContactStore.instance;
+  StreamSubscription<Message>? _msgSub;
 
   @override
   void initState() {
@@ -40,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _msgSub?.cancel();
+    unawaited(_msgSub?.cancel());
     super.dispose();
   }
 
@@ -67,28 +69,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openChat(Conversation conv) {
-    _store.markRead(conv.id);
-    Navigator.push(
+    unawaited(_store.markRead(conv.id));
+    unawaited(Navigator.push<void>(
       context,
-      MaterialPageRoute(
+      MaterialPageRoute<void>(
         builder: (_) => ChatScreen(
           meshService: widget.meshService,
           conversation: conv,
         ),
       ),
-    ).then((_) => setState(() {}));
-  }
-
-  void _disconnect() async {
-    await widget.meshService.disconnect();
-    if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (_) => ScanScreen(meshService: widget.meshService),
-        ),
-        (_) => false,
-      );
-    }
+    ).then((_) => setState(() {})));
   }
 
   @override
@@ -101,17 +91,11 @@ class _HomeScreenState extends State<HomeScreen> {
           stream: widget.meshService.connectedDeviceName,
           builder: (_, snap) => Text(snap.data != null ? 'Meshly · ${snap.data}' : 'Meshly'),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.bluetooth_disabled),
-            tooltip: 'Отключиться',
-            onPressed: _disconnect,
-          ),
-        ],
       ),
       body: convs.isEmpty
           ? _EmptyState(onAddContact: () => _showAddOptions(context))
           : ListView.separated(
+              padding: const EdgeInsets.only(bottom: 96),
               itemCount: convs.length,
               separatorBuilder: (_, _) => const Divider(height: 1, indent: 72),
               itemBuilder: (_, i) {
@@ -134,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showAddOptions(BuildContext context) {
-    showModalBottomSheet(
+    unawaited(showModalBottomSheet(
       context: context,
       builder: (_) => SafeArea(
         child: Column(
@@ -145,12 +129,12 @@ class _HomeScreenState extends State<HomeScreen> {
               title: const Text('Добавить контакт'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
+                unawaited(Navigator.push<void>(
                   context,
-                  MaterialPageRoute(
+                  MaterialPageRoute<void>(
                     builder: (_) => const AddContactScreen(),
                   ),
-                ).then((_) => setState(() {}));
+                ).then((_) => setState(() {})));
               },
             ),
             ListTile(
@@ -158,13 +142,13 @@ class _HomeScreenState extends State<HomeScreen> {
               title: const Text('Создать канал'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
+                unawaited(Navigator.push<void>(
                   context,
-                  MaterialPageRoute(
+                  MaterialPageRoute<void>(
                     builder: (_) =>
                         NewChannelScreen(meshService: widget.meshService),
                   ),
-                ).then((_) => setState(() {}));
+                ).then((_) => setState(() {})));
               },
             ),
             ListTile(
@@ -172,24 +156,25 @@ class _HomeScreenState extends State<HomeScreen> {
               title: const Text('Мой контакт'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
+                unawaited(Navigator.push<void>(
                   context,
-                  MaterialPageRoute(
+                  MaterialPageRoute<void>(
                     builder: (_) => MyCardScreen(meshService: widget.meshService),
                   ),
-                );
+                ));
               },
             ),
           ],
         ),
       ),
-    );
+    ));
   }
 }
 
 class _EmptyState extends StatelessWidget {
-  final VoidCallback onAddContact;
   const _EmptyState({required this.onAddContact});
+
+  final VoidCallback onAddContact;
 
   @override
   Widget build(BuildContext context) {

@@ -1,21 +1,24 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:meshly/models/contact.dart';
+import 'package:meshly/services/contact_store.dart';
+import 'package:meshly/services/mesh_service.dart';
+import 'package:meshly/services/qr_service.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import '../models/contact.dart';
-import '../services/contact_store.dart';
-import '../services/mesh_service.dart';
-import '../services/qr_service.dart';
 
 class MyCardScreen extends StatefulWidget {
+  const MyCardScreen({required this.meshService, super.key});
+
   final MeshService meshService;
-  const MyCardScreen({super.key, required this.meshService});
 
   @override
   State<MyCardScreen> createState() => _MyCardScreenState();
 }
 
 class _MyCardScreenState extends State<MyCardScreen> {
-  final _store = ContactStore.instance;
+  final ContactStore _store = ContactStore.instance;
   final _nameController = TextEditingController();
   String _emoji = '😊';
   bool _editingName = false;
@@ -72,7 +75,7 @@ class _MyCardScreenState extends State<MyCardScreen> {
   }
 
   void _copyLink() {
-    Clipboard.setData(ClipboardData(text: _qrData));
+    unawaited(Clipboard.setData(ClipboardData(text: _qrData)));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Ссылка скопирована')),
     );
@@ -162,7 +165,6 @@ class _MyCardScreenState extends State<MyCardScreen> {
               padding: const EdgeInsets.all(16),
               child: QrImageView(
                 data: _qrData,
-                version: QrVersions.auto,
                 size: 220,
               ),
             ),
@@ -194,8 +196,9 @@ class _MyCardScreenState extends State<MyCardScreen> {
 }
 
 class _EmojiPickerDialog extends StatelessWidget {
-  final String current;
   const _EmojiPickerDialog({required this.current});
+
+  final String current;
 
   static const _emojis = [
     '😊', '👩', '👨', '👵', '👴', '👦', '👧',

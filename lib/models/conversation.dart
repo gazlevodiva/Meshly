@@ -1,20 +1,8 @@
-import 'message.dart';
+import 'package:meshly/models/message.dart';
 
 enum ConversationType { dm, channel }
 
 class Conversation {
-  final String id;
-  final ConversationType type;
-
-  // dm: peerId = nodeId контакта ('!1f8e42c9')
-  // channel: channelId = MeshChannel.id (локальный uuid)
-  final String? peerId;
-  final String? channelId;
-
-  Message? lastMessage;
-  int unreadCount;
-  DateTime updatedAt;
-
   Conversation({
     required this.id,
     required this.type,
@@ -24,19 +12,6 @@ class Conversation {
     this.unreadCount = 0,
     DateTime? updatedAt,
   }) : updatedAt = updatedAt ?? DateTime.now();
-
-  bool get isDm => type == ConversationType.dm;
-  bool get isChannel => type == ConversationType.channel;
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'type': type.name,
-    if (peerId != null) 'peerId': peerId,
-    if (channelId != null) 'channelId': channelId,
-    if (lastMessage != null) 'lastMessage': lastMessage!.toJson(),
-    'unreadCount': unreadCount,
-    'updatedAt': updatedAt.toIso8601String(),
-  };
 
   factory Conversation.fromJson(Map<String, dynamic> j) => Conversation(
     id: j['id'] as String,
@@ -62,4 +37,29 @@ class Conversation {
     type: ConversationType.channel,
     channelId: channelId,
   );
+
+  final String id;
+  final ConversationType type;
+
+  // dm: peerId = nodeId контакта ('!1f8e42c9')
+  // channel: channelId = MeshChannel.id (локальный uuid)
+  final String? peerId;
+  final String? channelId;
+
+  Message? lastMessage;
+  int unreadCount;
+  DateTime updatedAt;
+
+  bool get isDm => type == ConversationType.dm;
+  bool get isChannel => type == ConversationType.channel;
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'type': type.name,
+    if (peerId != null) 'peerId': peerId,
+    if (channelId != null) 'channelId': channelId,
+    if (lastMessage != null) 'lastMessage': lastMessage!.toJson(),
+    'unreadCount': unreadCount,
+    'updatedAt': updatedAt.toIso8601String(),
+  };
 }

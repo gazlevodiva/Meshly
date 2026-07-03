@@ -1,18 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:meshly/models/mesh_channel.dart';
+import 'package:meshly/services/contact_store.dart';
+import 'package:meshly/services/qr_service.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import '../models/mesh_channel.dart';
-import '../services/contact_store.dart';
-import '../services/qr_service.dart';
 
 class ChannelInfoScreen extends StatelessWidget {
+  const ChannelInfoScreen({required this.channel, super.key});
+
   final MeshChannel channel;
-  const ChannelInfoScreen({super.key, required this.channel});
 
   String get _qrData => QrService.encodeChannel(channel);
 
   void _copyLink(BuildContext context) {
-    Clipboard.setData(ClipboardData(text: _qrData));
+    unawaited(Clipboard.setData(ClipboardData(text: _qrData)));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Ссылка скопирована')),
     );
@@ -106,7 +109,6 @@ class ChannelInfoScreen extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               child: QrImageView(
                 data: _qrData,
-                version: QrVersions.auto,
                 size: 200,
               ),
             ),
@@ -122,7 +124,7 @@ class ChannelInfoScreen extends StatelessWidget {
             const SizedBox(height: 32),
 
             // Инфо
-            _InfoRow(
+            const _InfoRow(
               label: 'Шифрование',
               value: 'AES-256, уникальный ключ',
               icon: Icons.lock_outline,
@@ -146,17 +148,17 @@ class ChannelInfoScreen extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final bool monospace;
-
   const _InfoRow({
     required this.label,
     required this.value,
     required this.icon,
     this.monospace = false,
   });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final bool monospace;
 
   @override
   Widget build(BuildContext context) {

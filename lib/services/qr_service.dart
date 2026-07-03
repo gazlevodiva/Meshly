@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import '../models/contact.dart';
-import '../models/mesh_channel.dart';
+
+import 'package:meshly/models/contact.dart';
+import 'package:meshly/models/mesh_channel.dart';
 
 // URL схема:
 // mesh://contact/!1f8e42c9?name=Dentro&emoji=👩
@@ -32,7 +33,7 @@ class QrService {
       queryParameters: {
         'psk': base64Url.encode(ch.psk),
         'slot': ch.slotIndex.toString(),
-        if (ch.avatarEmoji != null) 'emoji': ch.avatarEmoji!,
+        if (ch.avatarEmoji != null) 'emoji': ch.avatarEmoji,
       },
     ).toString();
   }
@@ -50,7 +51,7 @@ class QrService {
         displayName: uri.queryParameters['name'] ?? nodeId,
         avatarEmoji: uri.queryParameters['emoji'],
       );
-    } catch (_) {
+    } on Exception catch (_) {
       return null;
     }
   }
@@ -69,7 +70,7 @@ class QrService {
         slotIndex: int.parse(slotStr),
         avatarEmoji: uri.queryParameters['emoji'],
       );
-    } catch (_) {
+    } on Exception catch (_) {
       return null;
     }
   }
@@ -82,7 +83,7 @@ class QrService {
       if (uri.host == 'contact') return QrType.contact;
       if (uri.host == 'channel') return QrType.channel;
       return null;
-    } catch (_) {
+    } on Exception catch (_) {
       return null;
     }
   }
@@ -91,25 +92,27 @@ class QrService {
 enum QrType { contact, channel }
 
 class ContactQrData {
-  final String nodeId;
-  final String displayName;
-  final String? avatarEmoji;
   const ContactQrData({
     required this.nodeId,
     required this.displayName,
     this.avatarEmoji,
   });
+
+  final String nodeId;
+  final String displayName;
+  final String? avatarEmoji;
 }
 
 class ChannelQrData {
-  final String name;
-  final Uint8List psk;
-  final int slotIndex;
-  final String? avatarEmoji;
   const ChannelQrData({
     required this.name,
     required this.psk,
     required this.slotIndex,
     this.avatarEmoji,
   });
+
+  final String name;
+  final Uint8List psk;
+  final int slotIndex;
+  final String? avatarEmoji;
 }

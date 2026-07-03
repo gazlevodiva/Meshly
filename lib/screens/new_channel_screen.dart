@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import '../services/channel_manager.dart';
-import '../services/mesh_service.dart';
+import 'package:meshly/services/channel_manager.dart';
+import 'package:meshly/services/mesh_service.dart';
 
 class NewChannelScreen extends StatefulWidget {
+  const NewChannelScreen({required this.meshService, super.key});
+
   final MeshService meshService;
-  const NewChannelScreen({super.key, required this.meshService});
 
   @override
   State<NewChannelScreen> createState() => _NewChannelScreenState();
@@ -63,7 +64,6 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
           children: [
             // Эмодзи + название
             Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 GestureDetector(
                   onTap: _pickEmoji,

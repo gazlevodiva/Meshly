@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'screens/scan_screen.dart';
-import 'services/contact_store.dart';
-import 'services/mesh_service.dart';
-import 'services/notification_service.dart';
+import 'package:meshly/screens/scan_screen.dart';
+import 'package:meshly/services/contact_store.dart';
+import 'package:meshly/services/mesh_service.dart';
+import 'package:meshly/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

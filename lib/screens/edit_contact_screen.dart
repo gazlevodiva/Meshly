@@ -1,20 +1,23 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:meshly/models/contact.dart';
+import 'package:meshly/services/contact_store.dart';
+import 'package:meshly/services/qr_service.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import '../models/contact.dart';
-import '../services/contact_store.dart';
-import '../services/qr_service.dart';
 
 class EditContactScreen extends StatefulWidget {
+  const EditContactScreen({required this.contact, super.key});
+
   final Contact contact;
-  const EditContactScreen({super.key, required this.contact});
 
   @override
   State<EditContactScreen> createState() => _EditContactScreenState();
 }
 
 class _EditContactScreenState extends State<EditContactScreen> {
-  final _store = ContactStore.instance;
+  final ContactStore _store = ContactStore.instance;
   late final TextEditingController _nameCtrl;
   late String _emoji;
   bool _saving = false;
@@ -50,7 +53,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
   Future<void> _shareContact() async {
     final qrUrl = QrService.encodeContact(widget.contact);
     if (!mounted) return;
-    showModalBottomSheet(
+    unawaited(showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -77,7 +80,6 @@ class _EditContactScreenState extends State<EditContactScreen> {
             const SizedBox(height: 20),
             QrImageView(
               data: qrUrl,
-              version: QrVersions.auto,
               size: 220,
             ),
             const SizedBox(height: 16),
@@ -116,7 +118,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   Future<void> _deleteContact() async {
@@ -167,7 +169,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
           Center(
             child: GestureDetector(
               onTap: () {
-                showModalBottomSheet(
+                unawaited(showModalBottomSheet(
                   context: context,
                   builder: (ctx) => Padding(
                     padding: const EdgeInsets.all(24),
@@ -206,7 +208,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
                       ],
                     ),
                   ),
-                );
+                ));
               },
               child: Stack(
                 alignment: Alignment.bottomRight,

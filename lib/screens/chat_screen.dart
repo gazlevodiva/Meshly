@@ -1,22 +1,23 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
-import '../models/contact.dart';
-import '../models/conversation.dart';
-import '../models/message.dart';
-import '../services/contact_store.dart';
-import '../services/mesh_service.dart';
-import 'channel_info_screen.dart';
-import 'edit_contact_screen.dart';
+import 'package:meshly/models/contact.dart';
+import 'package:meshly/models/conversation.dart';
+import 'package:meshly/models/message.dart';
+import 'package:meshly/screens/channel_info_screen.dart';
+import 'package:meshly/screens/edit_contact_screen.dart';
+import 'package:meshly/services/contact_store.dart';
+import 'package:meshly/services/mesh_service.dart';
 
 class ChatScreen extends StatefulWidget {
-  final MeshService meshService;
-  final Conversation conversation;
-
   const ChatScreen({
-    super.key,
     required this.meshService,
     required this.conversation,
+    super.key,
   });
+
+  final MeshService meshService;
+  final Conversation conversation;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -25,15 +26,15 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
-  final _store = ContactStore.instance;
-  StreamSubscription? _sub;
+  final ContactStore _store = ContactStore.instance;
+  StreamSubscription<Message>? _sub;
 
   List<Message> get _messages => _store.messagesFor(widget.conversation.id);
 
   @override
   void initState() {
     super.initState();
-    _store.markRead(widget.conversation.id);
+    unawaited(_store.markRead(widget.conversation.id));
     _sub = widget.meshService.incomingMessages.listen((msg) {
       if (msg.conversationId == widget.conversation.id && mounted) {
         setState(() {});
@@ -45,7 +46,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
-    _sub?.cancel();
+    unawaited(_sub?.cancel());
     _controller.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -54,11 +55,11 @@ class _ChatScreenState extends State<ChatScreen> {
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(
+        unawaited(_scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
-        );
+        ));
       }
     });
   }
@@ -74,7 +75,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final conv = widget.conversation;
     final nodeId = conv.peerId!;
     final nameCtrl = TextEditingController();
-    String selectedEmoji = '😊';
+    var selectedEmoji = '😊';
 
     const emojis = [
       '😊', '👩', '👨', '👵', '👴', '👦', '👧',
@@ -217,12 +218,12 @@ class _ChatScreenState extends State<ChatScreen> {
               onPressed: () {
                 final ch = _store.channelById(conv.channelId!);
                 if (ch != null) {
-                  Navigator.push(
+                  unawaited(Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => ChannelInfoScreen(channel: ch),
                     ),
-                  );
+                  ));
                 }
               },
             ),
@@ -277,9 +278,10 @@ class _ChatScreenState extends State<ChatScreen> {
 }
 
 class _MessageBubble extends StatelessWidget {
+  const _MessageBubble({required this.msg, required this.store});
+
   final Message msg;
   final ContactStore store;
-  const _MessageBubble({required this.msg, required this.store});
 
   @override
   Widget build(BuildContext context) {
@@ -326,8 +328,9 @@ class _MessageBubble extends StatelessWidget {
 }
 
 class _StatusIcon extends StatelessWidget {
-  final MessageStatus status;
   const _StatusIcon({required this.status});
+
+  final MessageStatus status;
 
   @override
   Widget build(BuildContext context) {
@@ -345,9 +348,10 @@ class _StatusIcon extends StatelessWidget {
 }
 
 class _InputBar extends StatelessWidget {
+  const _InputBar({required this.controller, required this.onSend});
+
   final TextEditingController controller;
   final VoidCallback onSend;
-  const _InputBar({required this.controller, required this.onSend});
 
   @override
   Widget build(BuildContext context) {

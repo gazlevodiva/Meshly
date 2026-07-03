@@ -1,12 +1,14 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import '../models/conversation.dart';
-import '../models/message.dart';
-import 'contact_store.dart';
-import 'meshtastic_proto.dart';
-import 'notification_service.dart';
+import 'package:meshly/models/conversation.dart';
+import 'package:meshly/models/message.dart';
+import 'package:meshly/services/contact_store.dart';
+import 'package:meshly/services/meshtastic_proto.dart';
+import 'package:meshly/services/notification_service.dart';
 
+// Prints are used for BLE debug logging in MeshService.
 // ignore_for_file: avoid_print
 
 const _meshServiceUuid   = '6ba1b218-15a8-461f-9fa8-5dcae273eafd';
@@ -47,14 +49,14 @@ class MeshService {
   bool get isConnected => _device != null;
 
   Stream<List<ScanResult>> scan({Duration timeout = const Duration(seconds: 10)}) {
-    FlutterBluePlus.startScan(timeout: timeout);
+    unawaited(FlutterBluePlus.startScan(timeout: timeout));
     return FlutterBluePlus.scanResults;
   }
 
   Future<void> stopScan() => FlutterBluePlus.stopScan();
 
   Future<void> connect(BluetoothDevice device) async {
-    await device.connect(license: License.nonprofit, autoConnect: false);
+    await device.connect(license: License.nonprofit);
     _device = device;
     _deviceNameController.add(
       device.platformName.isNotEmpty ? device.platformName : device.remoteId.str,
@@ -82,10 +84,10 @@ class MeshService {
 
     if (_fromNum != null) {
       await _fromNum!.setNotifyValue(true);
-      _fromNum!.onValueReceived.listen((_) => _drainFromRadio());
+      unawaited(_fromNum!.onValueReceived.listen((_) => _drainFromRadio()).asFuture());
     }
 
-    await _toRadio!.write(MeshtasticProto.encodeWantConfig(), withoutResponse: false);
+    await _toRadio!.write(MeshtasticProto.encodeWantConfig());
     await _drainFromRadio();
     _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) => _drainFromRadio());
   }
@@ -93,7 +95,7 @@ class MeshService {
   // Отправить сырые байты в ToRadio (для AdminMessage и др.)
   Future<void> writeRaw(List<int> bytes) async {
     if (_toRadio == null) return;
-    await _toRadio!.write(bytes, withoutResponse: false);
+    await _toRadio!.write(bytes);
   }
 
   Future<void> disconnect() async {
@@ -132,7 +134,7 @@ class MeshService {
       fromNode: _myNodeNum,
     );
 
-    await _toRadio!.write(encoded, withoutResponse: false);
+    await _toRadio!.write(encoded);
 
     // Добавляем исходящее сообщение в store
     final msgId = DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF;
@@ -158,7 +160,7 @@ class MeshService {
         final bytes = await _fromRadio!.read();
         if (bytes.isEmpty) break;
         await _onBytesReceived(bytes);
-      } catch (e) {
+      } on Exception catch (e) {
         print('[BLE] drain error: $e');
         break;
       }
@@ -280,7 +282,7 @@ class MeshService {
 
   void dispose() {
     _pollTimer?.cancel();
-    _incomingController.close();
-    _deviceNameController.close();
+    unawaited(_incomingController.close());
+    unawaited(_deviceNameController.close());
   }
 }

@@ -1,10 +1,11 @@
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-
+// Prints are used for notification debug logging.
 // ignore_for_file: avoid_print
 
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
 class NotificationService {
-  static final instance = NotificationService._();
   NotificationService._();
+  static final instance = NotificationService._();
 
   final _plugin = FlutterLocalNotificationsPlugin();
 
@@ -13,11 +14,7 @@ class NotificationService {
 
   Future<void> init() async {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const ios = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+    const ios = DarwinInitializationSettings();
     await _plugin.initialize(
       const InitializationSettings(android: android, iOS: ios),
       onDidReceiveNotificationResponse: (details) {

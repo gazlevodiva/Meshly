@@ -1,10 +1,12 @@
 import 'dart:math';
 import 'dart:typed_data';
-import '../models/mesh_channel.dart';
-import 'contact_store.dart';
-import 'mesh_service.dart';
-import 'meshtastic_proto.dart';
 
+import 'package:meshly/models/mesh_channel.dart';
+import 'package:meshly/services/contact_store.dart';
+import 'package:meshly/services/mesh_service.dart';
+import 'package:meshly/services/meshtastic_proto.dart';
+
+// Prints are used for debug logging of BLE channel writes.
 // ignore_for_file: avoid_print
 
 class ChannelManager {
@@ -86,7 +88,7 @@ class ChannelManager {
         ),
       );
       print('[ChannelMgr] wrote channel "${ch.name}" to slot ${ch.slotIndex}');
-    } catch (e) {
+    } on Exception catch (e) {
       print('[ChannelMgr] device write error: $e');
     }
   }

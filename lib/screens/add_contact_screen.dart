@@ -1,8 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:meshly/models/contact.dart';
+import 'package:meshly/services/contact_store.dart';
+import 'package:meshly/services/qr_service.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import '../models/contact.dart';
-import '../services/contact_store.dart';
-import '../services/qr_service.dart';
 
 class AddContactScreen extends StatefulWidget {
   const AddContactScreen({super.key});
@@ -14,7 +16,7 @@ class AddContactScreen extends StatefulWidget {
 class _AddContactScreenState extends State<AddContactScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabs;
-  final _store = ContactStore.instance;
+  final ContactStore _store = ContactStore.instance;
   bool _scanned = false;
 
   @override
@@ -34,7 +36,7 @@ class _AddContactScreenState extends State<AddContactScreen>
     final raw = capture.barcodes.firstOrNull?.rawValue;
     if (raw == null) return;
     _scanned = true;
-    _handleScannedData(raw);
+    unawaited(_handleScannedData(raw));
   }
 
   Future<void> _handleScannedData(String raw) async {
@@ -116,15 +118,16 @@ class _AddContactScreenState extends State<AddContactScreen>
         controller: _tabs,
         children: [
           // Tab 1: QR Scanner
-          _scanned
-              ? const Center(child: CircularProgressIndicator())
-              : MobileScanner(
-                  onDetect: _onQrDetected,
-                  errorBuilder: (_, error) => Center(
-                    child: Text('Ошибка камеры: $error',
-                        textAlign: TextAlign.center),
-                  ),
-                ),
+          if (_scanned)
+            const Center(child: CircularProgressIndicator())
+          else
+            MobileScanner(
+              onDetect: _onQrDetected,
+              errorBuilder: (_, error) => Center(
+                child: Text('Ошибка камеры: $error',
+                    textAlign: TextAlign.center),
+              ),
+            ),
           // Tab 2: Manual input
           _ManualInputTab(onAdd: (contact) async {
             await _store.saveContact(contact);
@@ -139,8 +142,9 @@ class _AddContactScreenState extends State<AddContactScreen>
 // ── Диалог подтверждения контакта ────────────────────────────
 
 class _ConfirmContactDialog extends StatefulWidget {
-  final Contact contact;
   const _ConfirmContactDialog({required this.contact});
+
+  final Contact contact;
 
   @override
   State<_ConfirmContactDialog> createState() => _ConfirmContactDialogState();
@@ -225,8 +229,9 @@ class _ConfirmContactDialogState extends State<_ConfirmContactDialog> {
 // ── Диалог подтверждения канала ───────────────────────────────
 
 class _ConfirmChannelDialog extends StatelessWidget {
-  final ChannelQrData data;
   const _ConfirmChannelDialog({required this.data});
+
+  final ChannelQrData data;
 
   @override
   Widget build(BuildContext context) {
@@ -260,8 +265,9 @@ class _ConfirmChannelDialog extends StatelessWidget {
 // ── Ручной ввод ───────────────────────────────────────────────
 
 class _ManualInputTab extends StatefulWidget {
-  final Future<void> Function(Contact) onAdd;
   const _ManualInputTab({required this.onAdd});
+
+  final Future<void> Function(Contact) onAdd;
 
   @override
   State<_ManualInputTab> createState() => _ManualInputTabState();
