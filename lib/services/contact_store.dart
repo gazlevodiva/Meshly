@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:meshly/models/contact.dart' as m;
 import 'package:meshly/models/conversation.dart' as m;
 import 'package:meshly/models/mesh_channel.dart' as m;
@@ -15,7 +16,7 @@ import 'package:uuid/uuid.dart';
 
 const _uuid = Uuid();
 
-class ContactStore {
+class ContactStore extends ChangeNotifier {
   ContactStore._();
   static final ContactStore instance = ContactStore._();
 
@@ -192,6 +193,7 @@ class ContactStore {
     if (!_conversations.containsKey(dmId)) {
       await saveConversation(m.Conversation.dm(c.nodeId));
     }
+    notifyListeners();
   }
 
   Future<void> deleteContact(String nodeId) async {
@@ -203,6 +205,7 @@ class ContactStore {
       _conversations.remove(dmId);
       await (_db.delete(_db.conversations)..where((t) => t.id.equals(dmId))).go();
     }
+    notifyListeners();
   }
 
   // ── Channels ──────────────────────────────────────────────
@@ -237,6 +240,7 @@ class ContactStore {
       ),
     );
     await saveConversation(m.Conversation.channel(ch.id));
+    notifyListeners();
     return ch;
   }
 
@@ -257,6 +261,7 @@ class ContactStore {
   Future<void> deleteChannel(String id) async {
     _channels.remove(id);
     await (_db.delete(_db.channels)..where((t) => t.id.equals(id))).go();
+    notifyListeners();
   }
 
   // ── Conversations ─────────────────────────────────────────
@@ -338,6 +343,7 @@ class ContactStore {
 
     // Update in-memory cache only after successful DB commit.
     list.add(msg);
+    notifyListeners();
   }
 
   Future<void> updateMessageStatus(int meshId, m.MessageStatus status) async {
@@ -356,10 +362,10 @@ class ContactStore {
 
   Future<void> markRead(String conversationId) async {
     final conv = _conversations[conversationId];
-    if (conv != null) {
-      conv.unreadCount = 0;
-      await saveConversation(conv);
-    }
+    if (conv == null || conv.unreadCount == 0) return;
+    conv.unreadCount = 0;
+    await saveConversation(conv);
+    notifyListeners();
   }
 
   // ── Helpers: display name ─────────────────────────────────

@@ -105,6 +105,7 @@ class MeshService {
     await _device?.disconnect();
     _device = null;
     _toRadio = _fromRadio = _fromNum = null;
+    _lastHeard.clear();
     _deviceNameController.add(null);
   }
 

@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:meshly/models/conversation.dart';
-import 'package:meshly/models/message.dart';
 import 'package:meshly/screens/add_contact_screen.dart';
 import 'package:meshly/screens/chat_screen.dart';
 import 'package:meshly/screens/my_card_screen.dart';
@@ -23,18 +22,15 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final ContactStore _store = ContactStore.instance;
-  StreamSubscription<Message>? _msgSub;
 
   @override
   void initState() {
     super.initState();
-    // Обновляем список при каждом новом сообщении
-    _msgSub = widget.meshService.incomingMessages.listen((_) {
-      if (mounted) setState(() {});
-    });
-
-    // Навигация при тапе на уведомление
+    // List rebuilds via ListenableBuilder on ContactStore changes.
+    // We still need the stream to drive scroll-to-bottom in ChatScreen,
+    // but HomeScreen itself reacts to ContactStore notifications.
     NotificationService.instance.onNotificationTap = (convId) {
+      if (!mounted) return;
       final conv = _store.conversations.where((c) => c.id == convId).firstOrNull;
       if (conv != null) _openChat(conv);
     };
@@ -42,7 +38,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    unawaited(_msgSub?.cancel());
+    // Clear the callback so it doesn't reference this disposed widget.
+    NotificationService.instance.onNotificationTap = null;
     super.dispose();
   }
 
@@ -78,38 +75,46 @@ class _HomeScreenState extends State<HomeScreen> {
           conversation: conv,
         ),
       ),
-    ).then((_) => setState(() {})));
+    ));
+    // No setState needed — ContactStore.notifyListeners() triggers rebuild.
   }
 
   @override
   Widget build(BuildContext context) {
-    final convs = _conversations;
-
     return Scaffold(
       appBar: AppBar(
         title: StreamBuilder<String?>(
           stream: widget.meshService.connectedDeviceName,
-          builder: (_, snap) => Text(snap.data != null ? 'Meshly · ${snap.data}' : 'Meshly'),
+          builder: (_, snap) =>
+              Text(snap.data != null ? 'Meshly · ${snap.data}' : 'Meshly'),
         ),
       ),
-      body: convs.isEmpty
-          ? _EmptyState(onAddContact: () => _showAddOptions(context))
-          : ListView.separated(
-              padding: const EdgeInsets.only(bottom: 96),
-              itemCount: convs.length,
-              separatorBuilder: (_, _) => const Divider(height: 1, indent: 72),
-              itemBuilder: (_, i) {
-                final conv = convs[i];
-                final peerId = conv.isDm ? conv.peerId : null;
-                return ConversationTile(
-                  conv: conv,
-                  title: _titleFor(conv),
-                  emoji: _emojiFor(conv),
-                  isOnline: peerId != null && widget.meshService.isOnline(peerId),
-                  onTap: () => _openChat(conv),
+      body: ListenableBuilder(
+        listenable: _store,
+        builder: (context, _) {
+          final convs = _conversations;
+          return convs.isEmpty
+              ? _EmptyState(onAddContact: () => _showAddOptions(context))
+              : ListView.separated(
+                  padding: const EdgeInsets.only(bottom: 96),
+                  itemCount: convs.length,
+                  separatorBuilder: (_, _) =>
+                      const Divider(height: 1, indent: 72),
+                  itemBuilder: (_, i) {
+                    final conv = convs[i];
+                    final peerId = conv.isDm ? conv.peerId : null;
+                    return ConversationTile(
+                      conv: conv,
+                      title: _titleFor(conv),
+                      emoji: _emojiFor(conv),
+                      isOnline:
+                          peerId != null && widget.meshService.isOnline(peerId),
+                      onTap: () => _openChat(conv),
+                    );
+                  },
                 );
-              },
-            ),
+        },
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddOptions(context),
         child: const Icon(Icons.edit),
@@ -134,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   MaterialPageRoute<void>(
                     builder: (_) => const AddContactScreen(),
                   ),
-                ).then((_) => setState(() {})));
+                ));
               },
             ),
             ListTile(
@@ -148,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     builder: (_) =>
                         NewChannelScreen(meshService: widget.meshService),
                   ),
-                ).then((_) => setState(() {})));
+                ));
               },
             ),
             ListTile(

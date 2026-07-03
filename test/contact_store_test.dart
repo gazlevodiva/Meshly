@@ -185,6 +185,90 @@ void main() {
       expect(conv!.unreadCount, equals(1));
     });
 
+    // ── markRead ──────────────────────────────────────────────
+
+    test('markRead sets unreadCount to 0', () async {
+      final contact = Contact(nodeId: '!11112222', displayName: 'Тест4');
+      await store.saveContact(contact);
+      final convId = 'dm_!11112222';
+
+      await store.addMessage(Message(
+        meshId: 50,
+        fromNodeId: '!11112222',
+        conversationId: convId,
+        text: 'входящее',
+        time: DateTime.now(),
+        isMe: false,
+      ));
+      expect(store.dmForNode('!11112222')!.unreadCount, equals(1));
+
+      await store.markRead(convId);
+      expect(store.dmForNode('!11112222')!.unreadCount, equals(0));
+    });
+
+    test('markRead notifies listeners', () async {
+      final contact = Contact(nodeId: '!33334444', displayName: 'Тест5');
+      await store.saveContact(contact);
+      final convId = 'dm_!33334444';
+      await store.addMessage(Message(
+        meshId: 60,
+        fromNodeId: '!33334444',
+        conversationId: convId,
+        text: 'msg',
+        time: DateTime.now(),
+        isMe: false,
+      ));
+
+      var notified = false;
+      store.addListener(() => notified = true);
+      await store.markRead(convId);
+      expect(notified, isTrue);
+    });
+
+    test('markRead is no-op when unreadCount is already 0', () async {
+      final contact = Contact(nodeId: '!55556666', displayName: 'Тест6');
+      await store.saveContact(contact);
+      final convId = 'dm_!55556666';
+
+      var notifyCount = 0;
+      store.addListener(() => notifyCount++);
+      await store.markRead(convId); // already 0
+      expect(notifyCount, equals(0));
+    });
+
+    // ── ContactStore as ChangeNotifier ────────────────────────
+
+    test('saveContact notifies listeners', () async {
+      var notified = false;
+      store.addListener(() => notified = true);
+      await store.saveContact(Contact(nodeId: '!77778888', displayName: 'Нотиф'));
+      expect(notified, isTrue);
+    });
+
+    test('deleteContact notifies listeners', () async {
+      await store.saveContact(Contact(nodeId: '!99990000', displayName: 'Удалить'));
+      var notified = false;
+      store.addListener(() => notified = true);
+      await store.deleteContact('!99990000');
+      expect(notified, isTrue);
+    });
+
+    test('addMessage notifies listeners', () async {
+      final contact = Contact(nodeId: '!aaaabbbb', displayName: 'МессагНотиф');
+      await store.saveContact(contact);
+      var notified = false;
+      store.addListener(() => notified = true);
+      await store.addMessage(Message(
+        meshId: 777,
+        fromNodeId: '!aaaabbbb',
+        conversationId: 'dm_!aaaabbbb',
+        text: 'нотиф',
+        time: DateTime.now(),
+        isMe: false,
+      ));
+      expect(notified, isTrue);
+    });
+
     test('addMessage persists to DB — reload reflects correct state', () async {
       // Use a named in-memory DB so we can reopen it after reset.
       final db = AppDatabase.forTesting(NativeDatabase.memory());
