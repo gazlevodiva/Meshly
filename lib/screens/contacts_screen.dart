@@ -7,10 +7,37 @@ import 'package:meshly/screens/chat_screen.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
 
-class ContactsScreen extends StatelessWidget {
+class ContactsScreen extends StatefulWidget {
   const ContactsScreen({required this.meshService, super.key});
 
   final MeshService meshService;
+
+  @override
+  State<ContactsScreen> createState() => _ContactsScreenState();
+}
+
+class _ContactsScreenState extends State<ContactsScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  bool _searching = false;
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _startSearch() {
+    setState(() => _searching = true);
+  }
+
+  void _stopSearch() {
+    _searchController.clear();
+    setState(() {
+      _searching = false;
+      _query = '';
+    });
+  }
 
   void _openChat(BuildContext context, Contact contact) {
     final store = ContactStore.instance;
@@ -21,7 +48,7 @@ class ContactsScreen extends StatelessWidget {
       context,
       MaterialPageRoute<void>(
         builder: (_) => ChatScreen(
-          meshService: meshService,
+          meshService: widget.meshService,
           conversation: conv,
         ),
       ),
@@ -39,26 +66,64 @@ class ContactsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Контакты')),
+      appBar: AppBar(
+        title: _searching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Поиск...',
+                  border: InputBorder.none,
+                ),
+                onChanged: (value) => setState(() => _query = value),
+              )
+            : const Text('Контакты'),
+        actions: _searching
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: _stopSearch,
+                ),
+              ]
+            : [
+                IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: _startSearch,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: () => _openAddContact(context),
+                ),
+              ],
+      ),
       body: ListenableBuilder(
         listenable: ContactStore.instance,
         builder: (context, _) {
-          final contacts = ContactStore.instance.contacts;
-          return contacts.isEmpty
-              ? const Center(
-                  child: Text(
-                    'Нет контактов. Добавьте через +',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                )
-              : ListView.separated(
+          final query = _query.trim().toLowerCase();
+          final all = ContactStore.instance.contacts;
+          final contacts = query.isEmpty
+              ? all
+              : all
+                  .where((c) => c.displayName.toLowerCase().contains(query))
+                  .toList();
+          if (contacts.isEmpty) {
+            return Center(
+              child: Text(
+                query.isNotEmpty
+                    ? 'Ничего не найдено'
+                    : 'Нет контактов. Добавьте через +',
+                style: const TextStyle(color: Colors.grey),
+              ),
+            );
+          }
+          return ListView.separated(
                   padding: const EdgeInsets.only(bottom: 96),
                   itemCount: contacts.length,
                   separatorBuilder: (_, _) =>
                       const Divider(height: 1, indent: 72),
                   itemBuilder: (_, i) {
                     final contact = contacts[i];
-                    final online = meshService.isOnline(contact.nodeId);
+                    final online = widget.meshService.isOnline(contact.nodeId);
                     return ListTile(
                       leading: Stack(
                         children: [
@@ -95,10 +160,6 @@ class ContactsScreen extends StatelessWidget {
                   },
                 );
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _openAddContact(context),
-        child: const Icon(Icons.person_add),
       ),
     );
   }

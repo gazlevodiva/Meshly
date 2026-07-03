@@ -22,6 +22,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final ContactStore _store = ContactStore.instance;
+  final TextEditingController _searchController = TextEditingController();
+  bool _searching = false;
+  String _query = '';
 
   @override
   void initState() {
@@ -40,7 +43,20 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     // Clear the callback so it doesn't reference this disposed widget.
     NotificationService.instance.onNotificationTap = null;
+    _searchController.dispose();
     super.dispose();
+  }
+
+  void _startSearch() {
+    setState(() => _searching = true);
+  }
+
+  void _stopSearch() {
+    _searchController.clear();
+    setState(() {
+      _searching = false;
+      _query = '';
+    });
   }
 
   List<Conversation> get _conversations => _store.conversations;
@@ -83,57 +99,107 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: StreamBuilder<String?>(
-          stream: widget.meshService.connectedDeviceName,
-          builder: (_, snap) {
-            final deviceName = snap.data;
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: deviceName != null ? Colors.green : Colors.grey,
-                    shape: BoxShape.circle,
-                  ),
+        title: _searching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Поиск...',
+                  border: InputBorder.none,
                 ),
-                const SizedBox(width: 8),
-                Text(deviceName != null ? 'Meshly · $deviceName' : 'Meshly'),
+                onChanged: (value) => setState(() => _query = value),
+              )
+            : StreamBuilder<String?>(
+                stream: widget.meshService.connectedDeviceName,
+                builder: (_, snap) {
+                  final deviceName = snap.data;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('Meshly'),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color:
+                                  deviceName != null ? Colors.green : Colors.grey,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            deviceName ?? 'нет подключения',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+        actions: _searching
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: _stopSearch,
+                ),
+              ]
+            : [
+                IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: _startSearch,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: () => _showAddOptions(context),
+                ),
               ],
-            );
-          },
-        ),
       ),
       body: ListenableBuilder(
         listenable: _store,
         builder: (context, _) {
-          final convs = _conversations;
-          return convs.isEmpty
-              ? _EmptyState(onAddContact: () => _showAddOptions(context))
-              : ListView.separated(
-                  padding: const EdgeInsets.only(bottom: 96),
-                  itemCount: convs.length,
-                  separatorBuilder: (_, _) =>
-                      const Divider(height: 1, indent: 72),
-                  itemBuilder: (_, i) {
-                    final conv = convs[i];
-                    final peerId = conv.isDm ? conv.peerId : null;
-                    return ConversationTile(
-                      conv: conv,
-                      title: _titleFor(conv),
-                      emoji: _emojiFor(conv),
-                      isOnline:
-                          peerId != null && widget.meshService.isOnline(peerId),
-                      onTap: () => _openChat(conv),
-                    );
-                  },
-                );
+          final query = _query.trim().toLowerCase();
+          final convs = query.isEmpty
+              ? _conversations
+              : _conversations
+                  .where(
+                      (c) => _titleFor(c).toLowerCase().contains(query))
+                  .toList();
+          if (convs.isEmpty) {
+            return query.isNotEmpty
+                ? const Center(
+                    child: Text(
+                      'Ничего не найдено',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  )
+                : _EmptyState(onAddContact: () => _showAddOptions(context));
+          }
+          return ListView.separated(
+            padding: const EdgeInsets.only(bottom: 96),
+            itemCount: convs.length,
+            separatorBuilder: (_, _) => const Divider(height: 1, indent: 72),
+            itemBuilder: (_, i) {
+              final conv = convs[i];
+              final peerId = conv.isDm ? conv.peerId : null;
+              return ConversationTile(
+                conv: conv,
+                title: _titleFor(conv),
+                emoji: _emojiFor(conv),
+                isOnline:
+                    peerId != null && widget.meshService.isOnline(peerId),
+                onTap: () => _openChat(conv),
+              );
+            },
+          );
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddOptions(context),
-        child: const Icon(Icons.edit),
       ),
     );
   }

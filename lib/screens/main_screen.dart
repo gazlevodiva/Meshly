@@ -145,49 +145,73 @@ class _FloatingNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
-  static const List<({IconData icon, IconData activeIcon, String label})> _items = [
-    (icon: Icons.chat_bubble_outline, activeIcon: Icons.chat_bubble, label: 'Чаты'),
-    (icon: Icons.people_outline,      activeIcon: Icons.people,       label: 'Контакты'),
-    (icon: Icons.settings_outlined,   activeIcon: Icons.settings,     label: 'Настройки'),
+  static const List<({IconData icon, IconData activeIcon, String label})>
+      _items = [
+    (
+      icon: Icons.chat_bubble_outline,
+      activeIcon: Icons.chat_bubble,
+      label: 'Чаты'
+    ),
+    (
+      icon: Icons.people_outline,
+      activeIcon: Icons.people,
+      label: 'Контакты'
+    ),
+    (
+      icon: Icons.settings_outlined,
+      activeIcon: Icons.settings,
+      label: 'Настройки'
+    ),
   ];
 
   @override
   Widget build(BuildContext context) {
     const radius = BorderRadius.all(Radius.circular(28));
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: radius,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.14),
-              blurRadius: 24,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: radius,
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: ColoredBox(
-              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.88),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Row(
-                    children: List.generate(_items.length, (i) {
-                      return Expanded(
-                        child: _NavItem(
-                          icon: _items[i].icon,
-                          activeIcon: _items[i].activeIcon,
-                          label: _items[i].label,
-                          selected: currentIndex == i,
-                          onTap: () => onTap(i),
+    final surface = Theme.of(context).colorScheme.surface;
+
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        child: Container(
+          // Shadow lives on an opaque-shaped container; the blur and the
+          // translucent fill are clipped strictly inside the same rounded
+          // rect, so nothing can bleed past the island's edge.
+          decoration: const BoxDecoration(
+            borderRadius: radius,
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x24000000),
+                blurRadius: 20,
+                offset: Offset(0, 6),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: radius,
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: surface.withValues(alpha: 0.88),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    children: [
+                      for (var i = 0; i < _items.length; i++)
+                        Expanded(
+                          child: _NavItem(
+                            icon: _items[i].icon,
+                            activeIcon: _items[i].activeIcon,
+                            label: _items[i].label,
+                            selected: currentIndex == i,
+                            onTap: () => onTap(i),
+                          ),
                         ),
-                      );
-                    }),
+                    ],
                   ),
+                ),
               ),
             ),
           ),

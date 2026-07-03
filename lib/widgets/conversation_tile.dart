@@ -33,38 +33,38 @@ class ConversationTile extends StatelessWidget {
           onTap: onTap,
           leading:
               _Avatar(emoji: emoji, title: title, isOnline: isOnline && conv.isDm),
-          title: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                      fontWeight: hasUnread ? FontWeight.w700 : FontWeight.w500),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (muted)
-                const Padding(
-                  padding: EdgeInsets.only(left: 4),
-                  child: Icon(Icons.notifications_off_outlined,
-                      size: 14, color: Colors.grey),
-                ),
-            ],
+          title: Text(
+            title,
+            style: TextStyle(
+                fontWeight: hasUnread ? FontWeight.w700 : FontWeight.w500),
+            overflow: TextOverflow.ellipsis,
           ),
           subtitle: last != null ? _LastMessageRow(msg: last) : null,
           trailing: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              if (last != null)
-                Text(
-                  _formatTime(last.time),
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: hasUnread
-                        ? Theme.of(context).colorScheme.primary
-                        : Colors.grey,
-                  ),
+              if (muted || last != null)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (muted)
+                      const Padding(
+                        padding: EdgeInsets.only(right: 4),
+                        child: Icon(Icons.notifications_off_outlined,
+                            size: 14, color: Colors.grey),
+                      ),
+                    if (last != null)
+                      Text(
+                        _formatTime(last.time),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: hasUnread
+                              ? Theme.of(context).colorScheme.primary
+                              : Colors.grey,
+                        ),
+                      ),
+                  ],
                 ),
               if (hasUnread) ...[
                 const SizedBox(height: 4),
