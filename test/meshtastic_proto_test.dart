@@ -160,5 +160,54 @@ void main() {
       final sender = MeshtasticProto.extractSender([]);
       expect(sender, isNull);
     });
+
+    // ── Malformed UTF-8 resilience ─────────────────────────
+
+    test('decodeFromRadio does not throw on malformed UTF-8 in text payload', () {
+      // Build a FromRadio with invalid UTF-8 bytes (0xFF, 0xFE) in the payload.
+      // Data: field1=portnum(1), field2=payload(invalid utf8)
+      final invalidPayload = [0xFF, 0xFE, 0x00]; // not valid UTF-8
+      // field2 of Data (wire type 2, tag = (2<<3)|2 = 18)
+      final data = [
+        0x08, 0x01,                              // portnum = 1 (TEXT_MESSAGE_APP)
+        0x12, invalidPayload.length, ...invalidPayload, // payload
+      ];
+      // MeshPacket.field4 = Data (tag 34)
+      final packet = [0x22, data.length, ...data];
+      // FromRadio.field2 = MeshPacket (tag 18)
+      final fromRadio = [0x12, packet.length, ...packet];
+
+      expect(
+        () => MeshtasticProto.decodeFromRadio(fromRadio),
+        returnsNormally,
+      );
+      final result = MeshtasticProto.decodeFromRadio(fromRadio);
+      // Text should be non-null (replacement chars), not null or exception.
+      expect(result.text, isNotNull);
+    });
+
+    test('decodeNodeInfo does not throw on malformed UTF-8 in node name', () {
+      // Build a FromRadio with NodeInfo containing invalid UTF-8 in longName.
+      final invalidName = [0xFF, 0xFE]; // invalid UTF-8
+      final idBytes = [0x21, 0x61, 0x62]; // "!ab"
+      // User: field1=id, field2=longName, field3=shortName
+      final user = [
+        0x0A, idBytes.length, ...idBytes,
+        0x12, invalidName.length, ...invalidName,
+        0x1A, 0x02, 0x4F, 0x4B, // shortName = "OK"
+      ];
+      // NodeInfo: field1=num(varint), field2=user
+      final nodeInfo = [
+        0x08, 0x01,                         // num = 1
+        0x12, user.length, ...user,
+      ];
+      // FromRadio: field4=NodeInfo (tag = (4<<3)|2 = 34)
+      final fromRadio = [0x22, nodeInfo.length, ...nodeInfo];
+
+      expect(
+        () => MeshtasticProto.decodeNodeInfo(fromRadio),
+        returnsNormally,
+      );
+    });
   });
 }

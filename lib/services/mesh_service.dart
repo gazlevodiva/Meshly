@@ -149,7 +149,7 @@ class MeshService {
       status: MessageStatus.sent,
     );
     await store.addMessage(msg);
-    _incomingController.add(msg);
+    _incomingController.add(msg.copyWith());
   }
 
   // ── Incoming packet dispatch ───────────────────────────────
@@ -238,7 +238,7 @@ class MeshService {
     );
 
     await store.addMessage(msg);
-    _incomingController.add(msg);
+    _incomingController.add(msg.copyWith());
     print('[Mesh] message in ${conv.id} from $fromNodeId: "${msg.text}"');
 
     // Локальное уведомление для входящих сообщений

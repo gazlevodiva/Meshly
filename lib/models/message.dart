@@ -29,6 +29,16 @@ class Message {
   MessageStatus status;
   final bool isMe;
 
+  Message copyWith({MessageStatus? status}) => Message(
+    meshId: meshId,
+    fromNodeId: fromNodeId,
+    conversationId: conversationId,
+    text: text,
+    time: time,
+    isMe: isMe,
+    status: status ?? this.status,
+  );
+
   Map<String, dynamic> toJson() => {
     'meshId': meshId,
     'fromNodeId': fromNodeId,

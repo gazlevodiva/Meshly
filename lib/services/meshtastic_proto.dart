@@ -116,8 +116,8 @@ class MeshtasticProto {
       if (idBytes == null) return null;
       return (
         nodeId: '!${num.toRadixString(16).padLeft(8, '0')}',
-        longName: longBytes != null ? utf8.decode(longBytes) : '',
-        shortName: shortBytes != null ? utf8.decode(shortBytes) : '',
+        longName: longBytes != null ? utf8.decode(longBytes, allowMalformed: true) : '',
+        shortName: shortBytes != null ? utf8.decode(shortBytes, allowMalformed: true) : '',
       );
     } on Exception catch (_) {
       return null;
@@ -158,7 +158,7 @@ class MeshtasticProto {
       final payload = _readMsg(decoded, 2);
       if (payload == null) return empty;
 
-      final text = utf8.decode(payload);
+      final text = utf8.decode(payload, allowMalformed: true);
       debugPrint('[Proto] received text="$text"');
       return (text: text, from: fromStr, channel: channel, meshId: meshId, isDm: isDm);
     } on Exception catch (e) {

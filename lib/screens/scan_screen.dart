@@ -70,18 +70,17 @@ class _ScanScreenState extends State<ScanScreen> {
     var found = false;
     final subscription = widget.meshService.scan().listen((results) {
       for (final r in results) {
-        if (r.device.remoteId.str == lastId) {
-          found = true;
-        }
-        if (mounted) {
-          setState(() => _resultsMap[r.device.remoteId.str] = r);
-        }
+        if (r.device.remoteId.str == lastId) found = true;
+        if (mounted) setState(() => _resultsMap[r.device.remoteId.str] = r);
       }
     });
 
-    await Future<void>.delayed(const Duration(seconds: 10));
-    await widget.meshService.stopScan();
-    await subscription.cancel();
+    try {
+      await Future<void>.delayed(const Duration(seconds: 10));
+    } finally {
+      await widget.meshService.stopScan();
+      await subscription.cancel();
+    }
 
     if (!mounted) return;
 
