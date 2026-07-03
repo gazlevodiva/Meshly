@@ -164,7 +164,10 @@ class _ChatScreenState extends State<ChatScreen> {
     final result = await Navigator.push<String>(
       context,
       MaterialPageRoute(
-        builder: (_) => EditContactScreen(contact: contact),
+        builder: (_) => EditContactScreen(
+              contact: contact,
+              meshService: widget.meshService,
+            ),
       ),
     );
     if (!mounted) return;
