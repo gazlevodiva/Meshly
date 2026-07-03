@@ -71,7 +71,7 @@ class MeshtasticProto {
       _bytes(2, textBytes),
     ]);
 
-    // Proto: field1=from, field2=to, field3=channel, field4=decoded, field6=id(fixed32), field9=hop_limit
+    // Proto: field1=from, field2=to, field3=channel, field4=decoded, field6=id(fixed32), field9=hop_limit, field10=want_ack
     final packet = _buf([
       if (fromNode != null) _fixed32field(1, fromNode),  // from = our node ID
       _fixed32field(2, dest),                            // to = destination
@@ -79,6 +79,7 @@ class MeshtasticProto {
       _msg(4, data),
       _fixed32field(6, msgId),                           // id = fixed32
       _varint(9, 3),                                     // hop_limit = 3
+      _varint(10, 1),                                    // want_ack = true → firmware генерирует end-to-end ACK
     ]);
 
     final toRadio = _buf([_msg(1, packet)]);

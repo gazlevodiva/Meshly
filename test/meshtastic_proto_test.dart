@@ -188,6 +188,63 @@ void main() {
       expect(result.meshId, equals(msgId));
     });
 
+    test('encodeTextMessage sets want_ack (field 10) = 1 on the packet', () {
+      final toRadio = MeshtasticProto.encodeTextMessage(
+        'ack me',
+        fromNode: 0x11111111,
+        id: 0x12345678,
+      );
+      // ToRadio { field1: MeshPacket } — extract the raw MeshPacket bytes.
+      // Tag for field1, wire type 2 = (1 << 3) | 2 = 0x0A.
+      expect(toRadio[0], equals(0x0A));
+      var pos = 1;
+      var len = 0;
+      var shift = 0;
+      while (true) {
+        final b = toRadio[pos++];
+        len |= (b & 0x7F) << shift;
+        if ((b & 0x80) == 0) break;
+        shift += 7;
+      }
+      final packet = toRadio.sublist(pos, pos + len);
+
+      // Scan MeshPacket fields for want_ack: varint field 10,
+      // tag = (10 << 3) | 0 = 0x50, value must be 1 (true).
+      int? wantAck;
+      var p = 0;
+      while (p < packet.length) {
+        final tag = packet[p++];
+        final field = tag >> 3;
+        final wire = tag & 7;
+        if (wire == 0) {
+          var v = 0;
+          var s = 0;
+          while (true) {
+            final b = packet[p++];
+            v |= (b & 0x7F) << s;
+            if ((b & 0x80) == 0) break;
+            s += 7;
+          }
+          if (field == 10) wantAck = v;
+        } else if (wire == 2) {
+          var l = 0;
+          var s = 0;
+          while (true) {
+            final b = packet[p++];
+            l |= (b & 0x7F) << s;
+            if ((b & 0x80) == 0) break;
+            s += 7;
+          }
+          p += l;
+        } else if (wire == 5) {
+          p += 4;
+        } else {
+          fail('unexpected wire type $wire in MeshPacket');
+        }
+      }
+      expect(wantAck, equals(1), reason: 'want_ack (field 10) must be set to 1');
+    });
+
     test('decodeRoutingAck reads request_id matching the sent packet id', () {
       const requestId = 0x0A0B0C0D;
       // Data: field1=portnum(5=ROUTING_APP), field2=Routing payload,
