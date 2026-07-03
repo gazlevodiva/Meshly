@@ -85,8 +85,24 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: StreamBuilder<String?>(
           stream: widget.meshService.connectedDeviceName,
-          builder: (_, snap) =>
-              Text(snap.data != null ? 'Meshly · ${snap.data}' : 'Meshly'),
+          builder: (_, snap) {
+            final deviceName = snap.data;
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: deviceName != null ? Colors.green : Colors.grey,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(deviceName != null ? 'Meshly · $deviceName' : 'Meshly'),
+              ],
+            );
+          },
         ),
       ),
       body: ListenableBuilder(

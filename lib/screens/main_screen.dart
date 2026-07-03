@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:meshly/screens/contacts_screen.dart';
 import 'package:meshly/screens/home_screen.dart';
+import 'package:meshly/screens/scan_screen.dart';
 import 'package:meshly/screens/settings_screen.dart';
 import 'package:meshly/services/mesh_service.dart';
 
@@ -18,6 +20,18 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _index = 0;
 
+  void _openScan() {
+    unawaited(Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => ScanScreen(
+          meshService: widget.meshService,
+          isReconnect: true,
+        ),
+      ),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -30,6 +44,83 @@ class _MainScreenState extends State<MainScreen> {
               ContactsScreen(meshService: widget.meshService),
               SettingsScreen(meshService: widget.meshService),
             ],
+          ),
+          // Connection status banner — visible only when disconnected
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: StreamBuilder<String?>(
+              stream: widget.meshService.connectedDeviceName,
+              builder: (context, snap) {
+                final connected = snap.data != null;
+                return AnimatedSlide(
+                  offset: connected ? const Offset(0, -1) : Offset.zero,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  child: AnimatedOpacity(
+                    opacity: connected ? 0 : 1,
+                    duration: const Duration(milliseconds: 300),
+                    child: Material(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      child: SafeArea(
+                        bottom: false,
+                        child: InkWell(
+                          onTap: _openScan,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.bluetooth_disabled,
+                                  size: 16,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onErrorContainer,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Нет подключения к устройству',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onErrorContainer,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  'Подключить',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onErrorContainer,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.chevron_right,
+                                  size: 16,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onErrorContainer,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
           Positioned(
             left: 0,

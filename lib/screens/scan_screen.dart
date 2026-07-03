@@ -8,9 +8,14 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ScanScreen extends StatefulWidget {
-  const ScanScreen({required this.meshService, super.key});
+  const ScanScreen({
+    required this.meshService,
+    this.isReconnect = false,
+    super.key,
+  });
 
   final MeshService meshService;
+  final bool isReconnect;
 
   @override
   State<ScanScreen> createState() => _ScanScreenState();
@@ -164,12 +169,16 @@ class _ScanScreenState extends State<ScanScreen> {
       await prefs.setString('last_device_name', device.platformName);
 
       if (mounted) {
-        unawaited(Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => MainScreen(meshService: widget.meshService),
-          ),
-        ));
+        if (widget.isReconnect) {
+          Navigator.pop(context);
+        } else {
+          unawaited(Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MainScreen(meshService: widget.meshService),
+            ),
+          ));
+        }
       }
     } on Exception catch (e) {
       if (mounted) {
