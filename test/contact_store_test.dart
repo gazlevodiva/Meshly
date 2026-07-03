@@ -134,5 +134,87 @@ void main() {
       final conv = store.conversationForSlot(99);
       expect(conv, isNull);
     });
+
+    // ── addMessage atomicity ───────────────────────────────
+
+    test('addMessage updates conversation lastMessage atomically', () async {
+      final contact = Contact(nodeId: '!aaaabbbb', displayName: 'Тест');
+      await store.saveContact(contact);
+      final convId = 'dm_!aaaabbbb';
+
+      final msg = Message(
+        meshId: 1,
+        fromNodeId: '!aaaabbbb',
+        conversationId: convId,
+        text: 'Атомарно',
+        time: DateTime.now(),
+        isMe: false,
+      );
+      await store.addMessage(msg);
+
+      final conv = store.dmForNode('!aaaabbbb');
+      expect(conv!.lastMessage?.text, equals('Атомарно'));
+      expect(conv.unreadCount, equals(1));
+    });
+
+    test('addMessage increments unreadCount only for incoming messages', () async {
+      final contact = Contact(nodeId: '!ccccdddd', displayName: 'Тест2');
+      await store.saveContact(contact);
+      final convId = 'dm_!ccccdddd';
+
+      final incoming = Message(
+        meshId: 10,
+        fromNodeId: '!ccccdddd',
+        conversationId: convId,
+        text: 'входящее',
+        time: DateTime.now(),
+        isMe: false,
+      );
+      final outgoing = Message(
+        meshId: 11,
+        fromNodeId: '!ccccdddd',
+        conversationId: convId,
+        text: 'исходящее',
+        time: DateTime.now(),
+        isMe: true,
+      );
+      await store.addMessage(incoming);
+      await store.addMessage(outgoing);
+
+      final conv = store.dmForNode('!ccccdddd');
+      expect(conv!.unreadCount, equals(1));
+    });
+
+    test('addMessage persists to DB — reload reflects correct state', () async {
+      // Use a named in-memory DB so we can reopen it after reset.
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      store.resetForTesting(db);
+      await store.init();
+
+      final contact = Contact(nodeId: '!eeeeffff', displayName: 'Тест3');
+      await store.saveContact(contact);
+      final convId = 'dm_!eeeeffff';
+
+      final msg = Message(
+        meshId: 99,
+        fromNodeId: '!eeeeffff',
+        conversationId: convId,
+        text: 'персистентно',
+        time: DateTime.now(),
+        isMe: false,
+      );
+      await store.addMessage(msg);
+
+      // Reopen the same DB instance (simulates app restart with same file).
+      store.resetForTesting(db);
+      await store.init();
+
+      final messages = store.messagesFor(convId);
+      expect(messages.length, equals(1));
+      expect(messages.first.text, equals('персистентно'));
+
+      final conv = store.dmForNode('!eeeeffff');
+      expect(conv!.unreadCount, equals(1));
+    });
   });
 }

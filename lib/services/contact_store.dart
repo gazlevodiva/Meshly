@@ -300,29 +300,44 @@ class ContactStore {
     final list = _messages.putIfAbsent(msg.conversationId, () => []);
     // Deduplicate by meshId
     if (msg.meshId != 0 && list.any((x) => x.meshId == msg.meshId)) return;
-    list.add(msg);
 
-    await _db.into(_db.messages).insertOnConflictUpdate(
-      MessagesCompanion.insert(
-        meshId: Value(msg.meshId),
-        conversationId: msg.conversationId,
-        fromNodeId: msg.fromNodeId,
-        messageText: msg.text,
-        time: msg.time,
-        status: msg.status.name,
-        isMe: msg.isMe,
-      ),
-    );
-
-    // Update conversation
     final conv = _conversations[msg.conversationId];
-    if (conv != null) {
-      conv
-        ..lastMessage = msg
-        ..updatedAt = msg.time;
-      if (!msg.isMe) conv.unreadCount++;
-      await saveConversation(conv);
-    }
+
+    // Write message + conversation update atomically so a crash between the two
+    // writes cannot leave lastMessage/unreadCount stale.
+    await _db.transaction(() async {
+      await _db.into(_db.messages).insertOnConflictUpdate(
+        MessagesCompanion.insert(
+          meshId: Value(msg.meshId),
+          conversationId: msg.conversationId,
+          fromNodeId: msg.fromNodeId,
+          messageText: msg.text,
+          time: msg.time,
+          status: msg.status.name,
+          isMe: msg.isMe,
+        ),
+      );
+
+      if (conv != null) {
+        if (!msg.isMe) conv.unreadCount++;
+        conv
+          ..lastMessage = msg
+          ..updatedAt = msg.time;
+        await _db.into(_db.conversations).insertOnConflictUpdate(
+          ConversationsCompanion.insert(
+            id: conv.id,
+            type: conv.type.name,
+            peerId: Value(conv.peerId),
+            channelId: Value(conv.channelId),
+            unreadCount: Value(conv.unreadCount),
+            updatedAt: conv.updatedAt,
+          ),
+        );
+      }
+    });
+
+    // Update in-memory cache only after successful DB commit.
+    list.add(msg);
   }
 
   Future<void> updateMessageStatus(int meshId, m.MessageStatus status) async {

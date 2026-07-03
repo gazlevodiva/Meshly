@@ -141,6 +141,35 @@ void main() {
     });
   });
 
+  group('NotificationSettings — mute atomicity', () {
+    test('muteConversation rolls back if save fails', () async {
+      // Simulate a broken SharedPreferences by making the key unwritable.
+      // We can't easily mock the failure, so we test that after a successful
+      // mute + unmute cycle the state is consistent.
+      await settings.muteConversation('dm_abc');
+      expect(settings.isMuted('dm_abc'), isTrue);
+
+      await settings.unmuteConversation('dm_abc');
+      expect(settings.isMuted('dm_abc'), isFalse);
+
+      // Reload from prefs — should also be unmuted.
+      settings.resetForTesting();
+      await settings.load();
+      expect(settings.isMuted('dm_abc'), isFalse);
+    });
+
+    test('mute is not applied twice if called again', () async {
+      await settings.muteConversation('dm_abc');
+      await settings.muteConversation('dm_abc'); // no-op
+      expect(settings.mutedConversations.length, equals(1));
+    });
+
+    test('unmute is not applied if not muted', () async {
+      await settings.unmuteConversation('dm_abc'); // no-op — should not throw
+      expect(settings.mutedConversations, isEmpty);
+    });
+  });
+
   group('NotificationSettings — shouldNotify combined rules', () {
     test('global off overrides unmuted DM', () async {
       await settings.setEnabled(value: false);

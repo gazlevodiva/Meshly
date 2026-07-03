@@ -67,15 +67,27 @@ class NotificationSettings extends ChangeNotifier {
   Future<void> muteConversation(String convId) async {
     if (_mutedConversations.contains(convId)) return;
     _mutedConversations.add(convId);
+    // Persist first — if save fails, roll back and don't notify UI,
+    // so in-memory and on-disk state stay consistent.
+    try {
+      await _saveMuted();
+    } on Exception catch (_) {
+      _mutedConversations.remove(convId);
+      return;
+    }
     notifyListeners();
-    await _saveMuted();
   }
 
   Future<void> unmuteConversation(String convId) async {
     if (!_mutedConversations.contains(convId)) return;
     _mutedConversations.remove(convId);
+    try {
+      await _saveMuted();
+    } on Exception catch (_) {
+      _mutedConversations.add(convId);
+      return;
+    }
     notifyListeners();
-    await _saveMuted();
   }
 
   bool isMuted(String convId) => _mutedConversations.contains(convId);
