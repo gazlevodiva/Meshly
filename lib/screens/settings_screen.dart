@@ -10,7 +10,11 @@ import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/notification_settings.dart';
 import 'package:meshly/services/theme_controller.dart';
 import 'package:meshly/theme/app_theme.dart';
+import 'package:meshly/widgets/section_card.dart';
 import 'package:meshly/widgets/sheet_drag_handle.dart';
+import 'package:meshly/widgets/tab_header.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({required this.meshService, super.key});
@@ -22,6 +26,28 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  static final Uri _githubUri =
+      Uri.parse('https://github.com/gazlevodiva/Meshly');
+
+  String _version = '1.0.0';
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadVersion());
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted && info.version.isNotEmpty) {
+        setState(() => _version = info.version);
+      }
+    } on Exception {
+      // Platform channel unavailable (e.g. in tests) — keep the default.
+    }
+  }
+
   Future<void> _disconnect() async {
     await widget.meshService.disconnect();
     if (mounted) {
@@ -30,6 +56,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             builder: (_) => ScanScreen(meshService: widget.meshService)),
         (_) => false,
       ));
+    }
+  }
+
+  Future<void> _openGitHub() async {
+    var opened = false;
+    try {
+      opened =
+          await launchUrl(_githubUri, mode: LaunchMode.externalApplication);
+    } on Exception {
+      opened = false;
+    }
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('github.com/gazlevodiva/Meshly'),
+        ),
+      );
     }
   }
 
@@ -97,149 +140,169 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Настройки')),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: AppSpacing.listBottomPadding),
-        children: [
-          // ── Профиль ──────────────────────────────────────────
-          const _SectionHeader('Профиль'),
-          ListTile(
-            leading: const Icon(Icons.qr_code),
-            title: const Text('Мой профиль и QR-код'),
-            subtitle: const Text('Поделитесь своим контактом'),
-            onTap: () => unawaited(Navigator.push<void>(
-              context,
-              MaterialPageRoute<void>(
-                builder: (_) => MyCardScreen(meshService: widget.meshService),
+      body: TabGradientBackground(
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(AppSpacing.s20, AppSpacing.s12,
+                    AppSpacing.s20, AppSpacing.s12),
+                child: TabHeader(title: 'Настройки'),
               ),
-            )),
-          ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.s16,
+                      0,
+                      AppSpacing.s16,
+                      AppSpacing.listBottomPadding),
+                  children: [
+                    // ── Профиль ──────────────────────────────────────
+                    SectionCard(
+                      title: 'Профиль',
+                      child: ListTile(
+                        leading: const Icon(Icons.qr_code),
+                        title: const Text('Мой профиль и QR-код'),
+                        subtitle: const Text('Поделитесь своим контактом'),
+                        onTap: () => unawaited(Navigator.push<void>(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (_) =>
+                                MyCardScreen(meshService: widget.meshService),
+                          ),
+                        )),
+                      ),
+                    ),
 
-          // ── Устройство ───────────────────────────────────────
-          const _SectionHeader('Устройство'),
-          ValueListenableBuilder<String?>(
-            valueListenable: widget.meshService.deviceName,
-            builder: (_, name, _) {
-              final connected = widget.meshService.isConnected;
-              if (name != null || connected) {
-                return ListTile(
-                  leading: Icon(Icons.bluetooth_connected,
-                      color: context.appColors.brand),
-                  title: Text('Подключено${name != null ? ': $name' : ''}'),
-                  subtitle: const Text('Нажмите чтобы отключиться'),
-                  onTap: _disconnect,
-                );
-              } else {
-                return ListTile(
-                  leading: Icon(Icons.bluetooth_disabled,
-                      color: context.appColors.iconSecondary),
-                  title: const Text('Нет подключения'),
-                );
-              }
-            },
-          ),
+                    // ── Устройство ───────────────────────────────────
+                    SectionCard(
+                      title: 'Устройство',
+                      child: ValueListenableBuilder<String?>(
+                        valueListenable: widget.meshService.deviceName,
+                        builder: (_, name, _) {
+                          final connected = widget.meshService.isConnected;
+                          if (name != null || connected) {
+                            return ListTile(
+                              leading: Icon(Icons.bluetooth_connected,
+                                  color: context.appColors.brand),
+                              title: Text(
+                                  'Подключено${name != null ? ': $name' : ''}'),
+                              subtitle:
+                                  const Text('Нажмите чтобы отключиться'),
+                              onTap: _disconnect,
+                            );
+                          } else {
+                            return ListTile(
+                              leading: Icon(Icons.bluetooth_disabled,
+                                  color: context.appColors.iconSecondary),
+                              title: const Text('Нет подключения'),
+                            );
+                          }
+                        },
+                      ),
+                    ),
 
-          // ── Уведомления ──────────────────────────────────────
-          const _SectionHeader('Уведомления'),
-          ListenableBuilder(
-            listenable: NotificationSettings.instance,
-            builder: (context, _) {
-              final enabled = NotificationSettings.instance.enabled;
-              return ListTile(
-                leading: Icon(
-                  enabled
-                      ? Icons.notifications_outlined
-                      : Icons.notifications_off_outlined,
-                  color: enabled ? null : context.appColors.iconSecondary,
+                    // ── Уведомления ──────────────────────────────────
+                    SectionCard(
+                      title: 'Уведомления',
+                      child: ListenableBuilder(
+                        listenable: NotificationSettings.instance,
+                        builder: (context, _) {
+                          final enabled = NotificationSettings.instance.enabled;
+                          return ListTile(
+                            leading: Icon(
+                              enabled
+                                  ? Icons.notifications_outlined
+                                  : Icons.notifications_off_outlined,
+                              color: enabled
+                                  ? null
+                                  : context.appColors.iconSecondary,
+                            ),
+                            title: const Text('Настройки уведомлений'),
+                            subtitle: Text(enabled ? 'Включены' : 'Выключены'),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => unawaited(Navigator.push<void>(
+                              context,
+                              MaterialPageRoute<void>(
+                                builder: (_) =>
+                                    const NotificationSettingsScreen(),
+                              ),
+                            )),
+                          );
+                        },
+                      ),
+                    ),
+
+                    // ── Заблокированные ──────────────────────────────
+                    SectionCard(
+                      title: 'Заблокированные',
+                      child: ListenableBuilder(
+                        listenable: ContactStore.instance,
+                        builder: (context, _) {
+                          final count =
+                              ContactStore.instance.blockedNodes.length;
+                          return ListTile(
+                            leading: const Icon(Icons.block),
+                            title: const Text('Заблокированные ноды'),
+                            subtitle: Text(count == 0
+                                ? 'Нет заблокированных нод'
+                                : 'Заблокировано: $count'),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => unawaited(Navigator.push<void>(
+                              context,
+                              MaterialPageRoute<void>(
+                                builder: (_) => const BlockedNodesScreen(),
+                              ),
+                            )),
+                          );
+                        },
+                      ),
+                    ),
+
+                    // ── Внешний вид ──────────────────────────────────
+                    SectionCard(
+                      title: 'Внешний вид',
+                      child: ListenableBuilder(
+                        listenable: ThemeController.instance,
+                        builder: (context, _) {
+                          return ListTile(
+                            leading: const Icon(Icons.brightness_6_outlined),
+                            title: const Text('Тема'),
+                            subtitle: Text(_themeModeLabel(
+                                ThemeController.instance.mode)),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => _showThemePicker(context),
+                          );
+                        },
+                      ),
+                    ),
+
+                    // ── О приложении ─────────────────────────────────
+                    SectionCard(
+                      title: 'О приложении',
+                      child: Column(
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.info_outline),
+                            title: const Text('Meshly'),
+                            subtitle: Text('v$_version · Open source'),
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.open_in_new),
+                            title: const Text('GitHub'),
+                            subtitle:
+                                const Text('github.com/gazlevodiva/Meshly'),
+                            onTap: () => unawaited(_openGitHub()),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                title: const Text('Настройки уведомлений'),
-                subtitle: Text(enabled ? 'Включены' : 'Выключены'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => unawaited(Navigator.push<void>(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (_) => const NotificationSettingsScreen(),
-                  ),
-                )),
-              );
-            },
+              ),
+            ],
           ),
-
-          // ── Заблокированные ──────────────────────────────────
-          const _SectionHeader('Заблокированные'),
-          ListenableBuilder(
-            listenable: ContactStore.instance,
-            builder: (context, _) {
-              final count = ContactStore.instance.blockedNodes.length;
-              return ListTile(
-                leading: const Icon(Icons.block),
-                title: const Text('Заблокированные ноды'),
-                subtitle: Text(count == 0 ? 'Нет заблокированных нод' : 'Заблокировано: $count'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => unawaited(Navigator.push<void>(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (_) => const BlockedNodesScreen(),
-                  ),
-                )),
-              );
-            },
-          ),
-
-          // ── Внешний вид ──────────────────────────────────────
-          const _SectionHeader('Внешний вид'),
-          ListenableBuilder(
-            listenable: ThemeController.instance,
-            builder: (context, _) {
-              return ListTile(
-                leading: const Icon(Icons.brightness_6_outlined),
-                title: const Text('Тема'),
-                subtitle: Text(_themeModeLabel(ThemeController.instance.mode)),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _showThemePicker(context),
-              );
-            },
-          ),
-
-          // ── О приложении ─────────────────────────────────────
-          const _SectionHeader('О приложении'),
-          const ListTile(
-            leading: Icon(Icons.info_outline),
-            title: Text('Meshly'),
-            subtitle: Text('v1.0.0 · Open source'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.open_in_new),
-            title: const Text('GitHub'),
-            subtitle: const Text('github.com/gazlevodiva/Meshly'),
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('github.com/gazlevodiva/Meshly'),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader(this.title);
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-          AppSpacing.s16, AppSpacing.s16, AppSpacing.s16, AppSpacing.s4),
-      child: Text(
-        title,
-        style: AppTextStyles.sectionHeader.copyWith(
-          color: Theme.of(context).colorScheme.primary,
         ),
       ),
     );

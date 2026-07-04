@@ -66,20 +66,21 @@ class RoundHeaderButton extends StatelessWidget {
 }
 
 /// Big tab header: large bold title (+ optional grey subtitle) on the left,
-/// round search and add buttons on the right.
+/// round search and add buttons on the right (each hidden when its
+/// callback is null — e.g. the Settings tab shows only the title).
 class TabHeader extends StatelessWidget {
   const TabHeader({
     required this.title,
-    required this.onSearch,
-    required this.onAdd,
+    this.onSearch,
+    this.onAdd,
     this.subtitle,
     super.key,
   });
 
   final String title;
   final String? subtitle;
-  final VoidCallback onSearch;
-  final VoidCallback onAdd;
+  final VoidCallback? onSearch;
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -98,10 +99,14 @@ class TabHeader extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(width: AppSpacing.s10),
-        RoundHeaderButton(icon: Icons.search, onPressed: onSearch),
-        const SizedBox(width: AppSpacing.s10),
-        RoundHeaderButton(icon: Icons.add, filled: true, onPressed: onAdd),
+        if (onSearch != null) ...[
+          const SizedBox(width: AppSpacing.s10),
+          RoundHeaderButton(icon: Icons.search, onPressed: onSearch!),
+        ],
+        if (onAdd != null) ...[
+          const SizedBox(width: AppSpacing.s10),
+          RoundHeaderButton(icon: Icons.add, filled: true, onPressed: onAdd!),
+        ],
       ],
     );
   }
