@@ -8,6 +8,21 @@ const _monthNames = [
 String absoluteDateRu(DateTime dt) =>
     '${dt.day} ${_monthNames[dt.month]} ${dt.year}';
 
+/// Date-chip label between messages from different days in a chat:
+/// "Сегодня" / "Вчера" / "5 мая" (same year) / "5 мая 2025" (other year).
+///
+/// [now] is injectable for tests.
+String chatDateRu(DateTime dt, {DateTime? now}) {
+  final n = now ?? DateTime.now();
+  final today = DateTime(n.year, n.month, n.day);
+  final day = DateTime(dt.year, dt.month, dt.day);
+  final diff = today.difference(day).inDays;
+  if (diff == 0) return 'Сегодня';
+  if (diff == 1) return 'Вчера';
+  if (dt.year == n.year) return '${dt.day} ${_monthNames[dt.month]}';
+  return absoluteDateRu(dt);
+}
+
 /// "сегодня" / "5 дней назад" / "2 мая 2026"
 String formatAddedRu(DateTime dt) {
   final diff = DateTime.now().difference(dt).inDays;

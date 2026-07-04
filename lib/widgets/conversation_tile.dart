@@ -145,19 +145,33 @@ class ConversationTile extends StatelessWidget {
   }
 }
 
-/// 48px circular list avatar with an emoji (or initial letter) and an
-/// optional green online dot on the edge. Shared by chats and contacts.
+/// Circular avatar with an emoji (or initial letter) and an optional green
+/// online dot on the edge. Shared by chats, contacts and the chat screen
+/// (48px list default; smaller sizes via [size]/[emojiSize]/[initialStyle]).
 class ListAvatar extends StatelessWidget {
   const ListAvatar({
     required this.title,
     super.key,
     this.emoji,
     this.isOnline = false,
+    this.size = AppSizes.avatarList,
+    this.emojiSize = AppSizes.emojiLarge,
+    this.initialStyle,
   });
 
   final String? emoji;
   final String title;
   final bool isOnline;
+
+  /// Diameter of the circle.
+  final double size;
+
+  /// Emoji font size inside the circle.
+  final double emojiSize;
+
+  /// Style for the fallback initial letter (defaults to [AppTextStyles.title];
+  /// the on-container color is applied automatically).
+  final TextStyle? initialStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -165,8 +179,8 @@ class ListAvatar extends StatelessWidget {
     return Stack(
       children: [
         Container(
-          width: AppSizes.avatarList,
-          height: AppSizes.avatarList,
+          width: size,
+          height: size,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: scheme.primaryContainer,
@@ -175,11 +189,11 @@ class ListAvatar extends StatelessWidget {
           child: emoji != null
               ? Text(
                   emoji!,
-                  style: const TextStyle(fontSize: AppSizes.emojiLarge),
+                  style: TextStyle(fontSize: emojiSize),
                 )
               : Text(
                   title.isNotEmpty ? title[0].toUpperCase() : '?',
-                  style: AppTextStyles.title.copyWith(
+                  style: (initialStyle ?? AppTextStyles.title).copyWith(
                     color: scheme.onPrimaryContainer,
                   ),
                 ),

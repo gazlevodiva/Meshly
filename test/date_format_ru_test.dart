@@ -24,6 +24,40 @@ void main() {
     });
   });
 
+  group('chatDateRu', () {
+    final fixedNow = DateTime(2026, 7, 4, 15, 30);
+
+    test('same day → Сегодня', () {
+      expect(chatDateRu(DateTime(2026, 7, 4, 0, 1), now: fixedNow), 'Сегодня');
+      expect(chatDateRu(DateTime(2026, 7, 4, 23, 59), now: fixedNow), 'Сегодня');
+    });
+
+    test('previous day → Вчера', () {
+      expect(chatDateRu(DateTime(2026, 7, 3, 23, 59), now: fixedNow), 'Вчера');
+      expect(chatDateRu(DateTime(2026, 7, 3, 0, 1), now: fixedNow), 'Вчера');
+    });
+
+    test('yesterday across month boundary → Вчера', () {
+      final now = DateTime(2026, 3);
+      expect(chatDateRu(DateTime(2026, 2, 28), now: now), 'Вчера');
+    });
+
+    test('same year → day + month without year', () {
+      expect(chatDateRu(DateTime(2026, 5, 2), now: fixedNow), '2 мая');
+      expect(chatDateRu(DateTime(2026, 1, 15), now: fixedNow), '15 января');
+    });
+
+    test('other year → full absolute date', () {
+      expect(chatDateRu(DateTime(2025, 12, 31), now: fixedNow),
+          '31 декабря 2025');
+      expect(chatDateRu(DateTime(2024, 3, 8), now: fixedNow), '8 марта 2024');
+    });
+
+    test('defaults to DateTime.now()', () {
+      expect(chatDateRu(DateTime.now()), 'Сегодня');
+    });
+  });
+
   group('formatAddedRu', () {
     test('today returns "сегодня"', () {
       expect(formatAddedRu(now.subtract(const Duration(hours: 2))), 'сегодня');

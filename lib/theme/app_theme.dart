@@ -224,6 +224,10 @@ abstract final class AppRadius {
   /// Chat message bubble.
   static const double bubble = 18;
 
+  /// Small "tail" corner of a chat bubble — the corner nearest the sender
+  /// (bottom-left for incoming, bottom-right for outgoing).
+  static const double bubbleTail = 4;
+
   /// Modal bottom sheet (top corners).
   static const double sheet = 20;
 
@@ -297,8 +301,16 @@ abstract final class AppSizes {
 
   // Avatars.
   static const double avatarList = 48; // conversation/contact list cards
+  static const double avatarChatHeader = 40; // chat-screen header avatar
+  static const double avatarChatBubble = 28; // sender avatar next to a bubble
   static const double avatarLarge = 96; // edit-contact header
   static const double avatarEditBadge = 28; // pencil badge on avatar
+
+  /// Emoji font inside the small per-bubble sender avatar.
+  static const double emojiChatBubble = 16;
+
+  /// Chat bubble max width as a fraction of screen width.
+  static const double bubbleMaxWidthFraction = 0.75;
 
   // QR codes.
   static const double qrMedium = 200;
@@ -359,6 +371,10 @@ abstract final class AppOpacities {
 
   /// Translucent fill of the floating nav island above the blur.
   static const double navIslandFill = 0.88;
+
+  /// Time / status-icon metadata drawn on the accent-colored outgoing bubble
+  /// (over [AppColorsExt.onAccent]).
+  static const double bubbleMeta = 0.7;
 }
 
 // ── Text styles ───────────────────────────────────────────────
