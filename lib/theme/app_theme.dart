@@ -83,7 +83,7 @@ class AppColorsExt extends ThemeExtension<AppColorsExt> {
     dragHandle: Color(0xFFE0E0E0),
     warning: Colors.orange,
     danger: Colors.red,
-    brand: Colors.blue,
+    brand: Color(0xFF2F6BFF),
     onAccent: Colors.white,
     qrCardBackground: Colors.white,
     qrCardShadow: Color(0x14000000),
@@ -462,16 +462,20 @@ abstract final class AppTextStyles {
 
 // ── ThemeData ─────────────────────────────────────────────────
 
-/// Seed for the light Material 3 [ColorScheme].
-const Color _lightSeed = Colors.blue;
-
-/// Vivid brand blue that anchors the dark theme.
-const Color _darkPrimary = Color(0xFF2F6BFF);
+/// Vivid brand blue that anchors both themes.
+const Color _brandBlue = Color(0xFF2F6BFF);
 
 /// The light theme, wired into [MaterialApp.theme].
+///
+/// Primary is pinned to the same vivid brand blue as the dark theme so
+/// accents (CTA, "+" button, links) look identical in both modes.
 ThemeData buildLightTheme() {
+  final scheme = ColorScheme.fromSeed(seedColor: _brandBlue).copyWith(
+    primary: _brandBlue,
+    onPrimary: Colors.white,
+  );
   return ThemeData(
-    colorSchemeSeed: _lightSeed,
+    colorScheme: scheme,
     useMaterial3: true,
     extensions: const [AppColorsExt.light],
   );
@@ -484,10 +488,10 @@ ThemeData buildLightTheme() {
 /// the vivid brand blue.
 ThemeData buildDarkTheme() {
   final scheme = ColorScheme.fromSeed(
-    seedColor: _darkPrimary,
+    seedColor: _brandBlue,
     brightness: Brightness.dark,
   ).copyWith(
-    primary: _darkPrimary,
+    primary: _brandBlue,
     onPrimary: Colors.white,
     primaryContainer: const Color(0xFF1C355F),
     onPrimaryContainer: const Color(0xFFD6E3FF),

@@ -132,7 +132,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           TabHeader(
                             title: 'Meshly',
-                            subtitle: 'Люди, которым вы доверяете',
                             onSearch: _startSearch,
                             onAdd: () => _showAddOptions(context),
                           ),

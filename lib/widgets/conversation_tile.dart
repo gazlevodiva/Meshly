@@ -49,73 +49,87 @@ class ConversationTile extends StatelessWidget {
             borderRadius: radius,
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.s12),
-              child: Row(
-                children: [
-                  ListAvatar(
-                    emoji: emoji,
-                    title: title,
-                    isOnline: isOnline && conv.isDm,
-                  ),
-                  const SizedBox(width: AppSpacing.s12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: AppTextStyles.cardTitle.copyWith(
-                            fontWeight:
-                                hasUnread ? FontWeight.w700 : FontWeight.w600,
+              // IntrinsicHeight lets the trailing time/mute column pin to the
+              // top edge while the avatar stays vertically centered.
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: ListAvatar(
+                        emoji: emoji,
+                        title: title,
+                        isOnline: isOnline && conv.isDm,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.s12),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: AppTextStyles.cardTitle.copyWith(
+                              fontWeight: hasUnread
+                                  ? FontWeight.w700
+                                  : FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (last != null) ...[
-                          const SizedBox(height: AppSpacing.s2),
-                          _LastMessageRow(msg: last),
+                          if (last != null) ...[
+                            const SizedBox(height: AppSpacing.s2),
+                            _LastMessageRow(msg: last),
+                          ],
+                          if (showPresence) ...[
+                            const SizedBox(height: AppSpacing.s2),
+                            PresenceLine(
+                              isOnline: isOnline,
+                              lastHeard: lastHeard,
+                            ),
+                          ],
                         ],
-                        if (showPresence) ...[
-                          const SizedBox(height: AppSpacing.s2),
-                          PresenceLine(
-                              isOnline: isOnline, lastHeard: lastHeard),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.s8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (muted || last != null)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (muted)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    right: AppSpacing.s4,
+                                  ),
+                                  child: Icon(
+                                    Icons.notifications_off_outlined,
+                                    size: AppIconSizes.mute,
+                                    color: context.appColors.iconSecondary,
+                                  ),
+                                ),
+                              if (last != null)
+                                Text(
+                                  _formatTime(last.time),
+                                  style: AppTextStyles.label(context).copyWith(
+                                    color: hasUnread
+                                        ? Theme.of(context).colorScheme.primary
+                                        : context.appColors.textSecondary,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        if (hasUnread) ...[
+                          const SizedBox(height: AppSpacing.s6),
+                          _Badge(count: conv.unreadCount),
                         ],
                       ],
                     ),
-                  ),
-                  const SizedBox(width: AppSpacing.s8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      if (muted || last != null)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (muted)
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                    right: AppSpacing.s4),
-                                child: Icon(Icons.notifications_off_outlined,
-                                    size: AppIconSizes.mute,
-                                    color: context.appColors.iconSecondary),
-                              ),
-                            if (last != null)
-                              Text(
-                                _formatTime(last.time),
-                                style: AppTextStyles.label(context).copyWith(
-                                  color: hasUnread
-                                      ? Theme.of(context).colorScheme.primary
-                                      : context.appColors.textSecondary,
-                                ),
-                              ),
-                          ],
-                        ),
-                      if (hasUnread) ...[
-                        const SizedBox(height: AppSpacing.s6),
-                        _Badge(count: conv.unreadCount),
-                      ],
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -161,12 +175,15 @@ class ListAvatar extends StatelessWidget {
             shape: BoxShape.circle,
           ),
           child: emoji != null
-              ? Text(emoji!,
-                  style: const TextStyle(fontSize: AppSizes.emojiLarge))
+              ? Text(
+                  emoji!,
+                  style: const TextStyle(fontSize: AppSizes.emojiLarge),
+                )
               : Text(
                   title.isNotEmpty ? title[0].toUpperCase() : '?',
-                  style: AppTextStyles.title
-                      .copyWith(color: scheme.onPrimaryContainer),
+                  style: AppTextStyles.title.copyWith(
+                    color: scheme.onPrimaryContainer,
+                  ),
                 ),
         ),
         if (isOnline)
@@ -204,8 +221,9 @@ class PresenceLine extends StatelessWidget {
     if (isOnline) {
       return Text(
         'В сети',
-        style: AppTextStyles.caption(context)
-            .copyWith(color: context.appColors.online),
+        style: AppTextStyles.caption(
+          context,
+        ).copyWith(color: context.appColors.online),
       );
     }
     final heard = lastHeard;
@@ -227,7 +245,9 @@ class _LastMessageRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final store = ContactStore.instance;
-    final prefix = msg.isMe ? 'Я: ' : '${store.displayNameFor(msg.fromNodeId)}: ';
+    final prefix = msg.isMe
+        ? 'Я: '
+        : '${store.displayNameFor(msg.fromNodeId)}: ';
     return Text(
       '$prefix${msg.text}',
       maxLines: 1,
@@ -246,7 +266,9 @@ class _Badge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.s6, vertical: AppSpacing.s2),
+        horizontal: AppSpacing.s6,
+        vertical: AppSpacing.s2,
+      ),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primary,
         borderRadius: BorderRadius.circular(AppRadius.badge),
