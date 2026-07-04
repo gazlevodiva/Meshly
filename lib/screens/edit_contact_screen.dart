@@ -10,7 +10,9 @@ import 'package:meshly/services/qr_service.dart';
 import 'package:meshly/theme/app_theme.dart';
 import 'package:meshly/utils/date_format_ru.dart';
 import 'package:meshly/widgets/qr_card.dart';
+import 'package:meshly/widgets/section_card.dart';
 import 'package:meshly/widgets/sheet_drag_handle.dart';
+import 'package:meshly/widgets/tab_header.dart';
 
 class EditContactScreen extends StatefulWidget {
   const EditContactScreen({
@@ -314,13 +316,89 @@ class _EditContactScreenState extends State<EditContactScreen> {
     ));
   }
 
+  Widget _buildHeader(BuildContext context) {
+    final online = widget.meshService.isOnline(widget.contact.nodeId);
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: _openEmojiAndNameEditor,
+          child: Stack(
+            alignment: Alignment.bottomRight,
+            children: [
+              Container(
+                width: AppSizes.avatarLarge,
+                height: AppSizes.avatarLarge,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    _selectedEmoji ?? '😊',
+                    style: const TextStyle(fontSize: AppSizes.emojiAvatar),
+                  ),
+                ),
+              ),
+              Container(
+                width: AppSizes.avatarEditBadge,
+                height: AppSizes.avatarEditBadge,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.edit,
+                    size: AppIconSizes.banner,
+                    color: context.appColors.onAccent),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s12),
+        Text(_name, style: AppTextStyles.headline),
+        const SizedBox(height: AppSpacing.s4),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: AppSizes.statusDotSmall,
+              height: AppSizes.statusDotSmall,
+              decoration: BoxDecoration(
+                color: online
+                    ? context.appColors.online
+                    : context.appColors.offline,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.s6),
+            Text(
+              online ? 'В сети' : 'Не в сети',
+              style: AppTextStyles.body.copyWith(
+                color: online
+                    ? context.appColors.online
+                    : context.appColors.offline,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.s4),
+        Text(
+          'Добавлен ${formatAddedRu(widget.contact.addedAt)}',
+          style: AppTextStyles.caption(context),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final online = widget.meshService.isOnline(widget.contact.nodeId);
+    final topInset = MediaQuery.paddingOf(context).top + kToolbarHeight;
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Редактировать'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         actions: [
           TextButton(
             onPressed: _name.trim().isNotEmpty && !_saving ? _save : null,
@@ -328,155 +406,98 @@ class _EditContactScreenState extends State<EditContactScreen> {
           ),
         ],
       ),
-      body: ListView(
-        children: [
-          // Avatar + display info (tap to edit)
-          Padding(
-            padding: const EdgeInsets.symmetric(
-                vertical: AppSpacing.s28, horizontal: AppSpacing.s24),
-            child: Column(
-              children: [
-                GestureDetector(
-                  onTap: _openEmojiAndNameEditor,
-                  child: Stack(
-                    alignment: Alignment.bottomRight,
-                    children: [
-                      Container(
-                        width: AppSizes.avatarLarge,
-                        height: AppSizes.avatarLarge,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(
-                            _selectedEmoji ?? '😊',
-                            style:
-                                const TextStyle(fontSize: AppSizes.emojiAvatar),
-                          ),
-                        ),
-                      ),
-                      Container(
-                        width: AppSizes.avatarEditBadge,
-                        height: AppSizes.avatarEditBadge,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.edit,
-                            size: AppIconSizes.banner,
-                            color: context.appColors.onAccent),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.s12),
-                Text(
-                  _name,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: AppSpacing.s4),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: AppSizes.statusDotSmall,
-                      height: AppSizes.statusDotSmall,
-                      decoration: BoxDecoration(
-                        color: online
-                            ? context.appColors.online
-                            : context.appColors.offline,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.s6),
-                    Text(
-                      online ? 'В сети' : 'Не в сети',
-                      style: AppTextStyles.body.copyWith(
-                        color: online
-                            ? context.appColors.online
-                            : context.appColors.offline,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.s4),
-                Text(
-                  'Добавлен ${formatAddedRu(widget.contact.addedAt)}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: context.appColors.textSecondary,
-                      ),
-                ),
-              ],
-            ),
+      body: TabGradientBackground(
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.s16,
+            topInset + AppSpacing.s8,
+            AppSpacing.s16,
+            AppSpacing.s32,
           ),
+          children: [
+            // Аватар + имя + статус (тап — редактор имени/эмодзи)
+            _buildHeader(context),
+            const SizedBox(height: AppSpacing.s24),
 
-          const Divider(height: 1),
-
-          // Notifications
-          ListenableBuilder(
-            listenable: NotificationSettings.instance,
-            builder: (context, _) {
-              final convId = 'dm_${widget.contact.nodeId}';
-              final settings = NotificationSettings.instance;
-              final muted = settings.isMuted(convId);
-              return SwitchListTile(
-                secondary: Icon(muted
-                    ? Icons.notifications_off_outlined
-                    : Icons.notifications_outlined),
-                title: const Text('Уведомления'),
-                value: !muted,
-                onChanged: (v) async {
-                  if (v) {
-                    await settings.unmuteConversation(convId);
-                  } else {
-                    await settings.muteConversation(convId);
-                  }
+            // Уведомления
+            SectionCard(
+              child: ListenableBuilder(
+                listenable: NotificationSettings.instance,
+                builder: (context, _) {
+                  final convId = 'dm_${widget.contact.nodeId}';
+                  final settings = NotificationSettings.instance;
+                  final muted = settings.isMuted(convId);
+                  return SwitchListTile(
+                    secondary: Icon(muted
+                        ? Icons.notifications_off_outlined
+                        : Icons.notifications_outlined),
+                    title: const Text('Уведомления'),
+                    value: !muted,
+                    onChanged: (v) async {
+                      if (v) {
+                        await settings.unmuteConversation(convId);
+                      } else {
+                        await settings.muteConversation(convId);
+                      }
+                    },
+                  );
                 },
-              );
-            },
-          ),
-
-          const Divider(height: 1),
-
-          ListTile(
-            leading: const Icon(Icons.share),
-            title: const Text('Поделиться контактом'),
-            onTap: _shareContact,
-          ),
-
-          const Divider(height: 1),
-
-          ListTile(
-            leading: const Icon(Icons.info_outline),
-            title: const Text('Дополнительно'),
-            subtitle: const Text('Node ID, время последнего соединения и другая информация'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _showAdditionalInfo,
-          ),
-
-          const Divider(height: 1),
-
-          ListTile(
-            leading: Icon(Icons.block, color: context.appColors.warning),
-            title: Text(
-              'Заблокировать',
-              style: TextStyle(color: context.appColors.warning),
+              ),
             ),
-            onTap: _blockNode,
-          ),
+            const SizedBox(height: AppSpacing.s12),
 
-          const Divider(height: 1),
-
-          ListTile(
-            leading: Icon(Icons.delete, color: Theme.of(context).colorScheme.error),
-            title: Text(
-              'Удалить контакт',
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            // Действия
+            SectionCard(
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.share),
+                    title: const Text('Поделиться контактом'),
+                    onTap: _shareContact,
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.info_outline),
+                    title: const Text('Дополнительно'),
+                    subtitle: const Text(
+                        'Node ID, время последнего соединения и другая информация'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: _showAdditionalInfo,
+                  ),
+                ],
+              ),
             ),
-            onTap: _deleteContact,
-          ),
-        ],
+            const SizedBox(height: AppSpacing.s12),
+
+            // Опасная зона
+            SectionCard(
+              child: Column(
+                children: [
+                  ListTile(
+                    leading:
+                        Icon(Icons.block, color: context.appColors.warning),
+                    title: Text(
+                      'Заблокировать',
+                      style: TextStyle(color: context.appColors.warning),
+                    ),
+                    onTap: _blockNode,
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: Icon(Icons.delete,
+                        color: Theme.of(context).colorScheme.error),
+                    title: Text(
+                      'Удалить контакт',
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.error),
+                    ),
+                    onTap: _deleteContact,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

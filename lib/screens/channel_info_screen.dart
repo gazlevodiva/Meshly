@@ -8,6 +8,8 @@ import 'package:meshly/services/notification_settings.dart';
 import 'package:meshly/services/qr_service.dart';
 import 'package:meshly/theme/app_theme.dart';
 import 'package:meshly/widgets/qr_card.dart';
+import 'package:meshly/widgets/section_card.dart';
+import 'package:meshly/widgets/tab_header.dart';
 
 class ChannelInfoScreen extends StatelessWidget {
   const ChannelInfoScreen({required this.channel, super.key});
@@ -52,97 +54,142 @@ class ChannelInfoScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.paddingOf(context).top + kToolbarHeight;
+
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text('${channel.avatarEmoji ?? '📡'} ${channel.name}'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_outline),
-            tooltip: 'Удалить канал',
-            onPressed: () => _deleteChannel(context),
-          ),
-        ],
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.s24),
-        child: Column(
+      body: TabGradientBackground(
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.s16,
+            topInset + AppSpacing.s8,
+            AppSpacing.s16,
+            AppSpacing.s32,
+          ),
           children: [
             // Шапка
-            CircleAvatar(
-              radius: 36,
-              backgroundColor:
-                  Theme.of(context).colorScheme.primaryContainer,
-              child: Text(
-                channel.avatarEmoji ?? '📡',
-                style: const TextStyle(fontSize: AppSizes.emojiHeader),
+            Column(
+              children: [
+                Container(
+                  width: AppSizes.avatarLarge,
+                  height: AppSizes.avatarLarge,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      channel.avatarEmoji ?? '📡',
+                      style: const TextStyle(fontSize: AppSizes.emojiAvatar),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s12),
+                Text(channel.name, style: AppTextStyles.headline),
+                const SizedBox(height: AppSpacing.s2),
+                Text(
+                  'Слот ${channel.slotIndex}',
+                  style: AppTextStyles.secondary(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.s24),
+
+            // Приглашение — QR
+            SectionCard(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.s16),
+                child: Column(
+                  children: [
+                    Text(
+                      'Поделитесь QR-кодом чтобы пригласить участника',
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.subtitle(context),
+                    ),
+                    const SizedBox(height: AppSpacing.s16),
+                    QrCard(data: _qrData, size: AppSizes.qrMedium),
+                    const SizedBox(height: AppSpacing.s16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _copyLink(context),
+                        icon: const Icon(Icons.link),
+                        label: const Text('Скопировать ссылку'),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: AppSpacing.s12),
-            Text(
-              channel.name,
-              style: AppTextStyles.headline,
-            ),
-            Text(
-              'Слот ${channel.slotIndex}',
-              style: AppTextStyles.secondary(context),
-            ),
-            const SizedBox(height: AppSpacing.s32),
-
-            // Приглашение — QR
-            Text(
-              'Поделитесь QR-кодом чтобы пригласить участника',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.subtitle(context),
-            ),
-            const SizedBox(height: AppSpacing.s16),
-            QrCard(data: _qrData, size: AppSizes.qrMedium),
-            const SizedBox(height: AppSpacing.s16),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () => _copyLink(context),
-                icon: const Icon(Icons.link),
-                label: const Text('Скопировать ссылку'),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.s32),
 
             // Уведомления
-            ListenableBuilder(
-              listenable: NotificationSettings.instance,
-              builder: (context, _) {
-                final convId = 'ch_${channel.id}';
-                final settings = NotificationSettings.instance;
-                final muted = settings.isMuted(convId);
-                return SwitchListTile(
-                  secondary: Icon(muted
-                      ? Icons.notifications_off_outlined
-                      : Icons.notifications_outlined),
-                  title: const Text('Уведомления'),
-                  value: !muted,
-                  onChanged: (v) async {
-                    if (v) {
-                      await settings.unmuteConversation(convId);
-                    } else {
-                      await settings.muteConversation(convId);
-                    }
-                  },
-                );
-              },
+            SectionCard(
+              child: ListenableBuilder(
+                listenable: NotificationSettings.instance,
+                builder: (context, _) {
+                  final convId = 'ch_${channel.id}';
+                  final settings = NotificationSettings.instance;
+                  final muted = settings.isMuted(convId);
+                  return SwitchListTile(
+                    secondary: Icon(muted
+                        ? Icons.notifications_off_outlined
+                        : Icons.notifications_outlined),
+                    title: const Text('Уведомления'),
+                    value: !muted,
+                    onChanged: (v) async {
+                      if (v) {
+                        await settings.unmuteConversation(convId);
+                      } else {
+                        await settings.muteConversation(convId);
+                      }
+                    },
+                  );
+                },
+              ),
             ),
-            const SizedBox(height: AppSpacing.s16),
+            const SizedBox(height: AppSpacing.s12),
 
             // Инфо
-            const _InfoRow(
-              label: 'Шифрование',
-              value: 'AES-256, уникальный ключ',
-              icon: Icons.lock_outline,
+            SectionCard(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.s16, vertical: AppSpacing.s8),
+                child: Column(
+                  children: [
+                    const _InfoRow(
+                      label: 'Шифрование',
+                      value: 'AES-256, уникальный ключ',
+                      icon: Icons.lock_outline,
+                    ),
+                    _InfoRow(
+                      label: 'Ключ (PSK)',
+                      value: _truncatePsk(channel.psk),
+                      icon: Icons.key,
+                      monospace: true,
+                    ),
+                  ],
+                ),
+              ),
             ),
-            _InfoRow(
-              label: 'Ключ (PSK)',
-              value: _truncatePsk(channel.psk),
-              icon: Icons.key,
-              monospace: true,
+            const SizedBox(height: AppSpacing.s12),
+
+            // Опасная зона
+            SectionCard(
+              child: ListTile(
+                leading: Icon(Icons.delete_outline,
+                    color: Theme.of(context).colorScheme.error),
+                title: Text(
+                  'Удалить канал',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+                onTap: () => _deleteChannel(context),
+              ),
             ),
           ],
         ),
