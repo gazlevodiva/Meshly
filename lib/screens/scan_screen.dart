@@ -5,6 +5,7 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:meshly/screens/main_screen.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/theme/app_theme.dart';
+import 'package:meshly/widgets/sheet_drag_handle.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -215,26 +216,95 @@ class _ScanScreenState extends State<ScanScreen> {
     }
   }
 
-  Widget _signalIcon(int rssi) {
-    final color = rssi > -70
-        ? context.appColors.online
-        : rssi > -85
-            ? context.appColors.warning
-            : context.appColors.danger;
-    return Icon(Icons.signal_cellular_alt,
-        color: color, size: AppIconSizes.signal);
+  Future<void> _showHelpSheet() async {
+    final restart = await showModalBottomSheet<bool>(
+      context: context,
+      shape: AppShapes.bottomSheet,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+              AppSpacing.s24, AppSpacing.s12, AppSpacing.s24, AppSpacing.s24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SheetDragHandle(),
+              const Text('Проверьте подключение', style: AppTextStyles.title),
+              const SizedBox(height: AppSpacing.s16),
+              const _HelpTip(
+                icon: Icons.power_settings_new,
+                text: 'Девайс включён и заряжен',
+              ),
+              const _HelpTip(
+                icon: Icons.bluetooth,
+                text: 'Bluetooth включён на телефоне',
+              ),
+              const _HelpTip(
+                icon: Icons.near_me_outlined,
+                text: 'Держите девайс ближе к телефону',
+              ),
+              const _HelpTip(
+                icon: Icons.restart_alt,
+                text: 'Перезагрузите девайс',
+              ),
+              const SizedBox(height: AppSpacing.s24),
+              SizedBox(
+                height: AppSizes.ctaHeight,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(sheetContext, true),
+                  child: const Text('Искать снова'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (restart == true && mounted) {
+      await widget.meshService.stopScan();
+      await _startScan();
+    }
   }
 
-  Widget _buildHeader() {
+  // ── Visual building blocks ──────────────────────────────────
+
+  Widget _buildHero() {
+    final primary = Theme.of(context).colorScheme.primary;
+    Widget ring(double size, double alpha, Widget child) => Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: primary.withValues(alpha: alpha),
+          ),
+          child: Center(child: child),
+        );
+
+    return Center(
+      child: ring(
+        AppSizes.heroRingOuter,
+        AppOpacities.ringOuter,
+        ring(
+          AppSizes.heroRingInner,
+          AppOpacities.ringInner,
+          Container(
+            width: AppSizes.heroCircle,
+            height: AppSizes.heroCircle,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Theme.of(context).colorScheme.primaryContainer,
+            ),
+            child: Icon(Icons.bluetooth, size: AppIconSizes.hero, color: primary),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTitle() {
     return Column(
       children: [
-        Icon(Icons.bluetooth,
-            size: AppIconSizes.hero, color: context.appColors.brand),
-        const SizedBox(height: AppSpacing.s12),
-        const Text(
-          'Meshly',
-          style: AppTextStyles.logo,
-        ),
+        const Text('Meshly', style: AppTextStyles.logo),
         const SizedBox(height: AppSpacing.s4),
         Text(
           'Mesh messenger for people you trust',
@@ -245,128 +315,224 @@ class _ScanScreenState extends State<ScanScreen> {
     );
   }
 
-  Widget _buildIdle() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildHeader(),
-            const SizedBox(height: AppSpacing.s32),
-            Text(
-              'Включите Bluetooth и держите Meshtastic-устройство рядом',
-              style: AppTextStyles.hint(context),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.s24),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: _startScan,
-                icon: const Icon(Icons.bluetooth_searching),
-                label: const Text('Найти устройство'),
-              ),
-            ),
-          ],
-        ),
+  Widget _buildInfoCard() {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s14),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(AppRadius.cardLarge),
       ),
-    );
-  }
-
-  Widget _buildAutoConnecting() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildHeader(),
-            const SizedBox(height: AppSpacing.s32),
-            const CircularProgressIndicator(),
-            const SizedBox(height: AppSpacing.s16),
-            Text(
-              'Подключение к ${_lastDeviceName ?? ''}...',
-              style: AppTextStyles.hint(context),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.s16),
-            TextButton(
-              onPressed: _cancelAutoConnect,
-              child: const Text('Другое устройство'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildScanning() {
-    final results = _results;
-    return Column(
-      children: [
-        const SizedBox(height: AppSpacing.s48),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s32),
-          child: _buildHeader(),
-        ),
-        const SizedBox(height: AppSpacing.s24),
-        const CircularProgressIndicator(),
-        const SizedBox(height: AppSpacing.s8),
-        Text('Поиск устройств...', style: AppTextStyles.secondary(context)),
-        const SizedBox(height: AppSpacing.s16),
-        Expanded(
-          child: results.isEmpty
-              ? Center(
-                  child: Text(
-                    'Ищем Meshtastic-устройства...',
-                    style: AppTextStyles.secondary(context),
-                    textAlign: TextAlign.center,
-                  ),
-                )
-              : ListView.builder(
-                  itemCount: results.length,
-                  itemBuilder: (_, i) {
-                    final r = results[i];
-                    return ListTile(
-                      leading: Icon(
-                        Icons.bluetooth,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      title: Text(r.device.platformName),
-                      trailing: _signalIcon(r.rssi),
-                      onTap: () => _connect(r),
-                    );
-                  },
+      child: Row(
+        children: [
+          _LeadingTile(icon: Icons.bluetooth, color: scheme.primary),
+          const SizedBox(width: AppSpacing.s12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Подключитесь к устройству',
+                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(AppSpacing.s16),
-          child: OutlinedButton(
-            onPressed: _stopScan,
-            child: const Text('Остановить'),
+                const SizedBox(height: AppSpacing.s2),
+                Text(
+                  'Включите Bluetooth и держите устройство рядом',
+                  style: AppTextStyles.subtitle(context),
+                ),
+              ],
+            ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCta() {
+    final scanning = _state == _ScreenState.scanning;
+    return SizedBox(
+      width: double.infinity,
+      height: AppSizes.ctaHeight,
+      child: scanning
+          ? FilledButton.tonalIcon(
+              onPressed: _stopScan,
+              icon: const Icon(Icons.stop),
+              label: const Text('Остановить'),
+            )
+          : FilledButton.icon(
+              onPressed: _startScan,
+              icon: const Icon(Icons.bluetooth_searching),
+              label: const Text('Найти устройство'),
+            ),
+    );
+  }
+
+  Widget _buildScanningHint() {
+    final primary = Theme.of(context).colorScheme.primary;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: AppSizes.spinnerSmall,
+          height: AppSizes.spinnerSmall,
+          child: CircularProgressIndicator(
+            strokeWidth: AppSizes.spinnerStroke,
+            color: primary,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.s10),
+        Text(
+          'Поиск устройств рядом...',
+          style: AppTextStyles.hint(context).copyWith(color: primary),
         ),
       ],
     );
   }
 
+  Widget _buildDeviceCard(ScanResult r) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.s8),
+      child: Material(
+        color: scheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(AppRadius.cardLarge),
+        child: InkWell(
+          onTap: () => _connect(r),
+          borderRadius: BorderRadius.circular(AppRadius.cardLarge),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.s12),
+            child: Row(
+              children: [
+                _LeadingTile(icon: Icons.router_outlined, color: scheme.primary),
+                const SizedBox(width: AppSpacing.s12),
+                Expanded(
+                  child: Text(
+                    r.device.platformName,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.s12),
+                _SignalBars(rssi: r.rssi),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooter() {
+    return Column(
+      children: [
+        Text('Устройство не в списке?', style: AppTextStyles.subtitle(context)),
+        TextButton(
+          onPressed: _showHelpSheet,
+          child: const Text('Проверьте подключение'),
+        ),
+      ],
+    );
+  }
+
+  // ── States ──────────────────────────────────────────────────
+
+  Widget _buildIdle() {
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
+      children: [
+        const SizedBox(height: AppSpacing.s40),
+        _buildHero(),
+        const SizedBox(height: AppSpacing.s20),
+        _buildTitle(),
+        const SizedBox(height: AppSpacing.s28),
+        _buildInfoCard(),
+        const SizedBox(height: AppSpacing.s16),
+        _buildCta(),
+        const SizedBox(height: AppSpacing.s24),
+        _buildFooter(),
+        const SizedBox(height: AppSpacing.s24),
+      ],
+    );
+  }
+
+  Widget _buildScanning() {
+    final results = _results;
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
+      children: [
+        const SizedBox(height: AppSpacing.s40),
+        _buildHero(),
+        const SizedBox(height: AppSpacing.s20),
+        _buildTitle(),
+        const SizedBox(height: AppSpacing.s28),
+        _buildInfoCard(),
+        const SizedBox(height: AppSpacing.s16),
+        _buildCta(),
+        const SizedBox(height: AppSpacing.s16),
+        _buildScanningHint(),
+        const SizedBox(height: AppSpacing.s24),
+        Text(
+          'Доступные устройства',
+          style: AppTextStyles.sectionHeader
+              .copyWith(color: context.appColors.textSecondary),
+        ),
+        const SizedBox(height: AppSpacing.s12),
+        if (results.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.s16),
+            child: Text(
+              'Ищем Meshtastic-устройства...',
+              style: AppTextStyles.secondary(context),
+              textAlign: TextAlign.center,
+            ),
+          )
+        else
+          ...results.map(_buildDeviceCard),
+        const SizedBox(height: AppSpacing.s16),
+        _buildFooter(),
+        const SizedBox(height: AppSpacing.s24),
+      ],
+    );
+  }
+
+  Widget _buildAutoConnecting() {
+    return _buildConnectingBody(
+      label: 'Подключение к ${_lastDeviceName ?? ''}...',
+      trailing: TextButton(
+        onPressed: _cancelAutoConnect,
+        child: const Text('Другое устройство'),
+      ),
+    );
+  }
+
   Widget _buildConnecting() {
+    return _buildConnectingBody(
+      label: 'Подключение к ${_connectingName ?? ''}...',
+    );
+  }
+
+  Widget _buildConnectingBody({required String label, Widget? trailing}) {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildHeader(),
+            _buildHero(),
+            const SizedBox(height: AppSpacing.s20),
+            _buildTitle(),
             const SizedBox(height: AppSpacing.s32),
             const CircularProgressIndicator(),
             const SizedBox(height: AppSpacing.s16),
             Text(
-              'Подключение к ${_connectingName ?? ''}...',
+              label,
               style: AppTextStyles.hint(context),
               textAlign: TextAlign.center,
             ),
+            if (trailing != null) ...[
+              const SizedBox(height: AppSpacing.s16),
+              trailing,
+            ],
           ],
         ),
       ),
@@ -375,6 +541,7 @@ class _ScanScreenState extends State<ScanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     Widget body;
     switch (_state) {
       case _ScreenState.idle:
@@ -388,7 +555,107 @@ class _ScanScreenState extends State<ScanScreen> {
     }
 
     return Scaffold(
-      body: SafeArea(child: body),
+      backgroundColor: Colors.transparent,
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [scheme.surfaceContainerLowest, scheme.surface],
+          ),
+        ),
+        child: SafeArea(child: body),
+      ),
+    );
+  }
+}
+
+// ── Small building blocks ─────────────────────────────────────
+
+/// Rounded-square leading tile (48x48) with a centered icon.
+class _LeadingTile extends StatelessWidget {
+  const _LeadingTile({required this.icon, required this.color});
+
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: AppSizes.leadingTile,
+      height: AppSizes.leadingTile,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+      ),
+      child: Icon(icon, size: AppIconSizes.nav, color: color),
+    );
+  }
+}
+
+/// Four ascending signal bars; lit count and color depend on RSSI.
+class _SignalBars extends StatelessWidget {
+  const _SignalBars({required this.rssi});
+
+  final int rssi;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final active = rssi > -70
+        ? 4
+        : rssi > -78
+            ? 3
+            : rssi > -85
+                ? 2
+                : 1;
+    final color = active == 4
+        ? colors.online
+        : active == 1
+            ? colors.danger
+            : colors.warning;
+    final inactive = Theme.of(context).colorScheme.outlineVariant;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        for (var i = 0; i < 4; i++) ...[
+          if (i > 0) const SizedBox(width: AppSizes.signalBarGap),
+          Container(
+            width: AppSizes.signalBarWidth,
+            height: AppSizes.signalBarMinHeight + i * AppSizes.signalBarStep,
+            decoration: BoxDecoration(
+              color: i < active ? color : inactive,
+              borderRadius: BorderRadius.circular(AppRadius.handle),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// One line in the "check the connection" help sheet.
+class _HelpTip extends StatelessWidget {
+  const _HelpTip({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.s6),
+      child: Row(
+        children: [
+          Icon(icon,
+              size: AppIconSizes.signal,
+              color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: AppSpacing.s12),
+          Expanded(child: Text(text)),
+        ],
+      ),
     );
   }
 }

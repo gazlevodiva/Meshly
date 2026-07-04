@@ -221,6 +221,9 @@ abstract final class AppRadius {
   /// White QR-code card.
   static const double qrCard = 16;
 
+  /// Large surface cards (scan-screen info card / device cards).
+  static const double cardLarge = 16;
+
   /// Chat message bubble.
   static const double bubble = 18;
 
@@ -264,8 +267,8 @@ abstract final class AppIconSizes {
   /// Navigation bar items.
   static const double nav = 24;
 
-  /// Hero bluetooth icon on the scan screen.
-  static const double hero = 72;
+  /// Hero bluetooth icon inside the scan-screen circle.
+  static const double hero = 36;
 }
 
 // ── Misc sizes (emoji, dots, avatars, QR...) ──────────────────
@@ -315,6 +318,34 @@ abstract final class AppSizes {
 
   // Emoji picker dialog content width.
   static const double emojiDialogWidth = 280;
+
+  // Scan-screen hero: filled circle + two concentric translucent rings.
+  static const double heroCircle = 96;
+  static const double heroRingInner = 140;
+  static const double heroRingOuter = 180;
+
+  /// Leading rounded-square tile in scan-screen cards.
+  static const double leadingTile = 48;
+
+  /// Full-width pill CTA button height (stadium shape → radius 28).
+  static const double ctaHeight = 56;
+
+  // Signal-strength bars (4 ascending bars in the device list).
+  static const double signalBarWidth = 3;
+  static const double signalBarGap = 2;
+  static const double signalBarMinHeight = 5;
+  static const double signalBarStep = 3;
+}
+
+// ── Opacities ─────────────────────────────────────────────────
+
+/// Alpha values applied to theme colors (`color.withValues(alpha: ...)`).
+abstract final class AppOpacities {
+  /// Inner translucent ring around the scan-screen hero circle.
+  static const double ringInner = 0.12;
+
+  /// Outer translucent ring around the scan-screen hero circle.
+  static const double ringOuter = 0.07;
 }
 
 // ── Text styles ───────────────────────────────────────────────
