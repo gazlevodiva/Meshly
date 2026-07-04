@@ -83,85 +83,24 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _showAddContactDialog() async {
-    final conv = widget.conversation;
-    final nodeId = conv.peerId!;
-    final nameCtrl = TextEditingController();
-    var selectedEmoji = '😊';
+    final nodeId = widget.conversation.peerId!;
 
-    const emojis = [
-      '😊', '👩', '👨', '👵', '👴', '👦', '👧',
-      '🐕', '🐈', '🏕️', '🏠', '❤️', '⭐', '🔥',
-    ];
-
-    final confirmed = await showDialog<bool>(
+    // The dialog owns its TextEditingController (disposed by the framework
+    // after the closing animation) and returns the picked name + emoji.
+    final result = await showDialog<({String name, String emoji})>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Добавить контакт'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(nodeId, style: AppTextStyles.monoCaption(ctx)),
-              const SizedBox(height: AppSpacing.s16),
-              TextField(
-                controller: nameCtrl,
-                decoration: const InputDecoration(labelText: 'Имя'),
-                autofocus: true,
-                onChanged: (_) => setDialogState(() {}),
-              ),
-              const SizedBox(height: AppSpacing.s12),
-              Wrap(
-                spacing: AppSpacing.s6,
-                children: emojis.map((e) => GestureDetector(
-                  onTap: () => setDialogState(() => selectedEmoji = e),
-                  child: Container(
-                    width: AppSizes.emojiCellSmall,
-                    height: AppSizes.emojiCellSmall,
-                    decoration: BoxDecoration(
-                      color: e == selectedEmoji
-                          ? Theme.of(ctx).colorScheme.primaryContainer
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(AppRadius.chipSmall),
-                    ),
-                    child: Center(
-                        child: Text(e,
-                            style: const TextStyle(
-                                fontSize: AppSizes.emojiSmall))),
-                  ),
-                )).toList(),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Отмена'),
-            ),
-            FilledButton(
-              onPressed: nameCtrl.text.trim().isNotEmpty
-                  ? () => Navigator.pop(ctx, true)
-                  : null,
-              child: const Text('Добавить'),
-            ),
-          ],
-        ),
-      ),
+      builder: (_) => _AddContactDialog(nodeId: nodeId),
     );
 
-    if (confirmed == true && mounted) {
-      final name = nameCtrl.text.trim();
-      if (name.isNotEmpty) {
-        final contact = Contact(
-          nodeId: nodeId,
-          displayName: name,
-          avatarEmoji: selectedEmoji,
-        );
-        await _store.saveContact(contact);
-        if (mounted) setState(() {});
-      }
+    if (result != null && mounted) {
+      final contact = Contact(
+        nodeId: nodeId,
+        displayName: result.name,
+        avatarEmoji: result.emoji,
+      );
+      await _store.saveContact(contact);
+      if (mounted) setState(() {});
     }
-    nameCtrl.dispose();
   }
 
   Future<void> _openEditContact() async {
@@ -746,6 +685,96 @@ class _SendButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// "Добавить контакт" dialog for unknown DM senders. Owns its controller so
+/// the framework disposes it only after the dialog's exit animation.
+class _AddContactDialog extends StatefulWidget {
+  const _AddContactDialog({required this.nodeId});
+
+  final String nodeId;
+
+  @override
+  State<_AddContactDialog> createState() => _AddContactDialogState();
+}
+
+class _AddContactDialogState extends State<_AddContactDialog> {
+  final _nameCtrl = TextEditingController();
+  String _emoji = '😊';
+
+  static const _emojis = [
+    '😊', '👩', '👨', '👵', '👴', '👦', '👧',
+    '🐕', '🐈', '🏕️', '🏠', '❤️', '⭐', '🔥',
+  ];
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Добавить контакт'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(widget.nodeId, style: AppTextStyles.monoCaption(context)),
+          const SizedBox(height: AppSpacing.s16),
+          TextField(
+            controller: _nameCtrl,
+            decoration: const InputDecoration(labelText: 'Имя'),
+            autofocus: true,
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: AppSpacing.s12),
+          Wrap(
+            spacing: AppSpacing.s6,
+            children: _emojis
+                .map(
+                  (e) => GestureDetector(
+                    onTap: () => setState(() => _emoji = e),
+                    child: Container(
+                      width: AppSizes.emojiCellSmall,
+                      height: AppSizes.emojiCellSmall,
+                      decoration: BoxDecoration(
+                        color: e == _emoji
+                            ? Theme.of(context).colorScheme.primaryContainer
+                            : Colors.transparent,
+                        borderRadius:
+                            BorderRadius.circular(AppRadius.chipSmall),
+                      ),
+                      child: Center(
+                        child: Text(
+                          e,
+                          style:
+                              const TextStyle(fontSize: AppSizes.emojiSmall),
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          onPressed: _nameCtrl.text.trim().isNotEmpty
+              ? () => Navigator.pop(
+                  context, (name: _nameCtrl.text.trim(), emoji: _emoji))
+              : null,
+          child: const Text('Добавить'),
+        ),
+      ],
     );
   }
 }

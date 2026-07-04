@@ -174,109 +174,22 @@ class _EditContactScreenState extends State<EditContactScreen> {
   }
 
   void _openEmojiAndNameEditor() {
-    final emojiCtrl = TextEditingController(text: _selectedEmoji);
-    final nameCtrl = TextEditingController(text: _name);
-
     unawaited(
       showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
         shape: AppShapes.bottomSheet,
-        builder: (ctx) => Padding(
-          padding: EdgeInsets.fromLTRB(
-            AppSpacing.s24,
-            AppSpacing.s20,
-            AppSpacing.s24,
-            MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.s24,
-          ),
-          child: StatefulBuilder(
-            builder: (ctx, setSheetState) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SheetDragHandle(bottomMargin: AppSpacing.s16),
-                  Text(
-                    'Редактировать',
-                    style: Theme.of(ctx).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: AppSpacing.s16),
-                  TextField(
-                    controller: nameCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Имя',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (v) {
-                      setState(() => _name = v);
-                      setSheetState(() {}); // обновляет disabled-состояние кнопки
-                    },
-                  ),
-                  const SizedBox(height: AppSpacing.s16),
-                  TextField(
-                    controller: emojiCtrl,
-                    decoration: const InputDecoration(
-                      hintText: 'Введите любой эмодзи...',
-                      border: OutlineInputBorder(),
-                      labelText: 'Иконка',
-                    ),
-                    maxLength: 2,
-                    onChanged: (v) {
-                      if (v.isNotEmpty) {
-                        setState(() => _selectedEmoji = v);
-                        setSheetState(() {}); // обновляет подсветку пресетов
-                      }
-                    },
-                  ),
-                  const SizedBox(height: AppSpacing.s8),
-                  Wrap(
-                    spacing: AppSpacing.s10,
-                    runSpacing: AppSpacing.s10,
-                    children: _emojis.map((e) {
-                      final isSelected = e == _selectedEmoji;
-                      return GestureDetector(
-                        onTap: () {
-                          emojiCtrl.text = e;
-                          setState(() => _selectedEmoji = e);
-                          setSheetState(() {});
-                        },
-                        child: Container(
-                          width: AppSizes.emojiCell,
-                          height: AppSizes.emojiCell,
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? Theme.of(ctx).colorScheme.primaryContainer
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(AppRadius.chip),
-                          ),
-                          child: Center(
-                            child: Text(e,
-                                style: const TextStyle(
-                                    fontSize: AppSizes.emojiMedium)),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: AppSpacing.s16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: nameCtrl.text.trim().isEmpty
-                          ? null
-                          : () => Navigator.pop(ctx),
-                      child: const Text('Готово'),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
+        // Controllers live inside the sheet's own State (disposed only after
+        // the closing animation finishes) — disposing them from whenComplete
+        // crashed the still-animating TextFields.
+        builder: (_) => _EditNameEmojiSheet(
+          initialName: _name,
+          initialEmoji: _selectedEmoji,
+          presets: _emojis,
+          onNameChanged: (v) => setState(() => _name = v),
+          onEmojiChanged: (v) => setState(() => _selectedEmoji = v),
         ),
-      ).whenComplete(() {
-        emojiCtrl.dispose();
-        nameCtrl.dispose();
-      }),
+      ),
     );
   }
 
@@ -527,6 +440,143 @@ class _InfoRow extends StatelessWidget {
           child: Text(value, style: Theme.of(context).textTheme.bodyMedium),
         ),
       ],
+    );
+  }
+}
+
+/// Bottom sheet for editing the contact's name and emoji.
+///
+/// Owns its [TextEditingController]s so they are disposed by the framework
+/// only after the sheet's closing animation completes.
+class _EditNameEmojiSheet extends StatefulWidget {
+  const _EditNameEmojiSheet({
+    required this.initialName,
+    required this.initialEmoji,
+    required this.presets,
+    required this.onNameChanged,
+    required this.onEmojiChanged,
+  });
+
+  final String initialName;
+  final String? initialEmoji;
+  final List<String> presets;
+  final ValueChanged<String> onNameChanged;
+  final ValueChanged<String> onEmojiChanged;
+
+  @override
+  State<_EditNameEmojiSheet> createState() => _EditNameEmojiSheetState();
+}
+
+class _EditNameEmojiSheetState extends State<_EditNameEmojiSheet> {
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _emojiCtrl;
+  String? _emoji;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.initialName);
+    _emojiCtrl = TextEditingController(text: widget.initialEmoji);
+    _emoji = widget.initialEmoji;
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _emojiCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.s24,
+        AppSpacing.s20,
+        AppSpacing.s24,
+        MediaQuery.of(context).viewInsets.bottom + AppSpacing.s24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SheetDragHandle(bottomMargin: AppSpacing.s16),
+          Text(
+            'Редактировать',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: AppSpacing.s16),
+          TextField(
+            controller: _nameCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Имя',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (v) {
+              widget.onNameChanged(v);
+              setState(() {}); // обновляет disabled-состояние кнопки
+            },
+          ),
+          const SizedBox(height: AppSpacing.s16),
+          TextField(
+            controller: _emojiCtrl,
+            decoration: const InputDecoration(
+              hintText: 'Введите любой эмодзи...',
+              border: OutlineInputBorder(),
+              labelText: 'Иконка',
+            ),
+            maxLength: 2,
+            onChanged: (v) {
+              if (v.isNotEmpty) {
+                widget.onEmojiChanged(v);
+                setState(() => _emoji = v);
+              }
+            },
+          ),
+          const SizedBox(height: AppSpacing.s8),
+          Wrap(
+            spacing: AppSpacing.s10,
+            runSpacing: AppSpacing.s10,
+            children: widget.presets.map((e) {
+              final isSelected = e == _emoji;
+              return GestureDetector(
+                onTap: () {
+                  _emojiCtrl.text = e;
+                  widget.onEmojiChanged(e);
+                  setState(() => _emoji = e);
+                },
+                child: Container(
+                  width: AppSizes.emojiCell,
+                  height: AppSizes.emojiCell,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.primaryContainer
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(AppRadius.chip),
+                  ),
+                  child: Center(
+                    child: Text(
+                      e,
+                      style:
+                          const TextStyle(fontSize: AppSizes.emojiMedium),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: AppSpacing.s16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: _nameCtrl.text.trim().isEmpty
+                  ? null
+                  : () => Navigator.pop(context),
+              child: const Text('Готово'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
