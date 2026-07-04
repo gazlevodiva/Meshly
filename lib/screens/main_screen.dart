@@ -7,6 +7,7 @@ import 'package:meshly/screens/home_screen.dart';
 import 'package:meshly/screens/scan_screen.dart';
 import 'package:meshly/screens/settings_screen.dart';
 import 'package:meshly/services/mesh_service.dart';
+import 'package:meshly/theme/app_theme.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({required this.meshService, super.key});
@@ -69,24 +70,23 @@ class _MainScreenState extends State<MainScreen> {
                           onTap: _openScan,
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 10,
+                              horizontal: AppSpacing.s16,
+                              vertical: AppSpacing.s10,
                             ),
                             child: Row(
                               children: [
                                 Icon(
                                   Icons.bluetooth_disabled,
-                                  size: 16,
+                                  size: AppIconSizes.banner,
                                   color: Theme.of(context)
                                       .colorScheme
                                       .onErrorContainer,
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: AppSpacing.s8),
                                 Expanded(
                                   child: Text(
                                     'Нет подключения к устройству',
-                                    style: TextStyle(
-                                      fontSize: 13,
+                                    style: AppTextStyles.banner.copyWith(
                                       color: Theme.of(context)
                                           .colorScheme
                                           .onErrorContainer,
@@ -95,18 +95,17 @@ class _MainScreenState extends State<MainScreen> {
                                 ),
                                 Text(
                                   'Подключить',
-                                  style: TextStyle(
-                                    fontSize: 13,
+                                  style: AppTextStyles.banner.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: Theme.of(context)
                                         .colorScheme
                                         .onErrorContainer,
                                   ),
                                 ),
-                                const SizedBox(width: 4),
+                                const SizedBox(width: AppSpacing.s4),
                                 Icon(
                                   Icons.chevron_right,
-                                  size: 16,
+                                  size: AppIconSizes.banner,
                                   color: Theme.of(context)
                                       .colorScheme
                                       .onErrorContainer,
@@ -166,13 +165,14 @@ class _FloatingNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const radius = BorderRadius.all(Radius.circular(28));
+    const radius = BorderRadius.all(Radius.circular(AppRadius.island));
     final surface = Theme.of(context).colorScheme.surface;
 
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.s16, 0, AppSpacing.s16, AppSpacing.s12),
         child: Container(
           // Shadow lives on an opaque-shaped container; the blur and the
           // translucent fill are clipped strictly inside the same rounded
@@ -181,7 +181,7 @@ class _FloatingNavBar extends StatelessWidget {
             borderRadius: radius,
             boxShadow: [
               BoxShadow(
-                color: Color(0x24000000),
+                color: AppColors.islandShadow,
                 blurRadius: 20,
                 offset: Offset(0, 6),
               ),
@@ -196,7 +196,8 @@ class _FloatingNavBar extends StatelessWidget {
                   color: surface.withValues(alpha: 0.88),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: AppSpacing.s12),
                   child: Row(
                     children: [
                       for (var i = 0; i < _items.length; i++)
@@ -292,14 +293,13 @@ class _NavItemState extends State<_NavItem> with SingleTickerProviderStateMixin 
                 widget.selected ? widget.activeIcon : widget.icon,
                 key: ValueKey(widget.selected),
                 color: color,
-                size: 24,
+                size: AppIconSizes.nav,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.s4),
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 200),
-              style: TextStyle(
-                fontSize: 11,
+              style: AppTextStyles.navLabel.copyWith(
                 fontWeight: widget.selected ? FontWeight.w600 : FontWeight.w400,
                 color: color,
               ),

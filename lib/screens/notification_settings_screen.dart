@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/notification_settings.dart';
+import 'package:meshly/theme/app_theme.dart';
 
 class NotificationSettingsScreen extends StatelessWidget {
   const NotificationSettingsScreen({super.key});
@@ -103,14 +104,12 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.s16, AppSpacing.s16, AppSpacing.s16, AppSpacing.s4),
       child: Text(
         title,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
+        style: AppTextStyles.sectionHeader.copyWith(
           color: Theme.of(context).colorScheme.primary,
-          letterSpacing: 0.8,
         ),
       ),
     );

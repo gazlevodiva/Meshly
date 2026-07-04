@@ -6,6 +6,7 @@ import 'package:meshly/models/contact.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/qr_service.dart';
+import 'package:meshly/theme/app_theme.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 class MyCardScreen extends StatefulWidget {
@@ -88,7 +89,7 @@ class _MyCardScreenState extends State<MyCardScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Мой контакт')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.s24),
         child: Column(
           children: [
             // Аватар-эмодзи
@@ -98,14 +99,15 @@ class _MyCardScreenState extends State<MyCardScreen> {
                 radius: 40,
                 backgroundColor:
                     Theme.of(context).colorScheme.primaryContainer,
-                child: Text(_emoji, style: const TextStyle(fontSize: 40)),
+                child: Text(_emoji,
+                    style: const TextStyle(fontSize: AppSizes.emojiCard)),
               ),
             ),
             TextButton(
               onPressed: _pickEmoji,
               child: const Text('Сменить'),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.s8),
 
             // Имя
             if (_editingName)
@@ -131,11 +133,10 @@ class _MyCardScreenState extends State<MyCardScreen> {
                 children: [
                   Text(
                     contact.displayName,
-                    style: const TextStyle(
-                        fontSize: 22, fontWeight: FontWeight.w600),
+                    style: AppTextStyles.headline,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.edit, size: 18),
+                    icon: const Icon(Icons.edit, size: AppIconSizes.info),
                     onPressed: () => setState(() => _editingName = true),
                   ),
                 ],
@@ -144,31 +145,30 @@ class _MyCardScreenState extends State<MyCardScreen> {
             // Node ID
             Text(
               _nodeId,
-              style: const TextStyle(fontSize: 12, color: Colors.grey,
-                  fontFamily: 'monospace'),
+              style: AppTextStyles.monoCaption,
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.s32),
 
             // QR
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
+                color: AppColors.qrCardBackground,
+                borderRadius: BorderRadius.circular(AppRadius.qrCard),
+                boxShadow: const [
                   BoxShadow(
-                    color: Colors.black.withAlpha(20),
+                    color: AppColors.qrCardShadow,
                     blurRadius: 12,
-                    offset: const Offset(0, 4),
+                    offset: Offset(0, 4),
                   ),
                 ],
               ),
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.s16),
               child: QrImageView(
                 data: _qrData,
-                size: 220,
+                size: AppSizes.qrLarge,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.s24),
 
             // Кнопки
             Row(
@@ -182,11 +182,11 @@ class _MyCardScreenState extends State<MyCardScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.s12),
             const Text(
               'Попросите собеседника отсканировать этот QR\nили поделитесь ссылкой',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 13),
+              style: AppTextStyles.subtitle,
             ),
           ],
         ),
@@ -212,23 +212,24 @@ class _EmojiPickerDialog extends StatelessWidget {
     return AlertDialog(
       title: const Text('Выберите эмодзи'),
       content: SizedBox(
-        width: 280,
+        width: AppSizes.emojiDialogWidth,
         child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: AppSpacing.s8,
+          runSpacing: AppSpacing.s8,
           children: _emojis.map((e) => GestureDetector(
             onTap: () => Navigator.pop(context, e),
             child: Container(
-              width: 44,
-              height: 44,
+              width: AppSizes.emojiCell,
+              height: AppSizes.emojiCell,
               decoration: BoxDecoration(
                 color: e == current
                     ? Theme.of(context).colorScheme.primaryContainer
                     : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppRadius.chip),
               ),
               child: Center(
-                child: Text(e, style: const TextStyle(fontSize: 26)),
+                child: Text(e,
+                    style: const TextStyle(fontSize: AppSizes.emojiMedium)),
               ),
             ),
           )).toList(),

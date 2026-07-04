@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:meshly/services/channel_manager.dart';
 import 'package:meshly/services/mesh_service.dart';
+import 'package:meshly/theme/app_theme.dart';
 
 class NewChannelScreen extends StatefulWidget {
   const NewChannelScreen({required this.meshService, super.key});
@@ -58,7 +59,7 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Новый канал')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.s24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -71,10 +72,11 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
                     radius: 28,
                     backgroundColor:
                         Theme.of(context).colorScheme.primaryContainer,
-                    child: Text(_emoji, style: const TextStyle(fontSize: 28)),
+                    child: Text(_emoji,
+                        style: const TextStyle(fontSize: AppSizes.emojiLarge)),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: AppSpacing.s16),
                 Expanded(
                   child: TextField(
                     controller: _nameCtrl,
@@ -90,58 +92,60 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.s32),
 
             // Сетка эмодзи
-            const Text('Иконка канала',
-                style: TextStyle(color: Colors.grey, fontSize: 13)),
-            const SizedBox(height: 8),
+            const Text('Иконка канала', style: AppTextStyles.subtitle),
+            const SizedBox(height: AppSpacing.s8),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: AppSpacing.s8,
+              runSpacing: AppSpacing.s8,
               children: _emojis.map((e) => GestureDetector(
                 onTap: () => setState(() => _emoji = e),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
-                  width: 48,
-                  height: 48,
+                  width: AppSizes.emojiCellLarge,
+                  height: AppSizes.emojiCellLarge,
                   decoration: BoxDecoration(
                     color: e == _emoji
                         ? Theme.of(context).colorScheme.primaryContainer
                         : Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppRadius.card),
                   ),
                   child: Center(
-                    child: Text(e, style: const TextStyle(fontSize: 26)),
+                    child: Text(e,
+                        style:
+                            const TextStyle(fontSize: AppSizes.emojiMedium)),
                   ),
                 ),
               )).toList(),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: AppSpacing.s40),
 
             // Инфо
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(AppSpacing.s14),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppRadius.card),
               ),
               child: const Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.info_outline, size: 18, color: Colors.grey),
-                  SizedBox(width: 10),
+                  Icon(Icons.info_outline,
+                      size: AppIconSizes.info, color: AppColors.iconSecondary),
+                  SizedBox(width: AppSpacing.s10),
                   Expanded(
                     child: Text(
                       'Канал создастся с уникальным ключом шифрования. '
                       'Поделитесь QR-кодом канала с теми кого хотите добавить.',
-                      style: TextStyle(fontSize: 13, color: Colors.grey),
+                      style: AppTextStyles.subtitle,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.s32),
 
             SizedBox(
               width: double.infinity,
@@ -149,10 +153,11 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
                 onPressed: _valid && !_loading ? _create : null,
                 icon: _loading
                     ? const SizedBox(
-                        width: 18,
-                        height: 18,
+                        width: AppSizes.spinnerSmall,
+                        height: AppSizes.spinnerSmall,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                            strokeWidth: AppSizes.spinnerStroke,
+                            color: AppColors.onAccent),
                       )
                     : const Icon(Icons.add),
                 label: const Text('Создать канал'),
@@ -170,17 +175,18 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
       builder: (_) => AlertDialog(
         title: const Text('Выберите иконку'),
         content: SizedBox(
-          width: 280,
+          width: AppSizes.emojiDialogWidth,
           child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: AppSpacing.s8,
+            runSpacing: AppSpacing.s8,
             children: _emojis.map((e) => GestureDetector(
               onTap: () => Navigator.pop(context, e),
               child: SizedBox(
-                width: 44,
-                height: 44,
+                width: AppSizes.emojiCell,
+                height: AppSizes.emojiCell,
                 child: Center(
-                  child: Text(e, style: const TextStyle(fontSize: 28)),
+                  child: Text(e,
+                      style: const TextStyle(fontSize: AppSizes.emojiLarge)),
                 ),
               ),
             )).toList(),

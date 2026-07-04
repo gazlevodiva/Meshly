@@ -8,6 +8,7 @@ import 'package:meshly/screens/scan_screen.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/notification_settings.dart';
+import 'package:meshly/theme/app_theme.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({required this.meshService, super.key});
@@ -35,7 +36,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Настройки')),
       body: ListView(
-        padding: const EdgeInsets.only(bottom: 96),
+        padding: const EdgeInsets.only(bottom: AppSpacing.listBottomPadding),
         children: [
           // ── Профиль ──────────────────────────────────────────
           const _SectionHeader('Профиль'),
@@ -60,14 +61,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (name != null || connected) {
                 return ListTile(
                   leading: const Icon(Icons.bluetooth_connected,
-                      color: Colors.blue),
+                      color: AppColors.brand),
                   title: Text('Подключено${name != null ? ': $name' : ''}'),
                   subtitle: const Text('Нажмите чтобы отключиться'),
                   onTap: _disconnect,
                 );
               } else {
                 return const ListTile(
-                  leading: Icon(Icons.bluetooth_disabled, color: Colors.grey),
+                  leading: Icon(Icons.bluetooth_disabled,
+                      color: AppColors.iconSecondary),
                   title: Text('Нет подключения'),
                 );
               }
@@ -85,7 +87,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   enabled
                       ? Icons.notifications_outlined
                       : Icons.notifications_off_outlined,
-                  color: enabled ? null : Colors.grey,
+                  color: enabled ? null : AppColors.iconSecondary,
                 ),
                 title: const Text('Настройки уведомлений'),
                 subtitle: Text(enabled ? 'Включены' : 'Выключены'),
@@ -154,14 +156,12 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.s16, AppSpacing.s16, AppSpacing.s16, AppSpacing.s4),
       child: Text(
         title,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
+        style: AppTextStyles.sectionHeader.copyWith(
           color: Theme.of(context).colorScheme.primary,
-          letterSpacing: 0.8,
         ),
       ),
     );

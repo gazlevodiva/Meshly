@@ -6,6 +6,7 @@ import 'package:meshly/screens/add_contact_screen.dart';
 import 'package:meshly/screens/chat_screen.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
+import 'package:meshly/theme/app_theme.dart';
 
 class ContactsScreen extends StatefulWidget {
   const ContactsScreen({required this.meshService, super.key});
@@ -112,15 +113,16 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 query.isNotEmpty
                     ? 'Ничего не найдено'
                     : 'Нет контактов. Добавьте через +',
-                style: const TextStyle(color: Colors.grey),
+                style: AppTextStyles.secondary,
               ),
             );
           }
           return ListView.separated(
-                  padding: const EdgeInsets.only(bottom: 96),
+                  padding: const EdgeInsets.only(
+                      bottom: AppSpacing.listBottomPadding),
                   itemCount: contacts.length,
-                  separatorBuilder: (_, _) =>
-                      const Divider(height: 1, indent: 72),
+                  separatorBuilder: (_, _) => const Divider(
+                      height: 1, indent: AppSpacing.dividerIndent),
                   itemBuilder: (_, i) {
                     final contact = contacts[i];
                     final online = widget.meshService.isOnline(contact.nodeId);
@@ -131,7 +133,8 @@ class _ContactsScreenState extends State<ContactsScreen> {
                             backgroundColor: Colors.transparent,
                             child: Text(
                               contact.avatarEmoji ?? '👤',
-                              style: const TextStyle(fontSize: 22),
+                              style: const TextStyle(
+                                  fontSize: AppSizes.emojiSmall),
                             ),
                           ),
                           if (online)
@@ -139,15 +142,15 @@ class _ContactsScreenState extends State<ContactsScreen> {
                               bottom: 0,
                               right: 0,
                               child: Container(
-                                width: 12,
-                                height: 12,
+                                width: AppSizes.statusDot,
+                                height: AppSizes.statusDot,
                                 decoration: BoxDecoration(
-                                  color: Colors.green,
+                                  color: AppColors.online,
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color:
                                         Theme.of(context).scaffoldBackgroundColor,
-                                    width: 2,
+                                    width: AppSizes.statusDotBorder,
                                   ),
                                 ),
                               ),

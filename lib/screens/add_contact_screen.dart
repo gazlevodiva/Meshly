@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:meshly/models/contact.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/qr_service.dart';
+import 'package:meshly/theme/app_theme.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class AddContactScreen extends StatefulWidget {
@@ -179,29 +180,27 @@ class _ConfirmContactDialogState extends State<_ConfirmContactDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(widget.contact.nodeId,
-              style: const TextStyle(fontSize: 12, color: Colors.grey,
-                  fontFamily: 'monospace')),
-          const SizedBox(height: 16),
+          Text(widget.contact.nodeId, style: AppTextStyles.monoCaption),
+          const SizedBox(height: AppSpacing.s16),
           TextField(
             controller: _name,
             decoration: const InputDecoration(labelText: 'Имя'),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.s12),
           Wrap(
-            spacing: 6,
+            spacing: AppSpacing.s6,
             children: _emojis.map((e) => GestureDetector(
               onTap: () => setState(() => _emoji = e),
               child: Container(
-                width: 36, height: 36,
+                width: AppSizes.emojiCellSmall, height: AppSizes.emojiCellSmall,
                 decoration: BoxDecoration(
                   color: e == _emoji
                       ? Theme.of(context).colorScheme.primaryContainer
                       : Colors.transparent,
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(AppRadius.chipSmall),
                 ),
                 child: Center(child: Text(e,
-                    style: const TextStyle(fontSize: 22))),
+                    style: const TextStyle(fontSize: AppSizes.emojiSmall))),
               ),
             )).toList(),
           ),
@@ -242,10 +241,9 @@ class _ConfirmChannelDialog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('${data.avatarEmoji ?? '📡'} ${data.name}',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 4),
-          Text('Слот ${data.slotIndex}',
-              style: const TextStyle(color: Colors.grey)),
+              style: AppTextStyles.title),
+          const SizedBox(height: AppSpacing.s4),
+          Text('Слот ${data.slotIndex}', style: AppTextStyles.secondary),
         ],
       ),
       actions: [
@@ -311,7 +309,7 @@ class _ManualInputTabState extends State<_ManualInputTab> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppSpacing.s24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -324,42 +322,43 @@ class _ManualInputTabState extends State<_ManualInputTab> {
             ),
             onChanged: (_) => setState(() {}),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.s16),
           TextField(
             controller: _nameCtrl,
             decoration: const InputDecoration(labelText: 'Имя'),
             onChanged: (_) => setState(() {}),
           ),
-          const SizedBox(height: 20),
-          const Text('Эмодзи', style: TextStyle(color: Colors.grey)),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.s20),
+          const Text('Эмодзи', style: AppTextStyles.secondary),
+          const SizedBox(height: AppSpacing.s8),
           Wrap(
-            spacing: 8,
+            spacing: AppSpacing.s8,
             children: _emojis.map((e) => GestureDetector(
               onTap: () => setState(() => _emoji = e),
               child: Container(
-                width: 44, height: 44,
+                width: AppSizes.emojiCell, height: AppSizes.emojiCell,
                 decoration: BoxDecoration(
                   color: e == _emoji
                       ? Theme.of(context).colorScheme.primaryContainer
                       : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppRadius.chip),
                 ),
                 child: Center(child: Text(e,
-                    style: const TextStyle(fontSize: 26))),
+                    style: const TextStyle(fontSize: AppSizes.emojiMedium))),
               ),
             )).toList(),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: AppSpacing.s32),
           SizedBox(
             width: double.infinity,
             child: FilledButton(
               onPressed: _valid && !_loading ? _save : null,
               child: _loading
                   ? const SizedBox(
-                      width: 20, height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2,
-                          color: Colors.white),
+                      width: AppSizes.spinner, height: AppSizes.spinner,
+                      child: CircularProgressIndicator(
+                          strokeWidth: AppSizes.spinnerStroke,
+                          color: AppColors.onAccent),
                     )
                   : const Text('Добавить контакт'),
             ),

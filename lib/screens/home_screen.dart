@@ -9,6 +9,7 @@ import 'package:meshly/screens/new_channel_screen.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/notification_service.dart';
+import 'package:meshly/theme/app_theme.dart';
 import 'package:meshly/widgets/conversation_tile.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -121,21 +122,19 @@ class _HomeScreenState extends State<HomeScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            width: 8,
-                            height: 8,
+                            width: AppSizes.statusDotSmall,
+                            height: AppSizes.statusDotSmall,
                             decoration: BoxDecoration(
-                              color:
-                                  deviceName != null ? Colors.green : Colors.grey,
+                              color: deviceName != null
+                                  ? AppColors.online
+                                  : AppColors.offline,
                               shape: BoxShape.circle,
                             ),
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: AppSpacing.s6),
                           Text(
                             deviceName ?? 'нет подключения',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
+                            style: AppTextStyles.caption,
                           ),
                         ],
                       ),
@@ -176,15 +175,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 ? const Center(
                     child: Text(
                       'Ничего не найдено',
-                      style: TextStyle(color: Colors.grey),
+                      style: AppTextStyles.secondary,
                     ),
                   )
                 : _EmptyState(onAddContact: () => _showAddOptions(context));
           }
           return ListView.separated(
-            padding: const EdgeInsets.only(bottom: 96),
+            padding:
+                const EdgeInsets.only(bottom: AppSpacing.listBottomPadding),
             itemCount: convs.length,
-            separatorBuilder: (_, _) => const Divider(height: 1, indent: 72),
+            separatorBuilder: (_, _) =>
+                const Divider(height: 1, indent: AppSpacing.dividerIndent),
             itemBuilder: (_, i) {
               final conv = convs[i];
               final peerId = conv.isDm ? conv.peerId : null;
@@ -268,18 +269,18 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('👋', style: TextStyle(fontSize: 56)),
-          const SizedBox(height: 16),
+          const Text('👋', style: TextStyle(fontSize: AppSizes.emojiEmpty)),
+          const SizedBox(height: AppSpacing.s16),
           const Text(
             'Пока нет чатов',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            style: AppTextStyles.title,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.s8),
           const Text(
             'Добавьте контакт или создайте канал',
-            style: TextStyle(color: Colors.grey),
+            style: AppTextStyles.secondary,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.s24),
           ElevatedButton.icon(
             onPressed: onAddContact,
             icon: const Icon(Icons.person_add),

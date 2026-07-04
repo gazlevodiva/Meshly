@@ -7,7 +7,9 @@ import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/notification_settings.dart';
 import 'package:meshly/services/qr_service.dart';
+import 'package:meshly/theme/app_theme.dart';
 import 'package:meshly/utils/date_format_ru.dart';
+import 'package:meshly/widgets/sheet_drag_handle.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 class EditContactScreen extends StatefulWidget {
@@ -61,43 +63,35 @@ class _EditContactScreenState extends State<EditContactScreen> {
     unawaited(showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      shape: AppShapes.bottomSheet,
       builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.s24, AppSpacing.s20, AppSpacing.s24, AppSpacing.s40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 20),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+            const SheetDragHandle(),
             Text(
               'Поделиться контактом',
               style: Theme.of(ctx).textTheme.titleLarge,
             ),
-            const SizedBox(height: 20),
-            QrImageView(data: qrUrl, size: 220),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.s20),
+            QrImageView(data: qrUrl, size: AppSizes.qrLarge),
+            const SizedBox(height: AppSpacing.s16),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.s12, vertical: AppSpacing.s8),
               decoration: BoxDecoration(
                 color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppRadius.chip),
               ),
               child: Text(
                 qrUrl,
-                style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                style: AppTextStyles.monoLabel,
                 textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.s16),
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
@@ -185,15 +179,13 @@ class _EditContactScreenState extends State<EditContactScreen> {
       showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
+        shape: AppShapes.bottomSheet,
         builder: (ctx) => Padding(
           padding: EdgeInsets.fromLTRB(
-            24,
-            20,
-            24,
-            MediaQuery.of(ctx).viewInsets.bottom + 24,
+            AppSpacing.s24,
+            AppSpacing.s20,
+            AppSpacing.s24,
+            MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.s24,
           ),
           child: StatefulBuilder(
             builder: (ctx, setSheetState) {
@@ -201,22 +193,12 @@ class _EditContactScreenState extends State<EditContactScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
+                  const SheetDragHandle(bottomMargin: AppSpacing.s16),
                   Text(
                     'Редактировать',
                     style: Theme.of(ctx).textTheme.titleMedium,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.s16),
                   TextField(
                     controller: nameCtrl,
                     decoration: const InputDecoration(
@@ -228,7 +210,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
                       setSheetState(() {}); // обновляет disabled-состояние кнопки
                     },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.s16),
                   TextField(
                     controller: emojiCtrl,
                     decoration: const InputDecoration(
@@ -244,10 +226,10 @@ class _EditContactScreenState extends State<EditContactScreen> {
                       }
                     },
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.s8),
                   Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
+                    spacing: AppSpacing.s10,
+                    runSpacing: AppSpacing.s10,
                     children: _emojis.map((e) {
                       final isSelected = e == _selectedEmoji;
                       return GestureDetector(
@@ -257,22 +239,24 @@ class _EditContactScreenState extends State<EditContactScreen> {
                           setSheetState(() {});
                         },
                         child: Container(
-                          width: 44,
-                          height: 44,
+                          width: AppSizes.emojiCell,
+                          height: AppSizes.emojiCell,
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? Theme.of(ctx).colorScheme.primaryContainer
                                 : Colors.transparent,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(AppRadius.chip),
                           ),
                           child: Center(
-                            child: Text(e, style: const TextStyle(fontSize: 26)),
+                            child: Text(e,
+                                style: const TextStyle(
+                                    fontSize: AppSizes.emojiMedium)),
                           ),
                         ),
                       );
                     }).toList(),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.s16),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
@@ -300,36 +284,25 @@ class _EditContactScreenState extends State<EditContactScreen> {
 
     unawaited(showModalBottomSheet<void>(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      shape: AppShapes.bottomSheet,
       builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.s24, AppSpacing.s20, AppSpacing.s24, AppSpacing.s40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 20),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
+            const SheetDragHandle(),
             Text('Дополнительно', style: Theme.of(ctx).textTheme.titleLarge),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.s20),
             _InfoRow(label: 'Node ID', value: nodeId),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.s12),
             _InfoRow(
               label: 'Добавлен',
               value: formatAddedRu(widget.contact.addedAt),
             ),
             if (lastHeard != null) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.s12),
               _InfoRow(
                 label: 'Последний раз в сети',
                 value: formatLastHeardRu(lastHeard),
@@ -359,7 +332,8 @@ class _EditContactScreenState extends State<EditContactScreen> {
         children: [
           // Avatar + display info (tap to edit)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
+            padding: const EdgeInsets.symmetric(
+                vertical: AppSpacing.s28, horizontal: AppSpacing.s24),
             child: Column(
               children: [
                 GestureDetector(
@@ -368,8 +342,8 @@ class _EditContactScreenState extends State<EditContactScreen> {
                     alignment: Alignment.bottomRight,
                     children: [
                       Container(
-                        width: 96,
-                        height: 96,
+                        width: AppSizes.avatarLarge,
+                        height: AppSizes.avatarLarge,
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.primaryContainer,
                           shape: BoxShape.circle,
@@ -377,54 +351,56 @@ class _EditContactScreenState extends State<EditContactScreen> {
                         child: Center(
                           child: Text(
                             _selectedEmoji ?? '😊',
-                            style: const TextStyle(fontSize: 52),
+                            style:
+                                const TextStyle(fontSize: AppSizes.emojiAvatar),
                           ),
                         ),
                       ),
                       Container(
-                        width: 28,
-                        height: 28,
+                        width: AppSizes.avatarEditBadge,
+                        height: AppSizes.avatarEditBadge,
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.primary,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.edit, size: 16, color: Colors.white),
+                        child: const Icon(Icons.edit,
+                            size: AppIconSizes.banner,
+                            color: AppColors.onAccent),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.s12),
                 Text(
                   _name,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.s4),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 8,
-                      height: 8,
+                      width: AppSizes.statusDotSmall,
+                      height: AppSizes.statusDotSmall,
                       decoration: BoxDecoration(
-                        color: online ? Colors.green : Colors.grey,
+                        color: online ? AppColors.online : AppColors.offline,
                         shape: BoxShape.circle,
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: AppSpacing.s6),
                     Text(
                       online ? 'В сети' : 'Не в сети',
-                      style: TextStyle(
-                        color: online ? Colors.green : Colors.grey,
-                        fontSize: 13,
+                      style: AppTextStyles.body.copyWith(
+                        color: online ? AppColors.online : AppColors.offline,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.s4),
                 Text(
                   'Добавлен ${formatAddedRu(widget.contact.addedAt)}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey,
+                        color: AppColors.textSecondary,
                       ),
                 ),
               ],
@@ -478,10 +454,10 @@ class _EditContactScreenState extends State<EditContactScreen> {
           const Divider(height: 1),
 
           ListTile(
-            leading: const Icon(Icons.block, color: Colors.orange),
+            leading: const Icon(Icons.block, color: AppColors.warning),
             title: const Text(
               'Заблокировать',
-              style: TextStyle(color: Colors.orange),
+              style: TextStyle(color: AppColors.warning),
             ),
             onTap: _blockNode,
           ),
@@ -518,7 +494,7 @@ class _InfoRow extends StatelessWidget {
           child: Text(
             label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey,
+                  color: AppColors.textSecondary,
                 ),
           ),
         ),

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:meshly/screens/scan_screen.dart';
 import 'package:meshly/services/mesh_service.dart';
+import 'package:meshly/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -85,7 +86,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: _isLast
                     ? null
                     : Padding(
-                        padding: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.only(right: AppSpacing.s8),
                         child: TextButton(
                           onPressed: () => unawaited(_finish()),
                           child: const Text('Пропустить'),
@@ -106,20 +107,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 for (var i = 0; i < _pages.length; i++)
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: i == _page ? 20 : 8,
-                    height: 8,
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
+                    width: i == _page
+                        ? AppSizes.pageDotActiveWidth
+                        : AppSizes.pageDot,
+                    height: AppSizes.pageDot,
                     decoration: BoxDecoration(
                       color: i == _page
                           ? primary
                           : primary.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(AppRadius.dot),
                     ),
                   ),
               ],
             ),
             Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(AppSpacing.s24),
               child: SizedBox(
                 width: double.infinity,
                 child: FilledButton(
@@ -149,21 +153,21 @@ class _OnboardingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 72)),
-          const SizedBox(height: 24),
+          Text(emoji, style: const TextStyle(fontSize: AppSizes.emojiHero)),
+          const SizedBox(height: AppSpacing.s24),
           Text(
             title,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: AppTextStyles.pageTitle,
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.s16),
           Text(
             text,
-            style: const TextStyle(fontSize: 16, color: Colors.grey),
+            style: AppTextStyles.bodyLargeSecondary,
             textAlign: TextAlign.center,
           ),
         ],

@@ -3,6 +3,7 @@ import 'package:meshly/models/conversation.dart';
 import 'package:meshly/models/message.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/notification_settings.dart';
+import 'package:meshly/theme/app_theme.dart';
 
 class ConversationTile extends StatelessWidget {
   const ConversationTile({
@@ -50,24 +51,24 @@ class ConversationTile extends StatelessWidget {
                   children: [
                     if (muted)
                       const Padding(
-                        padding: EdgeInsets.only(right: 4),
+                        padding: EdgeInsets.only(right: AppSpacing.s4),
                         child: Icon(Icons.notifications_off_outlined,
-                            size: 14, color: Colors.grey),
+                            size: AppIconSizes.mute,
+                            color: AppColors.iconSecondary),
                       ),
                     if (last != null)
                       Text(
                         _formatTime(last.time),
-                        style: TextStyle(
-                          fontSize: 11,
+                        style: AppTextStyles.label.copyWith(
                           color: hasUnread
                               ? Theme.of(context).colorScheme.primary
-                              : Colors.grey,
+                              : AppColors.textSecondary,
                         ),
                       ),
                   ],
                 ),
               if (hasUnread) ...[
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.s4),
                 _Badge(count: conv.unreadCount),
               ],
             ],
@@ -100,7 +101,7 @@ class _Avatar extends StatelessWidget {
         CircleAvatar(
           backgroundColor: Theme.of(context).colorScheme.primaryContainer,
           child: emoji != null
-              ? Text(emoji!, style: const TextStyle(fontSize: 22))
+              ? Text(emoji!, style: const TextStyle(fontSize: AppSizes.emojiSmall))
               : Text(
                   title.isNotEmpty ? title[0].toUpperCase() : '?',
                   style: TextStyle(
@@ -114,14 +115,14 @@ class _Avatar extends StatelessWidget {
             right: 0,
             bottom: 0,
             child: Container(
-              width: 12,
-              height: 12,
+              width: AppSizes.statusDot,
+              height: AppSizes.statusDot,
               decoration: BoxDecoration(
-                color: Colors.green,
+                color: AppColors.online,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: Theme.of(context).scaffoldBackgroundColor,
-                  width: 2,
+                  width: AppSizes.statusDotBorder,
                 ),
               ),
             ),
@@ -144,7 +145,7 @@ class _LastMessageRow extends StatelessWidget {
       '$prefix${msg.text}',
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: const TextStyle(fontSize: 13),
+      style: AppTextStyles.body,
     );
   }
 }
@@ -157,14 +158,15 @@ class _Badge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s6, vertical: AppSpacing.s2),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primary,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppRadius.badge),
       ),
       child: Text(
         count > 99 ? '99+' : '$count',
-        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+        style: AppTextStyles.badge,
       ),
     );
   }

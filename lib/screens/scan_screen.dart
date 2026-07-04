@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:meshly/screens/main_screen.dart';
 import 'package:meshly/services/mesh_service.dart';
+import 'package:meshly/theme/app_theme.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -216,26 +217,27 @@ class _ScanScreenState extends State<ScanScreen> {
 
   Widget _signalIcon(int rssi) {
     final color = rssi > -70
-        ? Colors.green
+        ? AppColors.online
         : rssi > -85
-            ? Colors.orange
-            : Colors.red;
-    return Icon(Icons.signal_cellular_alt, color: color, size: 20);
+            ? AppColors.warning
+            : AppColors.danger;
+    return Icon(Icons.signal_cellular_alt,
+        color: color, size: AppIconSizes.signal);
   }
 
   Widget _buildHeader() {
     return const Column(
       children: [
-        Icon(Icons.bluetooth, size: 72, color: Colors.blue),
-        SizedBox(height: 12),
+        Icon(Icons.bluetooth, size: AppIconSizes.hero, color: AppColors.brand),
+        SizedBox(height: AppSpacing.s12),
         Text(
           'Meshly',
-          style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+          style: AppTextStyles.logo,
         ),
-        SizedBox(height: 4),
+        SizedBox(height: AppSpacing.s4),
         Text(
           'Mesh messenger for people you trust',
-          style: TextStyle(fontSize: 14, color: Colors.grey),
+          style: AppTextStyles.hint,
           textAlign: TextAlign.center,
         ),
       ],
@@ -245,18 +247,18 @@ class _ScanScreenState extends State<ScanScreen> {
   Widget _buildIdle() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildHeader(),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.s32),
             const Text(
               'Включите Bluetooth и держите Meshtastic-устройство рядом',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+              style: AppTextStyles.hint,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.s24),
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
@@ -274,20 +276,20 @@ class _ScanScreenState extends State<ScanScreen> {
   Widget _buildAutoConnecting() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildHeader(),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.s32),
             const CircularProgressIndicator(),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.s16),
             Text(
               'Подключение к ${_lastDeviceName ?? ''}...',
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
+              style: AppTextStyles.hint,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.s16),
             TextButton(
               onPressed: _cancelAutoConnect,
               child: const Text('Другое устройство'),
@@ -302,22 +304,22 @@ class _ScanScreenState extends State<ScanScreen> {
     final results = _results;
     return Column(
       children: [
-        const SizedBox(height: 48),
+        const SizedBox(height: AppSpacing.s48),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s32),
           child: _buildHeader(),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: AppSpacing.s24),
         const CircularProgressIndicator(),
-        const SizedBox(height: 8),
-        const Text('Поиск устройств...', style: TextStyle(color: Colors.grey)),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.s8),
+        const Text('Поиск устройств...', style: AppTextStyles.secondary),
+        const SizedBox(height: AppSpacing.s16),
         Expanded(
           child: results.isEmpty
               ? const Center(
                   child: Text(
                     'Ищем Meshtastic-устройства...',
-                    style: TextStyle(color: Colors.grey),
+                    style: AppTextStyles.secondary,
                     textAlign: TextAlign.center,
                   ),
                 )
@@ -338,7 +340,7 @@ class _ScanScreenState extends State<ScanScreen> {
                 ),
         ),
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.s16),
           child: OutlinedButton(
             onPressed: _stopScan,
             child: const Text('Остановить'),
@@ -351,17 +353,17 @@ class _ScanScreenState extends State<ScanScreen> {
   Widget _buildConnecting() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildHeader(),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.s32),
             const CircularProgressIndicator(),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.s16),
             Text(
               'Подключение к ${_connectingName ?? ''}...',
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
+              style: AppTextStyles.hint,
               textAlign: TextAlign.center,
             ),
           ],

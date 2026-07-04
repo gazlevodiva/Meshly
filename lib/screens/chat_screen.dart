@@ -8,6 +8,7 @@ import 'package:meshly/screens/channel_info_screen.dart';
 import 'package:meshly/screens/edit_contact_screen.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
+import 'package:meshly/theme/app_theme.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({
@@ -91,35 +92,32 @@ class _ChatScreenState extends State<ChatScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(nodeId,
-                  style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                      fontFamily: 'monospace')),
-              const SizedBox(height: 16),
+              Text(nodeId, style: AppTextStyles.monoCaption),
+              const SizedBox(height: AppSpacing.s16),
               TextField(
                 controller: nameCtrl,
                 decoration: const InputDecoration(labelText: 'Имя'),
                 autofocus: true,
                 onChanged: (_) => setDialogState(() {}),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.s12),
               Wrap(
-                spacing: 6,
+                spacing: AppSpacing.s6,
                 children: emojis.map((e) => GestureDetector(
                   onTap: () => setDialogState(() => selectedEmoji = e),
                   child: Container(
-                    width: 36,
-                    height: 36,
+                    width: AppSizes.emojiCellSmall,
+                    height: AppSizes.emojiCellSmall,
                     decoration: BoxDecoration(
                       color: e == selectedEmoji
                           ? Theme.of(ctx).colorScheme.primaryContainer
                           : Colors.transparent,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(AppRadius.chipSmall),
                     ),
                     child: Center(
                         child: Text(e,
-                            style: const TextStyle(fontSize: 22))),
+                            style: const TextStyle(
+                                fontSize: AppSizes.emojiSmall))),
                   ),
                 )).toList(),
               ),
@@ -243,8 +241,8 @@ class _ChatScreenState extends State<ChatScreen> {
           if (_isUnknownDm)
             Container(
               color: Theme.of(context).colorScheme.primaryContainer,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.s16, vertical: AppSpacing.s10),
               child: Row(
                 children: [
                   Expanded(
@@ -267,10 +265,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 return messages.isEmpty
                     ? const Center(
                         child: Text('Напишите первое сообщение!',
-                            style: TextStyle(color: Colors.grey)))
+                            style: AppTextStyles.secondary))
                     : ListView.builder(
                         controller: _scrollController,
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(AppSpacing.s12),
                         itemCount: messages.length,
                         itemBuilder: (_, i) =>
                             _MessageBubble(msg: messages[i], store: _store),
@@ -299,34 +297,36 @@ class _MessageBubble extends StatelessWidget {
         : Theme.of(context).colorScheme.surfaceContainerHighest;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.s4),
       child: Column(
         crossAxisAlignment:
             isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           if (!isMe)
             Padding(
-              padding: const EdgeInsets.only(left: 4, bottom: 2),
+              padding: const EdgeInsets.only(
+                  left: AppSpacing.s4, bottom: AppSpacing.s2),
               child: Text(
                 store.displayNameFor(msg.fromNodeId),
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                style: AppTextStyles.caption,
               ),
             ),
           Container(
             constraints: BoxConstraints(
                 maxWidth: MediaQuery.of(context).size.width * 0.75),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.s14, vertical: AppSpacing.s10),
             decoration: BoxDecoration(
               color: color,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(AppRadius.bubble),
             ),
             child: Text(msg.text,
-                style: TextStyle(color: isMe ? Colors.white : null)),
+                style: TextStyle(color: isMe ? AppColors.onAccent : null)),
           ),
           if (isMe)
             Padding(
-              padding: const EdgeInsets.only(right: 4, top: 2),
+              padding: const EdgeInsets.only(
+                  right: AppSpacing.s4, top: AppSpacing.s2),
               child: _StatusIcon(status: msg.status),
             ),
         ],
@@ -344,13 +344,17 @@ class _StatusIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (status) {
       case MessageStatus.sending:
-        return const Icon(Icons.access_time, size: 12, color: Colors.grey);
+        return const Icon(Icons.access_time,
+            size: AppIconSizes.status, color: AppColors.iconSecondary);
       case MessageStatus.sent:
-        return const Icon(Icons.check, size: 12, color: Colors.grey);
+        return const Icon(Icons.check,
+            size: AppIconSizes.status, color: AppColors.iconSecondary);
       case MessageStatus.acked:
-        return const Icon(Icons.done_all, size: 12, color: Colors.blue);
+        return const Icon(Icons.done_all,
+            size: AppIconSizes.status, color: AppColors.brand);
       case MessageStatus.failed:
-        return const Icon(Icons.error_outline, size: 12, color: Colors.red);
+        return const Icon(Icons.error_outline,
+            size: AppIconSizes.status, color: AppColors.danger);
     }
   }
 }
@@ -365,7 +369,8 @@ class _InputBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.s12, AppSpacing.s8, AppSpacing.s12, AppSpacing.s8),
         child: Row(
           children: [
             Expanded(
@@ -375,13 +380,13 @@ class _InputBar extends StatelessWidget {
                 decoration: InputDecoration(
                   hintText: 'Сообщение...',
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24)),
+                      borderRadius: BorderRadius.circular(AppRadius.input)),
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 10),
+                      horizontal: AppSpacing.s16, vertical: AppSpacing.s10),
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.s8),
             FloatingActionButton(
               mini: true,
               onPressed: onSend,

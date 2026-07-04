@@ -5,6 +5,7 @@ import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/notification_service.dart';
 import 'package:meshly/services/notification_settings.dart';
+import 'package:meshly/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
@@ -41,10 +42,7 @@ class _MeshlyAppState extends State<MeshlyApp> {
     return MaterialApp(
       title: 'Meshly',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: Colors.blue,
-        useMaterial3: true,
-      ),
+      theme: buildAppTheme(),
       home: widget.onboardingDone
           ? ScanScreen(meshService: _meshService)
           : OnboardingScreen(meshService: _meshService),

@@ -6,6 +6,7 @@ import 'package:meshly/models/mesh_channel.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/notification_settings.dart';
 import 'package:meshly/services/qr_service.dart';
+import 'package:meshly/theme/app_theme.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 class ChannelInfoScreen extends StatelessWidget {
@@ -63,7 +64,7 @@ class ChannelInfoScreen extends StatelessWidget {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.s24),
         child: Column(
           children: [
             // Шапка
@@ -73,47 +74,46 @@ class ChannelInfoScreen extends StatelessWidget {
                   Theme.of(context).colorScheme.primaryContainer,
               child: Text(
                 channel.avatarEmoji ?? '📡',
-                style: const TextStyle(fontSize: 36),
+                style: const TextStyle(fontSize: AppSizes.emojiHeader),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.s12),
             Text(
               channel.name,
-              style: const TextStyle(
-                  fontSize: 22, fontWeight: FontWeight.w600),
+              style: AppTextStyles.headline,
             ),
             Text(
               'Слот ${channel.slotIndex}',
-              style: const TextStyle(color: Colors.grey),
+              style: AppTextStyles.secondary,
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.s32),
 
             // Приглашение — QR
             const Text(
               'Поделитесь QR-кодом чтобы пригласить участника',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 13),
+              style: AppTextStyles.subtitle,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.s16),
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
+                color: AppColors.qrCardBackground,
+                borderRadius: BorderRadius.circular(AppRadius.qrCard),
+                boxShadow: const [
                   BoxShadow(
-                    color: Colors.black.withAlpha(20),
+                    color: AppColors.qrCardShadow,
                     blurRadius: 12,
-                    offset: const Offset(0, 4),
+                    offset: Offset(0, 4),
                   ),
                 ],
               ),
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.s16),
               child: QrImageView(
                 data: _qrData,
-                size: 200,
+                size: AppSizes.qrMedium,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.s16),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -122,7 +122,7 @@ class ChannelInfoScreen extends StatelessWidget {
                 label: const Text('Скопировать ссылку'),
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.s32),
 
             // Уведомления
             ListenableBuilder(
@@ -147,7 +147,7 @@ class ChannelInfoScreen extends StatelessWidget {
                 );
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.s16),
 
             // Инфо
             const _InfoRow(
@@ -189,23 +189,20 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Colors.grey),
-          const SizedBox(width: 12),
+          Icon(icon, size: AppIconSizes.info, color: AppColors.iconSecondary),
+          const SizedBox(width: AppSpacing.s12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
-                    style:
-                        const TextStyle(fontSize: 11, color: Colors.grey)),
+                Text(label, style: AppTextStyles.label),
                 Text(
                   value,
-                  style: TextStyle(
-                    fontFamily: monospace ? 'monospace' : null,
-                    fontSize: 13,
+                  style: AppTextStyles.body.copyWith(
+                    fontFamily: monospace ? AppTextStyles.monoFamily : null,
                   ),
                 ),
               ],
