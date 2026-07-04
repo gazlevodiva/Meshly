@@ -119,9 +119,9 @@ class ContactStore extends ChangeNotifier {
         for (final entry in msgsMap.entries) {
           for (final j in entry.value as List) {
             final msg = m.Message.fromJson(j as Map<String, dynamic>);
-            await _db.into(_db.messages).insertOnConflictUpdate(
+            await _db.into(_db.messages).insert(
               MessagesCompanion.insert(
-                meshId: Value(msg.meshId),
+                meshId: msg.meshId,
                 conversationId: msg.conversationId,
                 fromNodeId: msg.fromNodeId,
                 messageText: msg.text,
@@ -166,6 +166,10 @@ class ContactStore extends ChangeNotifier {
       final msg = _toMessage(row);
       _messages.putIfAbsent(msg.conversationId, () => []).add(msg);
     }
+    // Chronological order — the chat list and date chips rely on it.
+    for (final list in _messages.values) {
+      list.sort((a, b) => a.time.compareTo(b.time));
+    }
 
     _blocked.clear();
     for (final row in await _db.select(_db.blockedNodes).get()) {
@@ -176,9 +180,7 @@ class ContactStore extends ChangeNotifier {
     for (final entry in _messages.entries) {
       final conv = _conversations[entry.key];
       if (conv != null && entry.value.isNotEmpty) {
-        final sorted = List<m.Message>.from(entry.value)
-          ..sort((a, b) => a.time.compareTo(b.time));
-        conv.lastMessage = sorted.last;
+        conv.lastMessage = entry.value.last;
       }
     }
   }
@@ -349,9 +351,11 @@ class ContactStore extends ChangeNotifier {
     // Write message + conversation update atomically so a crash between the two
     // writes cannot leave lastMessage/unreadCount stale.
     await _db.transaction(() async {
-      await _db.into(_db.messages).insertOnConflictUpdate(
+      // Plain insert: meshId is not unique (id-less packets share meshId 0),
+      // so an upsert would overwrite unrelated older messages.
+      await _db.into(_db.messages).insert(
         MessagesCompanion.insert(
-          meshId: Value(msg.meshId),
+          meshId: msg.meshId,
           conversationId: msg.conversationId,
           fromNodeId: msg.fromNodeId,
           messageText: msg.text,
@@ -387,10 +391,11 @@ class ContactStore extends ChangeNotifier {
   Future<void> updateMessageStatus(int meshId, m.MessageStatus status) async {
     for (final list in _messages.values) {
       for (final msg in list) {
-        if (msg.meshId == meshId) {
+        // ACKs correlate only our own outgoing packets.
+        if (msg.isMe && msg.meshId == meshId) {
           msg.status = status;
           await (_db.update(_db.messages)
-            ..where((t) => t.meshId.equals(meshId)))
+            ..where((t) => t.meshId.equals(meshId) & t.isMe.equals(true)))
             .write(MessagesCompanion(status: Value(status.name)));
           notifyListeners();
           return;

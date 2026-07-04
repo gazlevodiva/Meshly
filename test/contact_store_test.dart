@@ -64,6 +64,38 @@ void main() {
       expect(messages.first.text, equals('Привет!'));
     });
 
+    test('messages with meshId 0 all survive a DB reload (no PK overwrite)',
+        () async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      store.resetForTesting(db);
+      await store.init();
+
+      final contact = Contact(nodeId: '!99990000', displayName: 'Дядя');
+      await store.saveContact(contact);
+
+      const convId = 'dm_!99990000';
+      for (var i = 0; i < 3; i++) {
+        await store.addMessage(Message(
+          meshId: 0,
+          fromNodeId: '!99990000',
+          conversationId: convId,
+          text: 'Сообщение $i',
+          time: DateTime(2026, 7, 1 + i, 12),
+          isMe: false,
+        ));
+      }
+      expect(store.messagesFor(convId).length, equals(3));
+
+      // Reopen the same DB — all three rows must still be there,
+      // in chronological order.
+      store.resetForTesting(db);
+      await store.init();
+      final reloaded = store.messagesFor(convId);
+      expect(reloaded.length, equals(3));
+      expect(reloaded.map((x) => x.text).toList(),
+          equals(['Сообщение 0', 'Сообщение 1', 'Сообщение 2']));
+    });
+
     test('addMessage twice with same meshId does not duplicate', () async {
       final contact = Contact(nodeId: '!00001111', displayName: 'Брат');
       await store.saveContact(contact);

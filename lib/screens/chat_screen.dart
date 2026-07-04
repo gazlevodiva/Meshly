@@ -275,7 +275,11 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
               Expanded(
-                child: ListenableBuilder(
+                // The input bar floats over the list: messages scroll
+                // behind it, so the list gets extra bottom padding.
+                child: Stack(
+                  children: [
+                    ListenableBuilder(
                   listenable: _store,
                   builder: (context, _) {
                     final messages = _messages;
@@ -285,7 +289,11 @@ class _ChatScreenState extends State<ChatScreen> {
                                 style: AppTextStyles.secondary(context)))
                         : ListView.builder(
                             controller: _scrollController,
-                            padding: const EdgeInsets.all(AppSpacing.s12),
+                            padding: const EdgeInsets.fromLTRB(
+                                AppSpacing.s12,
+                                AppSpacing.s12,
+                                AppSpacing.s12,
+                                AppSpacing.chatListBottomPadding),
                             itemCount: messages.length,
                             itemBuilder: (_, i) {
                               final msg = messages[i];
@@ -315,9 +323,16 @@ class _ChatScreenState extends State<ChatScreen> {
                             },
                           );
                   },
+                    ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: _InputBar(controller: _controller, onSend: _send),
+                    ),
+                  ],
                 ),
               ),
-              _InputBar(controller: _controller, onSend: _send),
             ],
           ),
         ),
@@ -665,6 +680,13 @@ class _InputBar extends StatelessWidget {
                           color: scheme.surfaceContainer,
                           borderRadius:
                               BorderRadius.circular(AppRadius.input),
+                          boxShadow: [
+                            BoxShadow(
+                              color: context.appColors.islandShadow,
+                              blurRadius: AppSizes.inputShadowBlur,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: TextField(
                           controller: controller,
@@ -708,6 +730,8 @@ class _SendButton extends StatelessWidget {
     return Material(
       color: enabled ? scheme.primary : scheme.surfaceContainerHighest,
       shape: const CircleBorder(),
+      elevation: 4,
+      shadowColor: context.appColors.islandShadow,
       child: InkWell(
         onTap: enabled ? onPressed : null,
         customBorder: const CircleBorder(),

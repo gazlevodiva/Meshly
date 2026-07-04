@@ -42,6 +42,10 @@ class Conversations extends Table {
 }
 
 class Messages extends Table {
+  // Surrogate key: meshId is NOT unique — incoming packets without an id all
+  // carry meshId 0, and radio-assigned ids can collide over time. Using it as
+  // the PK silently overwrote older messages (lost chat history).
+  IntColumn get id => integer().autoIncrement()();
   IntColumn get meshId => integer()();
   TextColumn get conversationId => text()();
   TextColumn get fromNodeId => text()();
@@ -49,9 +53,6 @@ class Messages extends Table {
   DateTimeColumn get time => dateTime()();
   TextColumn get status => text()();
   BoolColumn get isMe => boolean()();
-
-  @override
-  Set<Column> get primaryKey => {meshId};
 }
 
 class BlockedNodes extends Table {
@@ -67,13 +68,29 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (m, from, to) async {
       if (from < 2) {
         await m.createTable(blockedNodes);
+      }
+      if (from < 3) {
+        // messages had PRIMARY KEY(mesh_id); rows with colliding mesh ids
+        // (all id-less incoming packets share meshId 0) overwrote each other.
+        // Rebuild the table with a surrogate autoincrement id.
+        await m.database.customStatement(
+          'ALTER TABLE messages RENAME TO messages_old',
+        );
+        await m.createTable(messages);
+        await m.database.customStatement(
+          'INSERT INTO messages '
+          '(mesh_id, conversation_id, from_node_id, text, time, status, is_me) '
+          'SELECT mesh_id, conversation_id, from_node_id, text, time, status, '
+          'is_me FROM messages_old',
+        );
+        await m.database.customStatement('DROP TABLE messages_old');
       }
     },
   );

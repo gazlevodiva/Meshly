@@ -191,6 +191,10 @@ abstract final class AppSpacing {
 
   /// Bottom list padding that keeps content clear of the floating navbar.
   static const double listBottomPadding = 96;
+
+  /// Bottom padding of the chat message list so the last bubble scrolls
+  /// clear of the floating input bar.
+  static const double chatListBottomPadding = 88;
 }
 
 // ── Corner radii ──────────────────────────────────────────────
@@ -320,6 +324,9 @@ abstract final class AppSizes {
   static const double spinnerSmall = 18;
   static const double spinner = 20;
   static const double spinnerStroke = 2;
+
+  /// Blur radius of the soft shadow under the floating chat input pill.
+  static const double inputShadowBlur = 12;
 
   // Bottom-sheet drag handle.
   static const double handleWidth = 36;

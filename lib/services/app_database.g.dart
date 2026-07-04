@@ -1164,6 +1164,19 @@ class $MessagesTable extends Messages with TableInfo<$MessagesTable, Message> {
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $MessagesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
   static const VerificationMeta _meshIdMeta = const VerificationMeta('meshId');
   @override
   late final GeneratedColumn<int> meshId = GeneratedColumn<int>(
@@ -1171,7 +1184,7 @@ class $MessagesTable extends Messages with TableInfo<$MessagesTable, Message> {
     aliasedName,
     false,
     type: DriftSqlType.int,
-    requiredDuringInsert: false,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _conversationIdMeta = const VerificationMeta(
     'conversationId',
@@ -1238,6 +1251,7 @@ class $MessagesTable extends Messages with TableInfo<$MessagesTable, Message> {
   );
   @override
   List<GeneratedColumn> get $columns => [
+    id,
     meshId,
     conversationId,
     fromNodeId,
@@ -1258,11 +1272,16 @@ class $MessagesTable extends Messages with TableInfo<$MessagesTable, Message> {
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
     if (data.containsKey('mesh_id')) {
       context.handle(
         _meshIdMeta,
         meshId.isAcceptableOrUnknown(data['mesh_id']!, _meshIdMeta),
       );
+    } else if (isInserting) {
+      context.missing(_meshIdMeta);
     }
     if (data.containsKey('conversation_id')) {
       context.handle(
@@ -1322,11 +1341,15 @@ class $MessagesTable extends Messages with TableInfo<$MessagesTable, Message> {
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {meshId};
+  Set<GeneratedColumn> get $primaryKey => {id};
   @override
   Message map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return Message(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
       meshId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}mesh_id'],
@@ -1365,6 +1388,7 @@ class $MessagesTable extends Messages with TableInfo<$MessagesTable, Message> {
 }
 
 class Message extends DataClass implements Insertable<Message> {
+  final int id;
   final int meshId;
   final String conversationId;
   final String fromNodeId;
@@ -1373,6 +1397,7 @@ class Message extends DataClass implements Insertable<Message> {
   final String status;
   final bool isMe;
   const Message({
+    required this.id,
     required this.meshId,
     required this.conversationId,
     required this.fromNodeId,
@@ -1384,6 +1409,7 @@ class Message extends DataClass implements Insertable<Message> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
     map['mesh_id'] = Variable<int>(meshId);
     map['conversation_id'] = Variable<String>(conversationId);
     map['from_node_id'] = Variable<String>(fromNodeId);
@@ -1396,6 +1422,7 @@ class Message extends DataClass implements Insertable<Message> {
 
   MessagesCompanion toCompanion(bool nullToAbsent) {
     return MessagesCompanion(
+      id: Value(id),
       meshId: Value(meshId),
       conversationId: Value(conversationId),
       fromNodeId: Value(fromNodeId),
@@ -1412,6 +1439,7 @@ class Message extends DataClass implements Insertable<Message> {
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Message(
+      id: serializer.fromJson<int>(json['id']),
       meshId: serializer.fromJson<int>(json['meshId']),
       conversationId: serializer.fromJson<String>(json['conversationId']),
       fromNodeId: serializer.fromJson<String>(json['fromNodeId']),
@@ -1425,6 +1453,7 @@ class Message extends DataClass implements Insertable<Message> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
       'meshId': serializer.toJson<int>(meshId),
       'conversationId': serializer.toJson<String>(conversationId),
       'fromNodeId': serializer.toJson<String>(fromNodeId),
@@ -1436,6 +1465,7 @@ class Message extends DataClass implements Insertable<Message> {
   }
 
   Message copyWith({
+    int? id,
     int? meshId,
     String? conversationId,
     String? fromNodeId,
@@ -1444,6 +1474,7 @@ class Message extends DataClass implements Insertable<Message> {
     String? status,
     bool? isMe,
   }) => Message(
+    id: id ?? this.id,
     meshId: meshId ?? this.meshId,
     conversationId: conversationId ?? this.conversationId,
     fromNodeId: fromNodeId ?? this.fromNodeId,
@@ -1454,6 +1485,7 @@ class Message extends DataClass implements Insertable<Message> {
   );
   Message copyWithCompanion(MessagesCompanion data) {
     return Message(
+      id: data.id.present ? data.id.value : this.id,
       meshId: data.meshId.present ? data.meshId.value : this.meshId,
       conversationId: data.conversationId.present
           ? data.conversationId.value
@@ -1473,6 +1505,7 @@ class Message extends DataClass implements Insertable<Message> {
   @override
   String toString() {
     return (StringBuffer('Message(')
+          ..write('id: $id, ')
           ..write('meshId: $meshId, ')
           ..write('conversationId: $conversationId, ')
           ..write('fromNodeId: $fromNodeId, ')
@@ -1486,6 +1519,7 @@ class Message extends DataClass implements Insertable<Message> {
 
   @override
   int get hashCode => Object.hash(
+    id,
     meshId,
     conversationId,
     fromNodeId,
@@ -1498,6 +1532,7 @@ class Message extends DataClass implements Insertable<Message> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Message &&
+          other.id == this.id &&
           other.meshId == this.meshId &&
           other.conversationId == this.conversationId &&
           other.fromNodeId == this.fromNodeId &&
@@ -1508,6 +1543,7 @@ class Message extends DataClass implements Insertable<Message> {
 }
 
 class MessagesCompanion extends UpdateCompanion<Message> {
+  final Value<int> id;
   final Value<int> meshId;
   final Value<String> conversationId;
   final Value<String> fromNodeId;
@@ -1516,6 +1552,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
   final Value<String> status;
   final Value<bool> isMe;
   const MessagesCompanion({
+    this.id = const Value.absent(),
     this.meshId = const Value.absent(),
     this.conversationId = const Value.absent(),
     this.fromNodeId = const Value.absent(),
@@ -1525,20 +1562,23 @@ class MessagesCompanion extends UpdateCompanion<Message> {
     this.isMe = const Value.absent(),
   });
   MessagesCompanion.insert({
-    this.meshId = const Value.absent(),
+    this.id = const Value.absent(),
+    required int meshId,
     required String conversationId,
     required String fromNodeId,
     required String messageText,
     required DateTime time,
     required String status,
     required bool isMe,
-  }) : conversationId = Value(conversationId),
+  }) : meshId = Value(meshId),
+       conversationId = Value(conversationId),
        fromNodeId = Value(fromNodeId),
        messageText = Value(messageText),
        time = Value(time),
        status = Value(status),
        isMe = Value(isMe);
   static Insertable<Message> custom({
+    Expression<int>? id,
     Expression<int>? meshId,
     Expression<String>? conversationId,
     Expression<String>? fromNodeId,
@@ -1548,6 +1588,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
     Expression<bool>? isMe,
   }) {
     return RawValuesInsertable({
+      if (id != null) 'id': id,
       if (meshId != null) 'mesh_id': meshId,
       if (conversationId != null) 'conversation_id': conversationId,
       if (fromNodeId != null) 'from_node_id': fromNodeId,
@@ -1559,6 +1600,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
   }
 
   MessagesCompanion copyWith({
+    Value<int>? id,
     Value<int>? meshId,
     Value<String>? conversationId,
     Value<String>? fromNodeId,
@@ -1568,6 +1610,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
     Value<bool>? isMe,
   }) {
     return MessagesCompanion(
+      id: id ?? this.id,
       meshId: meshId ?? this.meshId,
       conversationId: conversationId ?? this.conversationId,
       fromNodeId: fromNodeId ?? this.fromNodeId,
@@ -1581,6 +1624,9 @@ class MessagesCompanion extends UpdateCompanion<Message> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
     if (meshId.present) {
       map['mesh_id'] = Variable<int>(meshId.value);
     }
@@ -1608,6 +1654,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
   @override
   String toString() {
     return (StringBuffer('MessagesCompanion(')
+          ..write('id: $id, ')
           ..write('meshId: $meshId, ')
           ..write('conversationId: $conversationId, ')
           ..write('fromNodeId: $fromNodeId, ')
@@ -2418,7 +2465,8 @@ typedef $$ConversationsTableProcessedTableManager =
     >;
 typedef $$MessagesTableCreateCompanionBuilder =
     MessagesCompanion Function({
-      Value<int> meshId,
+      Value<int> id,
+      required int meshId,
       required String conversationId,
       required String fromNodeId,
       required String messageText,
@@ -2428,6 +2476,7 @@ typedef $$MessagesTableCreateCompanionBuilder =
     });
 typedef $$MessagesTableUpdateCompanionBuilder =
     MessagesCompanion Function({
+      Value<int> id,
       Value<int> meshId,
       Value<String> conversationId,
       Value<String> fromNodeId,
@@ -2446,6 +2495,11 @@ class $$MessagesTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get meshId => $composableBuilder(
     column: $table.meshId,
     builder: (column) => ColumnFilters(column),
@@ -2491,6 +2545,11 @@ class $$MessagesTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get meshId => $composableBuilder(
     column: $table.meshId,
     builder: (column) => ColumnOrderings(column),
@@ -2536,6 +2595,9 @@ class $$MessagesTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
   GeneratedColumn<int> get meshId =>
       $composableBuilder(column: $table.meshId, builder: (column) => column);
 
@@ -2592,6 +2654,7 @@ class $$MessagesTableTableManager
               $$MessagesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
+                Value<int> id = const Value.absent(),
                 Value<int> meshId = const Value.absent(),
                 Value<String> conversationId = const Value.absent(),
                 Value<String> fromNodeId = const Value.absent(),
@@ -2600,6 +2663,7 @@ class $$MessagesTableTableManager
                 Value<String> status = const Value.absent(),
                 Value<bool> isMe = const Value.absent(),
               }) => MessagesCompanion(
+                id: id,
                 meshId: meshId,
                 conversationId: conversationId,
                 fromNodeId: fromNodeId,
@@ -2610,7 +2674,8 @@ class $$MessagesTableTableManager
               ),
           createCompanionCallback:
               ({
-                Value<int> meshId = const Value.absent(),
+                Value<int> id = const Value.absent(),
+                required int meshId,
                 required String conversationId,
                 required String fromNodeId,
                 required String messageText,
@@ -2618,6 +2683,7 @@ class $$MessagesTableTableManager
                 required String status,
                 required bool isMe,
               }) => MessagesCompanion.insert(
+                id: id,
                 meshId: meshId,
                 conversationId: conversationId,
                 fromNodeId: fromNodeId,
