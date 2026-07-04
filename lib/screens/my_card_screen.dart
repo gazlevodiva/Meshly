@@ -8,6 +8,8 @@ import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/qr_service.dart';
 import 'package:meshly/theme/app_theme.dart';
 import 'package:meshly/widgets/qr_card.dart';
+import 'package:meshly/widgets/section_card.dart';
+import 'package:meshly/widgets/tab_header.dart';
 
 class MyCardScreen extends StatefulWidget {
   const MyCardScreen({required this.meshService, super.key});
@@ -82,94 +84,140 @@ class _MyCardScreenState extends State<MyCardScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildHeader(BuildContext context) {
     final contact = _myContact;
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Мой контакт')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.s24),
-        child: Column(
-          children: [
-            // Аватар-эмодзи
-            GestureDetector(
-              onTap: _pickEmoji,
-              child: CircleAvatar(
-                radius: 40,
-                backgroundColor:
-                    Theme.of(context).colorScheme.primaryContainer,
-                child: Text(_emoji,
-                    style: const TextStyle(fontSize: AppSizes.emojiCard)),
-              ),
-            ),
-            TextButton(
-              onPressed: _pickEmoji,
-              child: const Text('Сменить'),
-            ),
-            const SizedBox(height: AppSpacing.s8),
-
-            // Имя
-            if (_editingName)
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _nameController,
-                      autofocus: true,
-                      decoration: const InputDecoration(hintText: 'Ваше имя'),
-                      onSubmitted: (_) => _saveName(),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.check),
-                    onPressed: _saveName,
-                  ),
-                ],
-              )
-            else
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    contact.displayName,
-                    style: AppTextStyles.headline,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.edit, size: AppIconSizes.info),
-                    onPressed: () => setState(() => _editingName = true),
-                  ),
-                ],
-              ),
-
-            // Node ID
-            Text(
-              _nodeId,
-              style: AppTextStyles.monoCaption(context),
-            ),
-            const SizedBox(height: AppSpacing.s32),
-
-            // QR
-            QrCard(data: _qrData),
-            const SizedBox(height: AppSpacing.s24),
-
-            // Кнопки
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _copyLink,
-                    icon: const Icon(Icons.link),
-                    label: const Text('Скопировать ссылку'),
+    return Column(
+      children: [
+        // Аватар-эмодзи (тап — выбор эмодзи)
+        GestureDetector(
+          onTap: _pickEmoji,
+          child: Stack(
+            alignment: Alignment.bottomRight,
+            children: [
+              Container(
+                width: AppSizes.avatarLarge,
+                height: AppSizes.avatarLarge,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    _emoji,
+                    style: const TextStyle(fontSize: AppSizes.emojiAvatar),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.s12),
-            Text(
-              'Попросите собеседника отсканировать этот QR\nили поделитесь ссылкой',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.subtitle(context),
+              ),
+              Container(
+                width: AppSizes.avatarEditBadge,
+                height: AppSizes.avatarEditBadge,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.edit,
+                    size: AppIconSizes.banner,
+                    color: context.appColors.onAccent),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s12),
+
+        // Имя
+        if (_editingName)
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _nameController,
+                  autofocus: true,
+                  decoration: const InputDecoration(hintText: 'Ваше имя'),
+                  onSubmitted: (_) => _saveName(),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.check),
+                onPressed: _saveName,
+              ),
+            ],
+          )
+        else
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                contact.displayName,
+                style: AppTextStyles.headline,
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit, size: AppIconSizes.info),
+                onPressed: () => setState(() => _editingName = true),
+              ),
+            ],
+          ),
+
+        // Node ID
+        Text(
+          _nodeId,
+          style: AppTextStyles.monoCaption(context),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final topInset = MediaQuery.paddingOf(context).top + kToolbarHeight;
+
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: const Text('Мой контакт'),
+      ),
+      body: TabGradientBackground(
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.s16,
+            topInset + AppSpacing.s8,
+            AppSpacing.s16,
+            AppSpacing.s32,
+          ),
+          children: [
+            // Аватар + имя + Node ID
+            _buildHeader(context),
+            const SizedBox(height: AppSpacing.s24),
+
+            // QR + ссылка
+            SectionCard(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.s16),
+                child: Column(
+                  children: [
+                    Text(
+                      'Попросите собеседника отсканировать этот QR\n'
+                      'или поделитесь ссылкой',
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.subtitle(context),
+                    ),
+                    const SizedBox(height: AppSpacing.s16),
+                    QrCard(data: _qrData, size: AppSizes.qrMedium),
+                    const SizedBox(height: AppSpacing.s16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _copyLink,
+                        icon: const Icon(Icons.link),
+                        label: const Text('Скопировать ссылку'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

@@ -5,6 +5,8 @@ import 'package:meshly/models/contact.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/qr_service.dart';
 import 'package:meshly/theme/app_theme.dart';
+import 'package:meshly/widgets/section_card.dart';
+import 'package:meshly/widgets/tab_header.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class AddContactScreen extends StatefulWidget {
@@ -102,39 +104,84 @@ class _AddContactScreenState extends State<AddContactScreen>
     }
   }
 
+  Widget _buildScannerTab(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s16,
+        AppSpacing.s16,
+        AppSpacing.s16,
+        AppSpacing.s32,
+      ),
+      child: Column(
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.cardLarge),
+              child: _scanned
+                  ? const Center(child: CircularProgressIndicator())
+                  : MobileScanner(
+                      onDetect: _onQrDetected,
+                      errorBuilder: (_, error) => Center(
+                        child: Text('Ошибка камеры: $error',
+                            textAlign: TextAlign.center),
+                      ),
+                    ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s12),
+          Text(
+            'Наведите камеру на QR-код контакта или канала',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.subtitle(context),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.paddingOf(context).top + kToolbarHeight;
+
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         title: const Text('Добавить'),
-        bottom: TabBar(
-          controller: _tabs,
-          tabs: const [
-            Tab(icon: Icon(Icons.qr_code_scanner), text: 'Скан QR'),
-            Tab(icon: Icon(Icons.keyboard), text: 'Вручную'),
-          ],
-        ),
       ),
-      body: TabBarView(
-        controller: _tabs,
-        children: [
-          // Tab 1: QR Scanner
-          if (_scanned)
-            const Center(child: CircularProgressIndicator())
-          else
-            MobileScanner(
-              onDetect: _onQrDetected,
-              errorBuilder: (_, error) => Center(
-                child: Text('Ошибка камеры: $error',
-                    textAlign: TextAlign.center),
+      body: TabGradientBackground(
+        child: Column(
+          children: [
+            SizedBox(height: topInset + AppSpacing.s8),
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+              child: TabBar(
+                controller: _tabs,
+                tabs: const [
+                  Tab(icon: Icon(Icons.qr_code_scanner), text: 'Скан QR'),
+                  Tab(icon: Icon(Icons.keyboard), text: 'Вручную'),
+                ],
               ),
             ),
-          // Tab 2: Manual input
-          _ManualInputTab(onAdd: (contact) async {
-            await _store.saveContact(contact);
-            if (context.mounted) Navigator.pop(context, contact);
-          }),
-        ],
+            Expanded(
+              child: TabBarView(
+                controller: _tabs,
+                children: [
+                  // Tab 1: QR Scanner
+                  _buildScannerTab(context),
+                  // Tab 2: Manual input
+                  _ManualInputTab(onAdd: (contact) async {
+                    await _store.saveContact(contact);
+                    if (context.mounted) Navigator.pop(context, contact);
+                  }),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -309,59 +356,88 @@ class _ManualInputTabState extends State<_ManualInputTab> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.s24),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s16,
+        AppSpacing.s16,
+        AppSpacing.s16,
+        AppSpacing.s32,
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TextField(
-            controller: _nodeIdCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Node ID',
-              hintText: '!1f8e42c9',
-              prefixText: '',
-            ),
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: AppSpacing.s16),
-          TextField(
-            controller: _nameCtrl,
-            decoration: const InputDecoration(labelText: 'Имя'),
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: AppSpacing.s20),
-          Text('Эмодзи', style: AppTextStyles.secondary(context)),
-          const SizedBox(height: AppSpacing.s8),
-          Wrap(
-            spacing: AppSpacing.s8,
-            children: _emojis.map((e) => GestureDetector(
-              onTap: () => setState(() => _emoji = e),
-              child: Container(
-                width: AppSizes.emojiCell, height: AppSizes.emojiCell,
-                decoration: BoxDecoration(
-                  color: e == _emoji
-                      ? Theme.of(context).colorScheme.primaryContainer
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(AppRadius.chip),
-                ),
-                child: Center(child: Text(e,
-                    style: const TextStyle(fontSize: AppSizes.emojiMedium))),
+          // Данные контакта
+          SectionCard(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.s16),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _nodeIdCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Node ID',
+                      hintText: '!1f8e42c9',
+                      prefixText: '',
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  const SizedBox(height: AppSpacing.s16),
+                  TextField(
+                    controller: _nameCtrl,
+                    decoration: const InputDecoration(labelText: 'Имя'),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ],
               ),
-            )).toList(),
+            ),
           ),
-          const SizedBox(height: AppSpacing.s32),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _valid && !_loading ? _save : null,
-              child: _loading
-                  ? SizedBox(
+          const SizedBox(height: AppSpacing.s12),
+
+          // Эмодзи
+          SectionCard(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.s16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Эмодзи', style: AppTextStyles.subtitle(context)),
+                  const SizedBox(height: AppSpacing.s8),
+                  Wrap(
+                    spacing: AppSpacing.s8,
+                    runSpacing: AppSpacing.s8,
+                    children: _emojis.map((e) => GestureDetector(
+                      onTap: () => setState(() => _emoji = e),
+                      child: Container(
+                        width: AppSizes.emojiCell, height: AppSizes.emojiCell,
+                        decoration: BoxDecoration(
+                          color: e == _emoji
+                              ? Theme.of(context).colorScheme.primaryContainer
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(AppRadius.chip),
+                        ),
+                        child: Center(child: Text(e,
+                            style: const TextStyle(
+                                fontSize: AppSizes.emojiMedium))),
+                      ),
+                    )).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s24),
+
+          FilledButton(
+            onPressed: _valid && !_loading ? _save : null,
+            child: _loading
+                ? Center(
+                    child: SizedBox(
                       width: AppSizes.spinner, height: AppSizes.spinner,
                       child: CircularProgressIndicator(
                           strokeWidth: AppSizes.spinnerStroke,
                           color: context.appColors.onAccent),
-                    )
-                  : const Text('Добавить контакт'),
-            ),
+                    ),
+                  )
+                : const Text('Добавить контакт'),
           ),
         ],
       ),

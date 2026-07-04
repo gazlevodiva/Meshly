@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:meshly/services/channel_manager.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/theme/app_theme.dart';
+import 'package:meshly/widgets/section_card.dart';
+import 'package:meshly/widgets/tab_header.dart';
 
 class NewChannelScreen extends StatefulWidget {
   const NewChannelScreen({required this.meshService, super.key});
@@ -56,97 +58,125 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.paddingOf(context).top + kToolbarHeight;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Новый канал')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.s24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: const Text('Новый канал'),
+      ),
+      body: TabGradientBackground(
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.s16,
+            topInset + AppSpacing.s8,
+            AppSpacing.s16,
+            AppSpacing.s32,
+          ),
           children: [
             // Эмодзи + название
-            Row(
-              children: [
-                GestureDetector(
-                  onTap: _pickEmoji,
-                  child: CircleAvatar(
-                    radius: 28,
-                    backgroundColor:
-                        Theme.of(context).colorScheme.primaryContainer,
-                    child: Text(_emoji,
-                        style: const TextStyle(fontSize: AppSizes.emojiLarge)),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.s16),
-                Expanded(
-                  child: TextField(
-                    controller: _nameCtrl,
-                    autofocus: true,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      labelText: 'Название канала',
-                      hintText: 'Горная группа',
+            SectionCard(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.s16),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: _pickEmoji,
+                      child: CircleAvatar(
+                        radius: AppSizes.avatarList / 2,
+                        backgroundColor:
+                            Theme.of(context).colorScheme.primaryContainer,
+                        child: Text(_emoji,
+                            style: const TextStyle(
+                                fontSize: AppSizes.emojiLarge)),
+                      ),
                     ),
-                    onChanged: (_) => setState(() {}),
-                    onSubmitted: (_) => _create(),
-                  ),
+                    const SizedBox(width: AppSpacing.s16),
+                    Expanded(
+                      child: TextField(
+                        controller: _nameCtrl,
+                        autofocus: true,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: const InputDecoration(
+                          labelText: 'Название канала',
+                          hintText: 'Горная группа',
+                        ),
+                        onChanged: (_) => setState(() {}),
+                        onSubmitted: (_) => _create(),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-            const SizedBox(height: AppSpacing.s32),
+            const SizedBox(height: AppSpacing.s12),
 
             // Сетка эмодзи
-            Text('Иконка канала', style: AppTextStyles.subtitle(context)),
-            const SizedBox(height: AppSpacing.s8),
-            Wrap(
-              spacing: AppSpacing.s8,
-              runSpacing: AppSpacing.s8,
-              children: _emojis.map((e) => GestureDetector(
-                onTap: () => setState(() => _emoji = e),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  width: AppSizes.emojiCellLarge,
-                  height: AppSizes.emojiCellLarge,
-                  decoration: BoxDecoration(
-                    color: e == _emoji
-                        ? Theme.of(context).colorScheme.primaryContainer
-                        : Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(AppRadius.card),
-                  ),
-                  child: Center(
-                    child: Text(e,
-                        style:
-                            const TextStyle(fontSize: AppSizes.emojiMedium)),
-                  ),
+            SectionCard(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.s16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Иконка канала', style: AppTextStyles.subtitle(context)),
+                    const SizedBox(height: AppSpacing.s8),
+                    Wrap(
+                      spacing: AppSpacing.s8,
+                      runSpacing: AppSpacing.s8,
+                      children: _emojis.map((e) => GestureDetector(
+                        onTap: () => setState(() => _emoji = e),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          width: AppSizes.emojiCellLarge,
+                          height: AppSizes.emojiCellLarge,
+                          decoration: BoxDecoration(
+                            color: e == _emoji
+                                ? Theme.of(context).colorScheme.primaryContainer
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(AppRadius.card),
+                          ),
+                          child: Center(
+                            child: Text(e,
+                                style: const TextStyle(
+                                    fontSize: AppSizes.emojiMedium)),
+                          ),
+                        ),
+                      )).toList(),
+                    ),
+                  ],
                 ),
-              )).toList(),
+              ),
             ),
-            const SizedBox(height: AppSpacing.s40),
+            const SizedBox(height: AppSpacing.s12),
 
             // Инфо
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.s14),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(AppRadius.card),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.info_outline,
-                      size: AppIconSizes.info,
-                      color: context.appColors.iconSecondary),
-                  const SizedBox(width: AppSpacing.s10),
-                  Expanded(
-                    child: Text(
-                      'Канал создастся с уникальным ключом шифрования. '
-                      'Поделитесь QR-кодом канала с теми кого хотите добавить.',
-                      style: AppTextStyles.subtitle(context),
+            SectionCard(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.s14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline,
+                        size: AppIconSizes.info,
+                        color: context.appColors.iconSecondary),
+                    const SizedBox(width: AppSpacing.s10),
+                    Expanded(
+                      child: Text(
+                        'Канал создастся с уникальным ключом шифрования. '
+                        'Поделитесь QR-кодом канала с теми кого хотите добавить.',
+                        style: AppTextStyles.subtitle(context),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: AppSpacing.s32),
+            const SizedBox(height: AppSpacing.s24),
 
             SizedBox(
               width: double.infinity,
