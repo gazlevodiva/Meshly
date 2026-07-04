@@ -370,14 +370,15 @@ abstract final class AppOpacities {
   /// Outer translucent ring around the scan-screen hero circle.
   static const double ringOuter = 0.07;
 
-  /// Tinted background of the active nav-bar pill (over primary).
+  /// Tinted background of the active nav-bar pill (over primary) —
+  /// the light end of its gradient.
   static const double navPillTint = 0.14;
+
+  /// The stronger end of the active nav-bar pill gradient (over primary).
+  static const double navPillTintStrong = 0.28;
 
   /// Inactive nav-bar item icon/label (over onSurface).
   static const double navInactive = 0.45;
-
-  /// Translucent fill of the floating nav island above the blur.
-  static const double navIslandFill = 0.88;
 
   /// Time / status-icon metadata drawn on the accent-colored outgoing bubble
   /// (over [AppColorsExt.onAccent]).
@@ -500,6 +501,9 @@ ThemeData buildLightTheme() {
   return ThemeData(
     colorScheme: scheme,
     useMaterial3: true,
+    // Material You sparkle: soft radial shimmer instead of a flat
+    // primary-tinted splash rectangle.
+    splashFactory: InkSparkle.splashFactory,
     extensions: const [AppColorsExt.light],
   );
 }
@@ -531,6 +535,7 @@ ThemeData buildDarkTheme() {
   return ThemeData(
     colorScheme: scheme,
     useMaterial3: true,
+    splashFactory: InkSparkle.splashFactory,
     extensions: const [AppColorsExt.dark],
   );
 }

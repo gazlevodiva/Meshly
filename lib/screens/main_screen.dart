@@ -1,4 +1,3 @@
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:meshly/screens/contacts_screen.dart';
@@ -77,54 +76,41 @@ class _FloatingNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const radius = BorderRadius.all(Radius.circular(AppRadius.island));
-    final surface = Theme.of(context).colorScheme.surface;
 
     return SafeArea(
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
             AppSpacing.s16, 0, AppSpacing.s16, AppSpacing.s12),
+        // Floating pill in the same style as the chat input bar:
+        // solid surface + soft shadow, no full-width panel behind it.
         child: Container(
-          // Shadow lives on an opaque-shaped container; the blur and the
-          // translucent fill are clipped strictly inside the same rounded
-          // rect, so nothing can bleed past the island's edge.
           decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainer,
             borderRadius: radius,
             boxShadow: [
               BoxShadow(
                 color: context.appColors.islandShadow,
-                blurRadius: 20,
-                offset: const Offset(0, 6),
+                blurRadius: AppSizes.inputShadowBlur,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: radius,
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: surface.withValues(alpha: AppOpacities.navIslandFill),
-                ),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: AppSpacing.s10),
-                  child: Row(
-                    children: [
-                      for (var i = 0; i < _items.length; i++)
-                        Expanded(
-                          child: _NavItem(
-                            icon: _items[i].icon,
-                            activeIcon: _items[i].activeIcon,
-                            label: _items[i].label,
-                            selected: currentIndex == i,
-                            onTap: () => onTap(i),
-                          ),
-                        ),
-                    ],
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.s10),
+            child: Row(
+              children: [
+                for (var i = 0; i < _items.length; i++)
+                  Expanded(
+                    child: _NavItem(
+                      icon: _items[i].icon,
+                      activeIcon: _items[i].activeIcon,
+                      label: _items[i].label,
+                      selected: currentIndex == i,
+                      onTap: () => onTap(i),
+                    ),
                   ),
-                ),
-              ),
+              ],
             ),
           ),
         ),
@@ -205,9 +191,18 @@ class _NavItemState extends State<_NavItem> with SingleTickerProviderStateMixin 
               vertical: AppSpacing.s8,
             ),
             decoration: BoxDecoration(
-              color: widget.selected
-                  ? scheme.primary.withValues(alpha: AppOpacities.navPillTint)
-                  : Colors.transparent,
+              gradient: widget.selected
+                  ? LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        scheme.primary
+                            .withValues(alpha: AppOpacities.navPillTintStrong),
+                        scheme.primary
+                            .withValues(alpha: AppOpacities.navPillTint),
+                      ],
+                    )
+                  : null,
               borderRadius: BorderRadius.circular(AppRadius.pill),
             ),
             child: Row(
