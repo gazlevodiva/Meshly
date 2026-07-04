@@ -8,7 +8,9 @@ import 'package:meshly/screens/scan_screen.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/notification_settings.dart';
+import 'package:meshly/services/theme_controller.dart';
 import 'package:meshly/theme/app_theme.dart';
+import 'package:meshly/widgets/sheet_drag_handle.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({required this.meshService, super.key});
@@ -29,6 +31,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
         (_) => false,
       ));
     }
+  }
+
+  static String _themeModeLabel(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.system:
+        return 'Системная';
+      case ThemeMode.light:
+        return 'Светлая';
+      case ThemeMode.dark:
+        return 'Тёмная';
+    }
+  }
+
+  void _showThemePicker(BuildContext context) {
+    unawaited(showModalBottomSheet<void>(
+      context: context,
+      shape: AppShapes.bottomSheet,
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.s12),
+          child: ListenableBuilder(
+            listenable: ThemeController.instance,
+            builder: (sheetContext, _) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SheetDragHandle(bottomMargin: AppSpacing.s8),
+                  RadioGroup<ThemeMode>(
+                    groupValue: ThemeController.instance.mode,
+                    onChanged: (mode) async {
+                      if (mode != null) {
+                        await ThemeController.instance.setMode(mode);
+                      }
+                      if (sheetContext.mounted) Navigator.pop(sheetContext);
+                    },
+                    child: const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        RadioListTile<ThemeMode>(
+                          value: ThemeMode.system,
+                          title: Text('Системная'),
+                        ),
+                        RadioListTile<ThemeMode>(
+                          value: ThemeMode.light,
+                          title: Text('Светлая'),
+                        ),
+                        RadioListTile<ThemeMode>(
+                          value: ThemeMode.dark,
+                          title: Text('Тёмная'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.s8),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    ));
   }
 
   @override
@@ -60,17 +123,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               final connected = widget.meshService.isConnected;
               if (name != null || connected) {
                 return ListTile(
-                  leading: const Icon(Icons.bluetooth_connected,
-                      color: AppColors.brand),
+                  leading: Icon(Icons.bluetooth_connected,
+                      color: context.appColors.brand),
                   title: Text('Подключено${name != null ? ': $name' : ''}'),
                   subtitle: const Text('Нажмите чтобы отключиться'),
                   onTap: _disconnect,
                 );
               } else {
-                return const ListTile(
+                return ListTile(
                   leading: Icon(Icons.bluetooth_disabled,
-                      color: AppColors.iconSecondary),
-                  title: Text('Нет подключения'),
+                      color: context.appColors.iconSecondary),
+                  title: const Text('Нет подключения'),
                 );
               }
             },
@@ -87,7 +150,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   enabled
                       ? Icons.notifications_outlined
                       : Icons.notifications_off_outlined,
-                  color: enabled ? null : AppColors.iconSecondary,
+                  color: enabled ? null : context.appColors.iconSecondary,
                 ),
                 title: const Text('Настройки уведомлений'),
                 subtitle: Text(enabled ? 'Включены' : 'Выключены'),
@@ -119,6 +182,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     builder: (_) => const BlockedNodesScreen(),
                   ),
                 )),
+              );
+            },
+          ),
+
+          // ── Внешний вид ──────────────────────────────────────
+          const _SectionHeader('Внешний вид'),
+          ListenableBuilder(
+            listenable: ThemeController.instance,
+            builder: (context, _) {
+              return ListTile(
+                leading: const Icon(Icons.brightness_6_outlined),
+                title: const Text('Тема'),
+                subtitle: Text(_themeModeLabel(ThemeController.instance.mode)),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showThemePicker(context),
               );
             },
           ),

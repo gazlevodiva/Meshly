@@ -95,7 +95,7 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
             const SizedBox(height: AppSpacing.s32),
 
             // Сетка эмодзи
-            const Text('Иконка канала', style: AppTextStyles.subtitle),
+            Text('Иконка канала', style: AppTextStyles.subtitle(context)),
             const SizedBox(height: AppSpacing.s8),
             Wrap(
               spacing: AppSpacing.s8,
@@ -129,17 +129,18 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(AppRadius.card),
               ),
-              child: const Row(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(Icons.info_outline,
-                      size: AppIconSizes.info, color: AppColors.iconSecondary),
-                  SizedBox(width: AppSpacing.s10),
+                      size: AppIconSizes.info,
+                      color: context.appColors.iconSecondary),
+                  const SizedBox(width: AppSpacing.s10),
                   Expanded(
                     child: Text(
                       'Канал создастся с уникальным ключом шифрования. '
                       'Поделитесь QR-кодом канала с теми кого хотите добавить.',
-                      style: AppTextStyles.subtitle,
+                      style: AppTextStyles.subtitle(context),
                     ),
                   ),
                 ],
@@ -152,12 +153,12 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
               child: FilledButton.icon(
                 onPressed: _valid && !_loading ? _create : null,
                 icon: _loading
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: AppSizes.spinnerSmall,
                         height: AppSizes.spinnerSmall,
                         child: CircularProgressIndicator(
                             strokeWidth: AppSizes.spinnerStroke,
-                            color: AppColors.onAccent),
+                            color: context.appColors.onAccent),
                       )
                     : const Icon(Icons.add),
                 label: const Text('Создать канал'),

@@ -84,26 +84,26 @@ class ChannelInfoScreen extends StatelessWidget {
             ),
             Text(
               'Слот ${channel.slotIndex}',
-              style: AppTextStyles.secondary,
+              style: AppTextStyles.secondary(context),
             ),
             const SizedBox(height: AppSpacing.s32),
 
             // Приглашение — QR
-            const Text(
+            Text(
               'Поделитесь QR-кодом чтобы пригласить участника',
               textAlign: TextAlign.center,
-              style: AppTextStyles.subtitle,
+              style: AppTextStyles.subtitle(context),
             ),
             const SizedBox(height: AppSpacing.s16),
             Container(
               decoration: BoxDecoration(
-                color: AppColors.qrCardBackground,
+                color: context.appColors.qrCardBackground,
                 borderRadius: BorderRadius.circular(AppRadius.qrCard),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
-                    color: AppColors.qrCardShadow,
+                    color: context.appColors.qrCardShadow,
                     blurRadius: 12,
-                    offset: Offset(0, 4),
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
@@ -192,13 +192,14 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
       child: Row(
         children: [
-          Icon(icon, size: AppIconSizes.info, color: AppColors.iconSecondary),
+          Icon(icon,
+              size: AppIconSizes.info, color: context.appColors.iconSecondary),
           const SizedBox(width: AppSpacing.s12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: AppTextStyles.label),
+                Text(label, style: AppTextStyles.label(context)),
                 Text(
                   value,
                   style: AppTextStyles.body.copyWith(

@@ -126,15 +126,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             height: AppSizes.statusDotSmall,
                             decoration: BoxDecoration(
                               color: deviceName != null
-                                  ? AppColors.online
-                                  : AppColors.offline,
+                                  ? context.appColors.online
+                                  : context.appColors.offline,
                               shape: BoxShape.circle,
                             ),
                           ),
                           const SizedBox(width: AppSpacing.s6),
                           Text(
                             deviceName ?? 'нет подключения',
-                            style: AppTextStyles.caption,
+                            style: AppTextStyles.caption(context),
                           ),
                         ],
                       ),
@@ -172,10 +172,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   .toList();
           if (convs.isEmpty) {
             return query.isNotEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       'Ничего не найдено',
-                      style: AppTextStyles.secondary,
+                      style: AppTextStyles.secondary(context),
                     ),
                   )
                 : _EmptyState(onAddContact: () => _showAddOptions(context));
@@ -276,9 +276,9 @@ class _EmptyState extends StatelessWidget {
             style: AppTextStyles.title,
           ),
           const SizedBox(height: AppSpacing.s8),
-          const Text(
+          Text(
             'Добавьте контакт или создайте канал',
-            style: AppTextStyles.secondary,
+            style: AppTextStyles.secondary(context),
           ),
           const SizedBox(height: AppSpacing.s24),
           ElevatedButton.icon(

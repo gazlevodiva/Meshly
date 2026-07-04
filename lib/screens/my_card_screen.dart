@@ -145,20 +145,20 @@ class _MyCardScreenState extends State<MyCardScreen> {
             // Node ID
             Text(
               _nodeId,
-              style: AppTextStyles.monoCaption,
+              style: AppTextStyles.monoCaption(context),
             ),
             const SizedBox(height: AppSpacing.s32),
 
             // QR
             Container(
               decoration: BoxDecoration(
-                color: AppColors.qrCardBackground,
+                color: context.appColors.qrCardBackground,
                 borderRadius: BorderRadius.circular(AppRadius.qrCard),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
-                    color: AppColors.qrCardShadow,
+                    color: context.appColors.qrCardShadow,
                     blurRadius: 12,
-                    offset: Offset(0, 4),
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
@@ -183,10 +183,10 @@ class _MyCardScreenState extends State<MyCardScreen> {
               ],
             ),
             const SizedBox(height: AppSpacing.s12),
-            const Text(
+            Text(
               'Попросите собеседника отсканировать этот QR\nили поделитесь ссылкой',
               textAlign: TextAlign.center,
-              style: AppTextStyles.subtitle,
+              style: AppTextStyles.subtitle(context),
             ),
           ],
         ),

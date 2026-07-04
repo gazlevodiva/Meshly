@@ -167,7 +167,7 @@ class _OnboardingPage extends StatelessWidget {
           const SizedBox(height: AppSpacing.s16),
           Text(
             text,
-            style: AppTextStyles.bodyLargeSecondary,
+            style: AppTextStyles.bodyLargeSecondary(context),
             textAlign: TextAlign.center,
           ),
         ],

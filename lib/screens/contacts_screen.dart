@@ -113,7 +113,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 query.isNotEmpty
                     ? 'Ничего не найдено'
                     : 'Нет контактов. Добавьте через +',
-                style: AppTextStyles.secondary,
+                style: AppTextStyles.secondary(context),
               ),
             );
           }
@@ -145,7 +145,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                                 width: AppSizes.statusDot,
                                 height: AppSizes.statusDot,
                                 decoration: BoxDecoration(
-                                  color: AppColors.online,
+                                  color: context.appColors.online,
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color:

@@ -177,13 +177,13 @@ class _FloatingNavBar extends StatelessWidget {
           // Shadow lives on an opaque-shaped container; the blur and the
           // translucent fill are clipped strictly inside the same rounded
           // rect, so nothing can bleed past the island's edge.
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             borderRadius: radius,
             boxShadow: [
               BoxShadow(
-                color: AppColors.islandShadow,
+                color: context.appColors.islandShadow,
                 blurRadius: 20,
-                offset: Offset(0, 6),
+                offset: const Offset(0, 6),
               ),
             ],
           ),

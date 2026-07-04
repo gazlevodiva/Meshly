@@ -16,10 +16,10 @@ class BlockedNodesScreen extends StatelessWidget {
         builder: (context, _) {
           final blocked = ContactStore.instance.blockedNodes;
           if (blocked.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
                 'Нет заблокированных нод',
-                style: AppTextStyles.secondary,
+                style: AppTextStyles.secondary(context),
               ),
             );
           }
@@ -28,7 +28,7 @@ class BlockedNodesScreen extends StatelessWidget {
             itemBuilder: (_, i) {
               final nodeId = blocked[i];
               return ListTile(
-                leading: const Icon(Icons.block, color: AppColors.warning),
+                leading: Icon(Icons.block, color: context.appColors.warning),
                 title: Text(
                   nodeId,
                   style: AppTextStyles.mono,

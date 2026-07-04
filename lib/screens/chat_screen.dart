@@ -92,7 +92,7 @@ class _ChatScreenState extends State<ChatScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(nodeId, style: AppTextStyles.monoCaption),
+              Text(nodeId, style: AppTextStyles.monoCaption(ctx)),
               const SizedBox(height: AppSpacing.s16),
               TextField(
                 controller: nameCtrl,
@@ -263,9 +263,9 @@ class _ChatScreenState extends State<ChatScreen> {
               builder: (context, _) {
                 final messages = _messages;
                 return messages.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Text('Напишите первое сообщение!',
-                            style: AppTextStyles.secondary))
+                            style: AppTextStyles.secondary(context)))
                     : ListView.builder(
                         controller: _scrollController,
                         padding: const EdgeInsets.all(AppSpacing.s12),
@@ -308,7 +308,7 @@ class _MessageBubble extends StatelessWidget {
                   left: AppSpacing.s4, bottom: AppSpacing.s2),
               child: Text(
                 store.displayNameFor(msg.fromNodeId),
-                style: AppTextStyles.caption,
+                style: AppTextStyles.caption(context),
               ),
             ),
           Container(
@@ -321,7 +321,8 @@ class _MessageBubble extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppRadius.bubble),
             ),
             child: Text(msg.text,
-                style: TextStyle(color: isMe ? AppColors.onAccent : null)),
+                style: TextStyle(
+                    color: isMe ? context.appColors.onAccent : null)),
           ),
           if (isMe)
             Padding(
@@ -344,17 +345,17 @@ class _StatusIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (status) {
       case MessageStatus.sending:
-        return const Icon(Icons.access_time,
-            size: AppIconSizes.status, color: AppColors.iconSecondary);
+        return Icon(Icons.access_time,
+            size: AppIconSizes.status, color: context.appColors.iconSecondary);
       case MessageStatus.sent:
-        return const Icon(Icons.check,
-            size: AppIconSizes.status, color: AppColors.iconSecondary);
+        return Icon(Icons.check,
+            size: AppIconSizes.status, color: context.appColors.iconSecondary);
       case MessageStatus.acked:
-        return const Icon(Icons.done_all,
-            size: AppIconSizes.status, color: AppColors.brand);
+        return Icon(Icons.done_all,
+            size: AppIconSizes.status, color: context.appColors.brand);
       case MessageStatus.failed:
-        return const Icon(Icons.error_outline,
-            size: AppIconSizes.status, color: AppColors.danger);
+        return Icon(Icons.error_outline,
+            size: AppIconSizes.status, color: context.appColors.danger);
     }
   }
 }

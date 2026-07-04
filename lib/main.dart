@@ -5,6 +5,7 @@ import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/notification_service.dart';
 import 'package:meshly/services/notification_settings.dart';
+import 'package:meshly/services/theme_controller.dart';
 import 'package:meshly/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,6 +13,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ContactStore.instance.init();
   await NotificationSettings.instance.load();
+  await ThemeController.instance.load();
   await NotificationService.instance.init();
   await NotificationService.instance.requestPermissions();
   final prefs = await SharedPreferences.getInstance();
@@ -39,13 +41,18 @@ class _MeshlyAppState extends State<MeshlyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Meshly',
-      debugShowCheckedModeBanner: false,
-      theme: buildAppTheme(),
-      home: widget.onboardingDone
-          ? ScanScreen(meshService: _meshService)
-          : OnboardingScreen(meshService: _meshService),
+    return ListenableBuilder(
+      listenable: ThemeController.instance,
+      builder: (context, _) => MaterialApp(
+        title: 'Meshly',
+        debugShowCheckedModeBanner: false,
+        theme: buildLightTheme(),
+        darkTheme: buildDarkTheme(),
+        themeMode: ThemeController.instance.mode,
+        home: widget.onboardingDone
+            ? ScanScreen(meshService: _meshService)
+            : OnboardingScreen(meshService: _meshService),
+      ),
     );
   }
 }

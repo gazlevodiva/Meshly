@@ -50,19 +50,19 @@ class ConversationTile extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (muted)
-                      const Padding(
-                        padding: EdgeInsets.only(right: AppSpacing.s4),
+                      Padding(
+                        padding: const EdgeInsets.only(right: AppSpacing.s4),
                         child: Icon(Icons.notifications_off_outlined,
                             size: AppIconSizes.mute,
-                            color: AppColors.iconSecondary),
+                            color: context.appColors.iconSecondary),
                       ),
                     if (last != null)
                       Text(
                         _formatTime(last.time),
-                        style: AppTextStyles.label.copyWith(
+                        style: AppTextStyles.label(context).copyWith(
                           color: hasUnread
                               ? Theme.of(context).colorScheme.primary
-                              : AppColors.textSecondary,
+                              : context.appColors.textSecondary,
                         ),
                       ),
                   ],
@@ -118,7 +118,7 @@ class _Avatar extends StatelessWidget {
               width: AppSizes.statusDot,
               height: AppSizes.statusDot,
               decoration: BoxDecoration(
-                color: AppColors.online,
+                color: context.appColors.online,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: Theme.of(context).scaffoldBackgroundColor,
@@ -166,7 +166,7 @@ class _Badge extends StatelessWidget {
       ),
       child: Text(
         count > 99 ? '99+' : '$count',
-        style: AppTextStyles.badge,
+        style: AppTextStyles.badge(context),
       ),
     );
   }

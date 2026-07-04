@@ -16,7 +16,7 @@ class SheetDragHandle extends StatelessWidget {
         height: AppSizes.handleHeight,
         margin: EdgeInsets.only(bottom: bottomMargin),
         decoration: BoxDecoration(
-          color: AppColors.dragHandle,
+          color: context.appColors.dragHandle,
           borderRadius: BorderRadius.circular(AppRadius.handle),
         ),
       ),

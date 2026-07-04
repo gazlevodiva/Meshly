@@ -180,7 +180,7 @@ class _ConfirmContactDialogState extends State<_ConfirmContactDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(widget.contact.nodeId, style: AppTextStyles.monoCaption),
+          Text(widget.contact.nodeId, style: AppTextStyles.monoCaption(context)),
           const SizedBox(height: AppSpacing.s16),
           TextField(
             controller: _name,
@@ -243,7 +243,7 @@ class _ConfirmChannelDialog extends StatelessWidget {
           Text('${data.avatarEmoji ?? '📡'} ${data.name}',
               style: AppTextStyles.title),
           const SizedBox(height: AppSpacing.s4),
-          Text('Слот ${data.slotIndex}', style: AppTextStyles.secondary),
+          Text('Слот ${data.slotIndex}', style: AppTextStyles.secondary(context)),
         ],
       ),
       actions: [
@@ -329,7 +329,7 @@ class _ManualInputTabState extends State<_ManualInputTab> {
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: AppSpacing.s20),
-          const Text('Эмодзи', style: AppTextStyles.secondary),
+          Text('Эмодзи', style: AppTextStyles.secondary(context)),
           const SizedBox(height: AppSpacing.s8),
           Wrap(
             spacing: AppSpacing.s8,
@@ -354,11 +354,11 @@ class _ManualInputTabState extends State<_ManualInputTab> {
             child: FilledButton(
               onPressed: _valid && !_loading ? _save : null,
               child: _loading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: AppSizes.spinner, height: AppSizes.spinner,
                       child: CircularProgressIndicator(
                           strokeWidth: AppSizes.spinnerStroke,
-                          color: AppColors.onAccent),
+                          color: context.appColors.onAccent),
                     )
                   : const Text('Добавить контакт'),
             ),

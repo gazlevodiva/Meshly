@@ -363,9 +363,9 @@ class _EditContactScreenState extends State<EditContactScreen> {
                           color: Theme.of(context).colorScheme.primary,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.edit,
+                        child: Icon(Icons.edit,
                             size: AppIconSizes.banner,
-                            color: AppColors.onAccent),
+                            color: context.appColors.onAccent),
                       ),
                     ],
                   ),
@@ -383,7 +383,9 @@ class _EditContactScreenState extends State<EditContactScreen> {
                       width: AppSizes.statusDotSmall,
                       height: AppSizes.statusDotSmall,
                       decoration: BoxDecoration(
-                        color: online ? AppColors.online : AppColors.offline,
+                        color: online
+                            ? context.appColors.online
+                            : context.appColors.offline,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -391,7 +393,9 @@ class _EditContactScreenState extends State<EditContactScreen> {
                     Text(
                       online ? 'В сети' : 'Не в сети',
                       style: AppTextStyles.body.copyWith(
-                        color: online ? AppColors.online : AppColors.offline,
+                        color: online
+                            ? context.appColors.online
+                            : context.appColors.offline,
                       ),
                     ),
                   ],
@@ -400,7 +404,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
                 Text(
                   'Добавлен ${formatAddedRu(widget.contact.addedAt)}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.appColors.textSecondary,
                       ),
                 ),
               ],
@@ -454,10 +458,10 @@ class _EditContactScreenState extends State<EditContactScreen> {
           const Divider(height: 1),
 
           ListTile(
-            leading: const Icon(Icons.block, color: AppColors.warning),
-            title: const Text(
+            leading: Icon(Icons.block, color: context.appColors.warning),
+            title: Text(
               'Заблокировать',
-              style: TextStyle(color: AppColors.warning),
+              style: TextStyle(color: context.appColors.warning),
             ),
             onTap: _blockNode,
           ),
@@ -494,7 +498,7 @@ class _InfoRow extends StatelessWidget {
           child: Text(
             label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.appColors.textSecondary,
                 ),
           ),
         ),

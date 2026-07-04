@@ -217,27 +217,28 @@ class _ScanScreenState extends State<ScanScreen> {
 
   Widget _signalIcon(int rssi) {
     final color = rssi > -70
-        ? AppColors.online
+        ? context.appColors.online
         : rssi > -85
-            ? AppColors.warning
-            : AppColors.danger;
+            ? context.appColors.warning
+            : context.appColors.danger;
     return Icon(Icons.signal_cellular_alt,
         color: color, size: AppIconSizes.signal);
   }
 
   Widget _buildHeader() {
-    return const Column(
+    return Column(
       children: [
-        Icon(Icons.bluetooth, size: AppIconSizes.hero, color: AppColors.brand),
-        SizedBox(height: AppSpacing.s12),
-        Text(
+        Icon(Icons.bluetooth,
+            size: AppIconSizes.hero, color: context.appColors.brand),
+        const SizedBox(height: AppSpacing.s12),
+        const Text(
           'Meshly',
           style: AppTextStyles.logo,
         ),
-        SizedBox(height: AppSpacing.s4),
+        const SizedBox(height: AppSpacing.s4),
         Text(
           'Mesh messenger for people you trust',
-          style: AppTextStyles.hint,
+          style: AppTextStyles.hint(context),
           textAlign: TextAlign.center,
         ),
       ],
@@ -253,9 +254,9 @@ class _ScanScreenState extends State<ScanScreen> {
           children: [
             _buildHeader(),
             const SizedBox(height: AppSpacing.s32),
-            const Text(
+            Text(
               'Включите Bluetooth и держите Meshtastic-устройство рядом',
-              style: AppTextStyles.hint,
+              style: AppTextStyles.hint(context),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.s24),
@@ -286,7 +287,7 @@ class _ScanScreenState extends State<ScanScreen> {
             const SizedBox(height: AppSpacing.s16),
             Text(
               'Подключение к ${_lastDeviceName ?? ''}...',
-              style: AppTextStyles.hint,
+              style: AppTextStyles.hint(context),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.s16),
@@ -312,14 +313,14 @@ class _ScanScreenState extends State<ScanScreen> {
         const SizedBox(height: AppSpacing.s24),
         const CircularProgressIndicator(),
         const SizedBox(height: AppSpacing.s8),
-        const Text('Поиск устройств...', style: AppTextStyles.secondary),
+        Text('Поиск устройств...', style: AppTextStyles.secondary(context)),
         const SizedBox(height: AppSpacing.s16),
         Expanded(
           child: results.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
                     'Ищем Meshtastic-устройства...',
-                    style: AppTextStyles.secondary,
+                    style: AppTextStyles.secondary(context),
                     textAlign: TextAlign.center,
                   ),
                 )
@@ -363,7 +364,7 @@ class _ScanScreenState extends State<ScanScreen> {
             const SizedBox(height: AppSpacing.s16),
             Text(
               'Подключение к ${_connectingName ?? ''}...',
-              style: AppTextStyles.hint,
+              style: AppTextStyles.hint(context),
               textAlign: TextAlign.center,
             ),
           ],
