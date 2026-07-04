@@ -275,6 +275,9 @@ abstract final class AppIconSizes {
   /// Navigation bar items.
   static const double nav = 24;
 
+  /// Compact nav-bar item icon (icon + label laid out in one row).
+  static const double navCompact = 20;
+
   /// Hero bluetooth icon inside the scan-screen circle.
   static const double hero = 36;
 }
@@ -327,6 +330,9 @@ abstract final class AppSizes {
 
   /// Blur radius of the soft shadow under the floating chat input pill.
   static const double inputShadowBlur = 12;
+
+  /// Inner content height of the floating nav bar (= sliding pill height).
+  static const double navBarInnerHeight = 44;
 
   // Bottom-sheet drag handle.
   static const double handleWidth = 36;
@@ -459,8 +465,10 @@ abstract final class AppTextStyles {
         fontWeight: FontWeight.bold,
       );
 
-  /// Navbar item label (weight/color are animated per state).
-  static const TextStyle navLabel = TextStyle(fontSize: 11);
+  /// Navbar item label. One fixed weight in both states so item widths stay
+  /// stable while the pill slides; only the color animates.
+  static const TextStyle navLabel =
+      TextStyle(fontSize: 12, fontWeight: FontWeight.w600);
 
   /// 13 medium — connection status pill text (color set per state).
   static const TextStyle statusPill =
