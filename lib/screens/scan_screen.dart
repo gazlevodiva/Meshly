@@ -436,27 +436,11 @@ class _ScanScreenState extends State<ScanScreen> {
 
   // ── States ──────────────────────────────────────────────────
 
-  Widget _buildIdle() {
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-      children: [
-        const SizedBox(height: AppSpacing.s40),
-        _buildHero(),
-        const SizedBox(height: AppSpacing.s20),
-        _buildTitle(),
-        const SizedBox(height: AppSpacing.s28),
-        _buildInfoCard(),
-        const SizedBox(height: AppSpacing.s16),
-        _buildCta(),
-        const SizedBox(height: AppSpacing.s24),
-        _buildFooter(),
-        const SizedBox(height: AppSpacing.s24),
-      ],
-    );
-  }
-
-  Widget _buildScanning() {
+  Widget _buildMain({required bool scanning}) {
     final results = _results;
+    // После завершения поиска найденные устройства остаются на экране,
+    // чтобы не приходилось запускать сканирование заново.
+    final showDevices = scanning || results.isNotEmpty;
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
       children: [
@@ -468,26 +452,30 @@ class _ScanScreenState extends State<ScanScreen> {
         _buildInfoCard(),
         const SizedBox(height: AppSpacing.s16),
         _buildCta(),
-        const SizedBox(height: AppSpacing.s16),
-        _buildScanningHint(),
-        const SizedBox(height: AppSpacing.s24),
-        Text(
-          'Доступные устройства',
-          style: AppTextStyles.sectionHeader
-              .copyWith(color: context.appColors.textSecondary),
-        ),
-        const SizedBox(height: AppSpacing.s12),
-        if (results.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.s16),
-            child: Text(
-              'Ищем Meshtastic-устройства...',
-              style: AppTextStyles.secondary(context),
-              textAlign: TextAlign.center,
-            ),
-          )
-        else
-          ...results.map(_buildDeviceCard),
+        if (scanning) ...[
+          const SizedBox(height: AppSpacing.s16),
+          _buildScanningHint(),
+        ],
+        if (showDevices) ...[
+          const SizedBox(height: AppSpacing.s24),
+          Text(
+            'Доступные устройства',
+            style: AppTextStyles.sectionHeader
+                .copyWith(color: context.appColors.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.s12),
+          if (results.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.s16),
+              child: Text(
+                'Ищем Meshtastic-устройства...',
+                style: AppTextStyles.secondary(context),
+                textAlign: TextAlign.center,
+              ),
+            )
+          else
+            ...results.map(_buildDeviceCard),
+        ],
         const SizedBox(height: AppSpacing.s16),
         _buildFooter(),
         const SizedBox(height: AppSpacing.s24),
@@ -545,11 +533,11 @@ class _ScanScreenState extends State<ScanScreen> {
     Widget body;
     switch (_state) {
       case _ScreenState.idle:
-        body = _buildIdle();
+        body = _buildMain(scanning: false);
       case _ScreenState.autoConnecting:
         body = _buildAutoConnecting();
       case _ScreenState.scanning:
-        body = _buildScanning();
+        body = _buildMain(scanning: true);
       case _ScreenState.connecting:
         body = _buildConnecting();
     }
