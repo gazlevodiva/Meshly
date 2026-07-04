@@ -1,10 +1,8 @@
-import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:meshly/screens/contacts_screen.dart';
 import 'package:meshly/screens/home_screen.dart';
-import 'package:meshly/screens/scan_screen.dart';
 import 'package:meshly/screens/settings_screen.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/theme/app_theme.dart';
@@ -21,18 +19,6 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _index = 0;
 
-  void _openScan() {
-    unawaited(Navigator.push<void>(
-      context,
-      MaterialPageRoute<void>(
-        builder: (_) => ScanScreen(
-          meshService: widget.meshService,
-          isReconnect: true,
-        ),
-      ),
-    ));
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -45,81 +31,6 @@ class _MainScreenState extends State<MainScreen> {
               ContactsScreen(meshService: widget.meshService),
               SettingsScreen(meshService: widget.meshService),
             ],
-          ),
-          // Connection status banner — visible only when disconnected
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: ValueListenableBuilder<String?>(
-              valueListenable: widget.meshService.deviceName,
-              builder: (context, name, _) {
-                final connected = name != null;
-                return AnimatedSlide(
-                  offset: connected ? const Offset(0, -1) : Offset.zero,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  child: AnimatedOpacity(
-                    opacity: connected ? 0 : 1,
-                    duration: const Duration(milliseconds: 300),
-                    child: Material(
-                      color: Theme.of(context).colorScheme.errorContainer,
-                      child: SafeArea(
-                        bottom: false,
-                        child: InkWell(
-                          onTap: _openScan,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.s16,
-                              vertical: AppSpacing.s10,
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.bluetooth_disabled,
-                                  size: AppIconSizes.banner,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onErrorContainer,
-                                ),
-                                const SizedBox(width: AppSpacing.s8),
-                                Expanded(
-                                  child: Text(
-                                    'Нет подключения к устройству',
-                                    style: AppTextStyles.banner.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onErrorContainer,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  'Подключить',
-                                  style: AppTextStyles.banner.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onErrorContainer,
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.s4),
-                                Icon(
-                                  Icons.chevron_right,
-                                  size: AppIconSizes.banner,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onErrorContainer,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
           ),
           Positioned(
             left: 0,
@@ -193,11 +104,11 @@ class _FloatingNavBar extends StatelessWidget {
               filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: surface.withValues(alpha: 0.88),
+                  color: surface.withValues(alpha: AppOpacities.navIslandFill),
                 ),
                 child: Padding(
                   padding:
-                      const EdgeInsets.symmetric(vertical: AppSpacing.s12),
+                      const EdgeInsets.symmetric(vertical: AppSpacing.s10),
                   child: Row(
                     children: [
                       for (var i = 0; i < _items.length; i++)
@@ -272,9 +183,10 @@ class _NavItemState extends State<_NavItem> with SingleTickerProviderStateMixin 
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final color = widget.selected
-        ? Theme.of(context).colorScheme.primary
-        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45);
+        ? scheme.primary
+        : scheme.onSurface.withValues(alpha: AppOpacities.navInactive);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -284,28 +196,45 @@ class _NavItemState extends State<_NavItem> with SingleTickerProviderStateMixin 
       onTapCancel: _onTapCancel,
       child: ScaleTransition(
         scale: _scale,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: Icon(
-                widget.selected ? widget.activeIcon : widget.icon,
-                key: ValueKey(widget.selected),
-                color: color,
-                size: AppIconSizes.nav,
-              ),
+        child: Center(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.s14,
+              vertical: AppSpacing.s8,
             ),
-            const SizedBox(height: AppSpacing.s4),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 200),
-              style: AppTextStyles.navLabel.copyWith(
-                fontWeight: widget.selected ? FontWeight.w600 : FontWeight.w400,
-                color: color,
-              ),
-              child: Text(widget.label),
+            decoration: BoxDecoration(
+              color: widget.selected
+                  ? scheme.primary.withValues(alpha: AppOpacities.navPillTint)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
             ),
-          ],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    widget.selected ? widget.activeIcon : widget.icon,
+                    key: ValueKey(widget.selected),
+                    color: color,
+                    size: AppIconSizes.nav,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.s6),
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 200),
+                  style: AppTextStyles.navLabel.copyWith(
+                    fontWeight:
+                        widget.selected ? FontWeight.w600 : FontWeight.w400,
+                    color: color,
+                  ),
+                  child: Text(widget.label),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

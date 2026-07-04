@@ -4,7 +4,11 @@ import 'package:meshly/models/message.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/notification_settings.dart';
 import 'package:meshly/theme/app_theme.dart';
+import 'package:meshly/utils/date_format_ru.dart';
 
+/// A conversation rendered as a rounded surface card:
+/// 48px emoji avatar (with online dot), title + last-message preview
+/// (+ presence line for DMs), and time / unread badge on the right.
 class ConversationTile extends StatelessWidget {
   const ConversationTile({
     required this.conv,
@@ -13,6 +17,7 @@ class ConversationTile extends StatelessWidget {
     super.key,
     this.emoji,
     this.isOnline = false,
+    this.lastHeard,
   });
 
   final Conversation conv;
@@ -21,57 +26,98 @@ class ConversationTile extends StatelessWidget {
   final bool isOnline;
   final VoidCallback onTap;
 
+  /// When the DM peer was last heard on the mesh (drives the
+  /// "Был(а) в сети ..." line while offline).
+  final DateTime? lastHeard;
+
   @override
   Widget build(BuildContext context) {
     final last = conv.lastMessage;
     final hasUnread = conv.unreadCount > 0;
+    final radius = BorderRadius.circular(AppRadius.cardLarge);
+    final showPresence = conv.isDm && (isOnline || lastHeard != null);
 
     return ListenableBuilder(
       listenable: NotificationSettings.instance,
       builder: (context, _) {
         final muted = NotificationSettings.instance.isMuted(conv.id);
-        return ListTile(
-          onTap: onTap,
-          leading:
-              _Avatar(emoji: emoji, title: title, isOnline: isOnline && conv.isDm),
-          title: Text(
-            title,
-            style: TextStyle(
-                fontWeight: hasUnread ? FontWeight.w700 : FontWeight.w500),
-            overflow: TextOverflow.ellipsis,
-          ),
-          subtitle: last != null ? _LastMessageRow(msg: last) : null,
-          trailing: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              if (muted || last != null)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (muted)
-                      Padding(
-                        padding: const EdgeInsets.only(right: AppSpacing.s4),
-                        child: Icon(Icons.notifications_off_outlined,
-                            size: AppIconSizes.mute,
-                            color: context.appColors.iconSecondary),
-                      ),
-                    if (last != null)
-                      Text(
-                        _formatTime(last.time),
-                        style: AppTextStyles.label(context).copyWith(
-                          color: hasUnread
-                              ? Theme.of(context).colorScheme.primary
-                              : context.appColors.textSecondary,
+        return Material(
+          color: Theme.of(context).colorScheme.surfaceContainer,
+          borderRadius: radius,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: radius,
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.s12),
+              child: Row(
+                children: [
+                  ListAvatar(
+                    emoji: emoji,
+                    title: title,
+                    isOnline: isOnline && conv.isDm,
+                  ),
+                  const SizedBox(width: AppSpacing.s12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: AppTextStyles.cardTitle.copyWith(
+                            fontWeight:
+                                hasUnread ? FontWeight.w700 : FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                  ],
-                ),
-              if (hasUnread) ...[
-                const SizedBox(height: AppSpacing.s4),
-                _Badge(count: conv.unreadCount),
-              ],
-            ],
+                        if (last != null) ...[
+                          const SizedBox(height: AppSpacing.s2),
+                          _LastMessageRow(msg: last),
+                        ],
+                        if (showPresence) ...[
+                          const SizedBox(height: AppSpacing.s2),
+                          PresenceLine(
+                              isOnline: isOnline, lastHeard: lastHeard),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.s8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (muted || last != null)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (muted)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                    right: AppSpacing.s4),
+                                child: Icon(Icons.notifications_off_outlined,
+                                    size: AppIconSizes.mute,
+                                    color: context.appColors.iconSecondary),
+                              ),
+                            if (last != null)
+                              Text(
+                                _formatTime(last.time),
+                                style: AppTextStyles.label(context).copyWith(
+                                  color: hasUnread
+                                      ? Theme.of(context).colorScheme.primary
+                                      : context.appColors.textSecondary,
+                                ),
+                              ),
+                          ],
+                        ),
+                      if (hasUnread) ...[
+                        const SizedBox(height: AppSpacing.s6),
+                        _Badge(count: conv.unreadCount),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
         );
       },
@@ -87,8 +133,15 @@ class ConversationTile extends StatelessWidget {
   }
 }
 
-class _Avatar extends StatelessWidget {
-  const _Avatar({required this.title, this.emoji, this.isOnline = false});
+/// 48px circular list avatar with an emoji (or initial letter) and an
+/// optional green online dot on the edge. Shared by chats and contacts.
+class ListAvatar extends StatelessWidget {
+  const ListAvatar({
+    required this.title,
+    super.key,
+    this.emoji,
+    this.isOnline = false,
+  });
 
   final String? emoji;
   final String title;
@@ -96,18 +149,24 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Stack(
       children: [
-        CircleAvatar(
-          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        Container(
+          width: AppSizes.avatarList,
+          height: AppSizes.avatarList,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: scheme.primaryContainer,
+            shape: BoxShape.circle,
+          ),
           child: emoji != null
-              ? Text(emoji!, style: const TextStyle(fontSize: AppSizes.emojiSmall))
+              ? Text(emoji!,
+                  style: const TextStyle(fontSize: AppSizes.emojiLarge))
               : Text(
                   title.isNotEmpty ? title[0].toUpperCase() : '?',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
+                  style: AppTextStyles.title
+                      .copyWith(color: scheme.onPrimaryContainer),
                 ),
         ),
         if (isOnline)
@@ -121,13 +180,41 @@ class _Avatar extends StatelessWidget {
                 color: context.appColors.online,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Theme.of(context).scaffoldBackgroundColor,
+                  color: scheme.surfaceContainer,
                   width: AppSizes.statusDotBorder,
                 ),
               ),
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Presence line for a DM peer: green "В сети" while online, otherwise
+/// grey "Был(а) в сети <когда>" when the last-heard time is known.
+class PresenceLine extends StatelessWidget {
+  const PresenceLine({required this.isOnline, super.key, this.lastHeard});
+
+  final bool isOnline;
+  final DateTime? lastHeard;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isOnline) {
+      return Text(
+        'В сети',
+        style: AppTextStyles.caption(context)
+            .copyWith(color: context.appColors.online),
+      );
+    }
+    final heard = lastHeard;
+    if (heard == null) return const SizedBox.shrink();
+    return Text(
+      'Был(а) в сети ${formatLastHeardRu(heard)}',
+      style: AppTextStyles.label(context),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 }
@@ -145,7 +232,7 @@ class _LastMessageRow extends StatelessWidget {
       '$prefix${msg.text}',
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: AppTextStyles.body,
+      style: AppTextStyles.subtitle(context),
     );
   }
 }

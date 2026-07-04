@@ -7,6 +7,8 @@ import 'package:meshly/screens/chat_screen.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/theme/app_theme.dart';
+import 'package:meshly/widgets/conversation_tile.dart';
+import 'package:meshly/widgets/tab_header.dart';
 
 class ContactsScreen extends StatefulWidget {
   const ContactsScreen({required this.meshService, super.key});
@@ -67,102 +69,135 @@ class _ContactsScreenState extends State<ContactsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: _searching
-            ? TextField(
-                controller: _searchController,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: 'Поиск...',
-                  border: InputBorder.none,
-                ),
-                onChanged: (value) => setState(() => _query = value),
-              )
-            : const Text('Контакты'),
-        actions: _searching
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: _stopSearch,
-                ),
-              ]
-            : [
-                IconButton(
-                  icon: const Icon(Icons.search),
-                  onPressed: _startSearch,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () => _openAddContact(context),
-                ),
-              ],
-      ),
-      body: ListenableBuilder(
-        listenable: ContactStore.instance,
-        builder: (context, _) {
-          final query = _query.trim().toLowerCase();
-          final all = ContactStore.instance.contacts;
-          final contacts = query.isEmpty
-              ? all
-              : all
-                  .where((c) => c.displayName.toLowerCase().contains(query))
-                  .toList();
-          if (contacts.isEmpty) {
-            return Center(
-              child: Text(
-                query.isNotEmpty
-                    ? 'Ничего не найдено'
-                    : 'Нет контактов. Добавьте через +',
-                style: AppTextStyles.secondary(context),
-              ),
-            );
-          }
-          return ListView.separated(
-                  padding: const EdgeInsets.only(
-                      bottom: AppSpacing.listBottomPadding),
-                  itemCount: contacts.length,
-                  separatorBuilder: (_, _) => const Divider(
-                      height: 1, indent: AppSpacing.dividerIndent),
-                  itemBuilder: (_, i) {
-                    final contact = contacts[i];
-                    final online = widget.meshService.isOnline(contact.nodeId);
-                    return ListTile(
-                      leading: Stack(
-                        children: [
-                          CircleAvatar(
-                            backgroundColor: Colors.transparent,
-                            child: Text(
-                              contact.avatarEmoji ?? '👤',
-                              style: const TextStyle(
-                                  fontSize: AppSizes.emojiSmall),
-                            ),
-                          ),
-                          if (online)
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                width: AppSizes.statusDot,
-                                height: AppSizes.statusDot,
-                                decoration: BoxDecoration(
-                                  color: context.appColors.online,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color:
-                                        Theme.of(context).scaffoldBackgroundColor,
-                                    width: AppSizes.statusDotBorder,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
+      body: TabGradientBackground(
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.s20,
+                    AppSpacing.s12, AppSpacing.s20, AppSpacing.s12),
+                child: _searching
+                    ? TabSearchRow(
+                        controller: _searchController,
+                        onChanged: (value) => setState(() => _query = value),
+                        onClose: _stopSearch,
+                      )
+                    : TabHeader(
+                        title: 'Контакты',
+                        onSearch: _startSearch,
+                        onAdd: () => _openAddContact(context),
                       ),
-                      title: Text(contact.displayName),
-                      onTap: () => _openChat(context, contact),
+              ),
+              Expanded(
+                child: ListenableBuilder(
+                  listenable: ContactStore.instance,
+                  builder: (context, _) {
+                    final query = _query.trim().toLowerCase();
+                    final all = ContactStore.instance.contacts;
+                    final contacts = query.isEmpty
+                        ? all
+                        : all
+                            .where((c) =>
+                                c.displayName.toLowerCase().contains(query))
+                            .toList();
+                    if (contacts.isEmpty) {
+                      return Center(
+                        child: Text(
+                          query.isNotEmpty
+                              ? 'Ничего не найдено'
+                              : 'Нет контактов. Добавьте через +',
+                          style: AppTextStyles.secondary(context),
+                        ),
+                      );
+                    }
+                    return ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.s16,
+                          AppSpacing.s4,
+                          AppSpacing.s16,
+                          AppSpacing.listBottomPadding),
+                      itemCount: contacts.length,
+                      separatorBuilder: (_, _) =>
+                          const SizedBox(height: AppSpacing.s10),
+                      itemBuilder: (_, i) {
+                        final contact = contacts[i];
+                        return _ContactCard(
+                          contact: contact,
+                          isOnline:
+                              widget.meshService.isOnline(contact.nodeId),
+                          lastHeard:
+                              widget.meshService.lastHeardFor(contact.nodeId),
+                          onTap: () => _openChat(context, contact),
+                        );
+                      },
                     );
                   },
-                );
-        },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A contact rendered in the same rounded-card style as conversations:
+/// 48px emoji avatar with online dot, name, and a presence line.
+class _ContactCard extends StatelessWidget {
+  const _ContactCard({
+    required this.contact,
+    required this.isOnline,
+    required this.onTap,
+    this.lastHeard,
+  });
+
+  final Contact contact;
+  final bool isOnline;
+  final DateTime? lastHeard;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(AppRadius.cardLarge);
+    final showPresence = isOnline || lastHeard != null;
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainer,
+      borderRadius: radius,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: radius,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.s12),
+          child: Row(
+            children: [
+              ListAvatar(
+                emoji: contact.avatarEmoji,
+                title: contact.displayName,
+                isOnline: isOnline,
+              ),
+              const SizedBox(width: AppSpacing.s12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      contact.displayName,
+                      style: AppTextStyles.cardTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (showPresence) ...[
+                      const SizedBox(height: AppSpacing.s2),
+                      PresenceLine(isOnline: isOnline, lastHeard: lastHeard),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -6,11 +6,13 @@ import 'package:meshly/screens/add_contact_screen.dart';
 import 'package:meshly/screens/chat_screen.dart';
 import 'package:meshly/screens/my_card_screen.dart';
 import 'package:meshly/screens/new_channel_screen.dart';
+import 'package:meshly/screens/scan_screen.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/notification_service.dart';
 import 'package:meshly/theme/app_theme.dart';
 import 'package:meshly/widgets/conversation_tile.dart';
+import 'package:meshly/widgets/tab_header.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({required this.meshService, super.key});
@@ -82,6 +84,18 @@ class _HomeScreenState extends State<HomeScreen> {
     return null;
   }
 
+  void _openScan() {
+    unawaited(Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => ScanScreen(
+          meshService: widget.meshService,
+          isReconnect: true,
+        ),
+      ),
+    ));
+  }
+
   void _openChat(Conversation conv) {
     unawaited(_store.markRead(conv.id));
     unawaited(Navigator.push<void>(
@@ -99,107 +113,90 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: _searching
-            ? TextField(
-                controller: _searchController,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: 'Поиск...',
-                  border: InputBorder.none,
-                ),
-                onChanged: (value) => setState(() => _query = value),
-              )
-            : ValueListenableBuilder<String?>(
-                valueListenable: widget.meshService.deviceName,
-                builder: (_, deviceName, _) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('Meshly'),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
+      body: TabGradientBackground(
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.s20,
+                    AppSpacing.s12, AppSpacing.s20, AppSpacing.s12),
+                child: _searching
+                    ? TabSearchRow(
+                        controller: _searchController,
+                        onChanged: (value) => setState(() => _query = value),
+                        onClose: _stopSearch,
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            width: AppSizes.statusDotSmall,
-                            height: AppSizes.statusDotSmall,
-                            decoration: BoxDecoration(
-                              color: deviceName != null
-                                  ? context.appColors.online
-                                  : context.appColors.offline,
-                              shape: BoxShape.circle,
-                            ),
+                          TabHeader(
+                            title: 'Meshly',
+                            subtitle: 'Люди, которым вы доверяете',
+                            onSearch: _startSearch,
+                            onAdd: () => _showAddOptions(context),
                           ),
-                          const SizedBox(width: AppSpacing.s6),
-                          Text(
-                            deviceName ?? 'нет подключения',
-                            style: AppTextStyles.caption(context),
+                          const SizedBox(height: AppSpacing.s16),
+                          _StatusPill(
+                            meshService: widget.meshService,
+                            onReconnect: _openScan,
                           ),
                         ],
                       ),
-                    ],
-                  );
-                },
               ),
-        actions: _searching
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: _stopSearch,
+              Expanded(
+                child: ListenableBuilder(
+                  listenable: _store,
+                  builder: (context, _) {
+                    final query = _query.trim().toLowerCase();
+                    final convs = query.isEmpty
+                        ? _conversations
+                        : _conversations
+                            .where((c) =>
+                                _titleFor(c).toLowerCase().contains(query))
+                            .toList();
+                    if (convs.isEmpty) {
+                      return query.isNotEmpty
+                          ? Center(
+                              child: Text(
+                                'Ничего не найдено',
+                                style: AppTextStyles.secondary(context),
+                              ),
+                            )
+                          : _EmptyState(
+                              onAddContact: () => _showAddOptions(context));
+                    }
+                    return ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.s16,
+                          AppSpacing.s4,
+                          AppSpacing.s16,
+                          AppSpacing.listBottomPadding),
+                      itemCount: convs.length,
+                      separatorBuilder: (_, _) =>
+                          const SizedBox(height: AppSpacing.s10),
+                      itemBuilder: (_, i) {
+                        final conv = convs[i];
+                        final peerId = conv.isDm ? conv.peerId : null;
+                        return ConversationTile(
+                          conv: conv,
+                          title: _titleFor(conv),
+                          emoji: _emojiFor(conv),
+                          isOnline: peerId != null &&
+                              widget.meshService.isOnline(peerId),
+                          lastHeard: peerId != null
+                              ? widget.meshService.lastHeardFor(peerId)
+                              : null,
+                          onTap: () => _openChat(conv),
+                        );
+                      },
+                    );
+                  },
                 ),
-              ]
-            : [
-                IconButton(
-                  icon: const Icon(Icons.search),
-                  onPressed: _startSearch,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () => _showAddOptions(context),
-                ),
-              ],
-      ),
-      body: ListenableBuilder(
-        listenable: _store,
-        builder: (context, _) {
-          final query = _query.trim().toLowerCase();
-          final convs = query.isEmpty
-              ? _conversations
-              : _conversations
-                  .where(
-                      (c) => _titleFor(c).toLowerCase().contains(query))
-                  .toList();
-          if (convs.isEmpty) {
-            return query.isNotEmpty
-                ? Center(
-                    child: Text(
-                      'Ничего не найдено',
-                      style: AppTextStyles.secondary(context),
-                    ),
-                  )
-                : _EmptyState(onAddContact: () => _showAddOptions(context));
-          }
-          return ListView.separated(
-            padding:
-                const EdgeInsets.only(bottom: AppSpacing.listBottomPadding),
-            itemCount: convs.length,
-            separatorBuilder: (_, _) =>
-                const Divider(height: 1, indent: AppSpacing.dividerIndent),
-            itemBuilder: (_, i) {
-              final conv = convs[i];
-              final peerId = conv.isDm ? conv.peerId : null;
-              return ConversationTile(
-                conv: conv,
-                title: _titleFor(conv),
-                emoji: _emojiFor(conv),
-                isOnline:
-                    peerId != null && widget.meshService.isOnline(peerId),
-                onTap: () => _openChat(conv),
-              );
-            },
-          );
-        },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -255,6 +252,83 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     ));
+  }
+}
+
+/// Connection status capsule under the header: green dot + "Подключено"
+/// with the device name alongside, or an error-colored "Нет подключения"
+/// pill that opens the reconnect scan screen on tap.
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.meshService, required this.onReconnect});
+
+  final MeshService meshService;
+  final VoidCallback onReconnect;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(AppRadius.pill);
+    return ValueListenableBuilder<String?>(
+      valueListenable: meshService.deviceName,
+      builder: (context, deviceName, _) {
+        final connected = deviceName != null;
+        final scheme = Theme.of(context).colorScheme;
+        return Row(
+          children: [
+            Material(
+              color: connected
+                  ? scheme.surfaceContainer
+                  : scheme.errorContainer,
+              borderRadius: radius,
+              child: InkWell(
+                onTap: connected ? null : onReconnect,
+                borderRadius: radius,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.s12,
+                    vertical: AppSpacing.s6,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: AppSizes.statusDotSmall,
+                        height: AppSizes.statusDotSmall,
+                        decoration: BoxDecoration(
+                          color: connected
+                              ? context.appColors.online
+                              : context.appColors.danger,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.s6),
+                      Text(
+                        connected ? 'Подключено' : 'Нет подключения',
+                        style: AppTextStyles.statusPill.copyWith(
+                          color: connected
+                              ? scheme.onSurface
+                              : scheme.onErrorContainer,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            if (connected) ...[
+              const SizedBox(width: AppSpacing.s10),
+              Expanded(
+                child: Text(
+                  deviceName,
+                  style: AppTextStyles.caption(context),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
   }
 }
 

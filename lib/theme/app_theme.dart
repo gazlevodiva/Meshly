@@ -189,9 +189,6 @@ abstract final class AppSpacing {
   static const double s40 = 40;
   static const double s48 = 48;
 
-  /// Divider indent that aligns with ListTile text (past the avatar).
-  static const double dividerIndent = 72;
-
   /// Bottom list padding that keeps content clear of the floating navbar.
   static const double listBottomPadding = 96;
 }
@@ -235,6 +232,9 @@ abstract final class AppRadius {
 
   /// Floating navigation island.
   static const double island = 28;
+
+  /// Fully-rounded capsules (status pill, nav pills, inline search field).
+  static const double pill = 100;
 }
 
 /// Shared shapes built from [AppRadius].
@@ -296,6 +296,7 @@ abstract final class AppSizes {
   static const double emojiCellLarge = 48;
 
   // Avatars.
+  static const double avatarList = 48; // conversation/contact list cards
   static const double avatarLarge = 96; // edit-contact header
   static const double avatarEditBadge = 28; // pencil badge on avatar
 
@@ -330,6 +331,9 @@ abstract final class AppSizes {
   /// Full-width pill CTA button height (stadium shape → radius 28).
   static const double ctaHeight = 56;
 
+  /// Round header action button (search / add) on the main tabs.
+  static const double headerButton = 44;
+
   // Signal-strength bars (4 ascending bars in the device list).
   static const double signalBarWidth = 3;
   static const double signalBarGap = 2;
@@ -346,6 +350,15 @@ abstract final class AppOpacities {
 
   /// Outer translucent ring around the scan-screen hero circle.
   static const double ringOuter = 0.07;
+
+  /// Tinted background of the active nav-bar pill (over primary).
+  static const double navPillTint = 0.14;
+
+  /// Inactive nav-bar item icon/label (over onSurface).
+  static const double navInactive = 0.45;
+
+  /// Translucent fill of the floating nav island above the blur.
+  static const double navIslandFill = 0.88;
 }
 
 // ── Text styles ───────────────────────────────────────────────
@@ -425,8 +438,18 @@ abstract final class AppTextStyles {
   /// Navbar item label (weight/color are animated per state).
   static const TextStyle navLabel = TextStyle(fontSize: 11);
 
-  /// Connection banner text (color comes from colorScheme.onErrorContainer).
-  static const TextStyle banner = TextStyle(fontSize: 13);
+  /// 13 medium — connection status pill text (color set per state).
+  static const TextStyle statusPill =
+      TextStyle(fontSize: 13, fontWeight: FontWeight.w500);
+
+  /// 16 semibold — conversation/contact card title
+  /// (bumps to w700 when the conversation has unread messages).
+  static const TextStyle cardTitle =
+      TextStyle(fontSize: 16, fontWeight: FontWeight.w600);
+
+  /// 34 bold — big tab headers ("Meshly", "Контакты").
+  static const TextStyle headerTitle =
+      TextStyle(fontSize: 34, fontWeight: FontWeight.bold);
 
   /// Settings section header — combine with
   /// `.copyWith(color: Theme.of(context).colorScheme.primary)`.
