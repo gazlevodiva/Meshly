@@ -35,7 +35,8 @@ class ConversationTile extends StatelessWidget {
     final last = conv.lastMessage;
     final hasUnread = conv.unreadCount > 0;
     final radius = BorderRadius.circular(AppRadius.cardLarge);
-    final showPresence = conv.isDm && (isOnline || lastHeard != null);
+    final heard = lastHeard;
+    final showPresence = conv.isDm && !isOnline && heard != null;
 
     return ListenableBuilder(
       listenable: NotificationSettings.instance,
@@ -84,10 +85,7 @@ class ConversationTile extends StatelessWidget {
                           ],
                           if (showPresence) ...[
                             const SizedBox(height: AppSpacing.s2),
-                            PresenceLine(
-                              isOnline: isOnline,
-                              lastHeard: lastHeard,
-                            ),
+                            PresenceLine(lastHeard: heard),
                           ],
                         ],
                       ),
@@ -211,25 +209,16 @@ class ListAvatar extends StatelessWidget {
 /// Presence line for a DM peer: green "В сети" while online, otherwise
 /// grey "Был(а) в сети <когда>" when the last-heard time is known.
 class PresenceLine extends StatelessWidget {
-  const PresenceLine({required this.isOnline, super.key, this.lastHeard});
+  const PresenceLine({required this.lastHeard, super.key});
 
-  final bool isOnline;
-  final DateTime? lastHeard;
+  // Online state is shown by the green dot on the avatar; this line only
+  // appears for offline peers with a known last-heard time.
+  final DateTime lastHeard;
 
   @override
   Widget build(BuildContext context) {
-    if (isOnline) {
-      return Text(
-        'В сети',
-        style: AppTextStyles.caption(
-          context,
-        ).copyWith(color: context.appColors.online),
-      );
-    }
-    final heard = lastHeard;
-    if (heard == null) return const SizedBox.shrink();
     return Text(
-      'Был(а) в сети ${formatLastHeardRu(heard)}',
+      'Был(а) в сети ${formatLastHeardRu(lastHeard)}',
       style: AppTextStyles.label(context),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,

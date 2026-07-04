@@ -161,7 +161,8 @@ class _ContactCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(AppRadius.cardLarge);
-    final showPresence = isOnline || lastHeard != null;
+    final heard = lastHeard;
+    final showPresence = !isOnline && heard != null;
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainer,
       borderRadius: radius,
@@ -190,7 +191,7 @@ class _ContactCard extends StatelessWidget {
                     ),
                     if (showPresence) ...[
                       const SizedBox(height: AppSpacing.s2),
-                      PresenceLine(isOnline: isOnline, lastHeard: lastHeard),
+                      PresenceLine(lastHeard: heard),
                     ],
                   ],
                 ),
