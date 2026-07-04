@@ -35,9 +35,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ),
     _OnboardingPage(
       emoji: '👋',
-      title: 'Добавьте близких',
+      title: 'Люди, которым\nвы доверяете',
       text: 'Обменяйтесь QR-кодами с теми, кому доверяете, '
-          'и создайте общий канал для всей семьи.',
+          'и создайте общий канал для своих.',
     ),
   ];
 

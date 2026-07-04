@@ -307,7 +307,7 @@ class _ScanScreenState extends State<ScanScreen> {
         const Text('Meshly', style: AppTextStyles.logo),
         const SizedBox(height: AppSpacing.s4),
         Text(
-          'Mesh messenger for people you trust',
+          'Люди, которым вы доверяете',
           style: AppTextStyles.hint(context),
           textAlign: TextAlign.center,
         ),
