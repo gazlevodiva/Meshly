@@ -31,6 +31,7 @@ class AppColorsExt extends ThemeExtension<AppColorsExt> {
     required this.brand,
     required this.onAccent,
     required this.qrCardBackground,
+    required this.qrForeground,
     required this.qrCardShadow,
     required this.islandShadow,
   });
@@ -68,6 +69,9 @@ class AppColorsExt extends ThemeExtension<AppColorsExt> {
   /// QR-code card background — always white so codes stay scannable.
   final Color qrCardBackground;
 
+  /// QR module color — always dark, independent of theme (camera contrast).
+  final Color qrForeground;
+
   /// Soft shadow under the QR card.
   final Color qrCardShadow;
 
@@ -86,6 +90,7 @@ class AppColorsExt extends ThemeExtension<AppColorsExt> {
     brand: Color(0xFF2F6BFF),
     onAccent: Colors.white,
     qrCardBackground: Colors.white,
+    qrForeground: Colors.black,
     qrCardShadow: Color(0x14000000),
     islandShadow: Color(0x24000000),
   );
@@ -102,6 +107,7 @@ class AppColorsExt extends ThemeExtension<AppColorsExt> {
     brand: Color(0xFF2F6BFF),
     onAccent: Colors.white,
     qrCardBackground: Colors.white,
+    qrForeground: Colors.black,
     qrCardShadow: Color(0x66000000),
     islandShadow: Color(0x59000000),
   );
@@ -118,6 +124,7 @@ class AppColorsExt extends ThemeExtension<AppColorsExt> {
     Color? brand,
     Color? onAccent,
     Color? qrCardBackground,
+    Color? qrForeground,
     Color? qrCardShadow,
     Color? islandShadow,
   }) {
@@ -132,6 +139,7 @@ class AppColorsExt extends ThemeExtension<AppColorsExt> {
       brand: brand ?? this.brand,
       onAccent: onAccent ?? this.onAccent,
       qrCardBackground: qrCardBackground ?? this.qrCardBackground,
+      qrForeground: qrForeground ?? this.qrForeground,
       qrCardShadow: qrCardShadow ?? this.qrCardShadow,
       islandShadow: islandShadow ?? this.islandShadow,
     );
@@ -152,6 +160,7 @@ class AppColorsExt extends ThemeExtension<AppColorsExt> {
       onAccent: Color.lerp(onAccent, other.onAccent, t)!,
       qrCardBackground:
           Color.lerp(qrCardBackground, other.qrCardBackground, t)!,
+      qrForeground: Color.lerp(qrForeground, other.qrForeground, t)!,
       qrCardShadow: Color.lerp(qrCardShadow, other.qrCardShadow, t)!,
       islandShadow: Color.lerp(islandShadow, other.islandShadow, t)!,
     );

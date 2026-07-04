@@ -9,8 +9,8 @@ import 'package:meshly/services/notification_settings.dart';
 import 'package:meshly/services/qr_service.dart';
 import 'package:meshly/theme/app_theme.dart';
 import 'package:meshly/utils/date_format_ru.dart';
+import 'package:meshly/widgets/qr_card.dart';
 import 'package:meshly/widgets/sheet_drag_handle.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 
 class EditContactScreen extends StatefulWidget {
   const EditContactScreen({
@@ -76,7 +76,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
               style: Theme.of(ctx).textTheme.titleLarge,
             ),
             const SizedBox(height: AppSpacing.s20),
-            QrImageView(data: qrUrl, size: AppSizes.qrLarge),
+            QrCard(data: qrUrl),
             const SizedBox(height: AppSpacing.s16),
             Container(
               padding: const EdgeInsets.symmetric(

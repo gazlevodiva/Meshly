@@ -7,7 +7,7 @@ import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/notification_settings.dart';
 import 'package:meshly/services/qr_service.dart';
 import 'package:meshly/theme/app_theme.dart';
-import 'package:qr_flutter/qr_flutter.dart';
+import 'package:meshly/widgets/qr_card.dart';
 
 class ChannelInfoScreen extends StatelessWidget {
   const ChannelInfoScreen({required this.channel, super.key});
@@ -95,24 +95,7 @@ class ChannelInfoScreen extends StatelessWidget {
               style: AppTextStyles.subtitle(context),
             ),
             const SizedBox(height: AppSpacing.s16),
-            Container(
-              decoration: BoxDecoration(
-                color: context.appColors.qrCardBackground,
-                borderRadius: BorderRadius.circular(AppRadius.qrCard),
-                boxShadow: [
-                  BoxShadow(
-                    color: context.appColors.qrCardShadow,
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.all(AppSpacing.s16),
-              child: QrImageView(
-                data: _qrData,
-                size: AppSizes.qrMedium,
-              ),
-            ),
+            QrCard(data: _qrData, size: AppSizes.qrMedium),
             const SizedBox(height: AppSpacing.s16),
             SizedBox(
               width: double.infinity,
