@@ -113,7 +113,7 @@ class ConversationTile extends StatelessWidget {
                                 Text(
                                   _formatTime(last.time),
                                   style: AppTextStyles.label(context).copyWith(
-                                    color: hasUnread
+                                    color: hasUnread && !muted
                                         ? Theme.of(context).colorScheme.primary
                                         : context.appColors.textSecondary,
                                   ),
@@ -122,7 +122,7 @@ class ConversationTile extends StatelessWidget {
                           ),
                         if (hasUnread) ...[
                           const SizedBox(height: AppSpacing.s6),
-                          _Badge(count: conv.unreadCount),
+                          _Badge(count: conv.unreadCount, muted: muted),
                         ],
                       ],
                     ),
@@ -247,9 +247,12 @@ class _LastMessageRow extends StatelessWidget {
 }
 
 class _Badge extends StatelessWidget {
-  const _Badge({required this.count});
+  const _Badge({required this.count, this.muted = false});
 
   final int count;
+
+  /// Muted conversations get a grey badge instead of the primary blue.
+  final bool muted;
 
   @override
   Widget build(BuildContext context) {
@@ -259,7 +262,9 @@ class _Badge extends StatelessWidget {
         vertical: AppSpacing.s2,
       ),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
+        color: muted
+            ? context.appColors.iconSecondary
+            : Theme.of(context).colorScheme.primary,
         borderRadius: BorderRadius.circular(AppRadius.badge),
       ),
       child: Text(
