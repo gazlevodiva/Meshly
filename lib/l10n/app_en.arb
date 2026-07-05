@@ -154,5 +154,13 @@
   "defaultMyName": "Me",
   "askScanQr": "Ask the other person to scan this QR\nor share the link",
   "chooseEmojiTitle": "Choose an emoji",
-  "yourNameHint": "Your name"
+  "yourNameHint": "Your name",
+
+  "dateToday": "Today",
+  "dateYesterday": "Yesterday",
+  "relativeToday": "today",
+  "dateJustNow": "just now",
+  "minutesAgo": "{count, plural, one{{count} minute ago} other{{count} minutes ago}}",
+  "hoursAgo": "{count, plural, one{{count} hour ago} other{{count} hours ago}}",
+  "daysAgo": "{count, plural, one{{count} day ago} other{{count} days ago}}"
 }

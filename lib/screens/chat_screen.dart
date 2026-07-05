@@ -11,7 +11,7 @@ import 'package:meshly/screens/edit_contact_screen.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/theme/app_theme.dart';
-import 'package:meshly/utils/date_format_ru.dart';
+import 'package:meshly/utils/date_format.dart';
 import 'package:meshly/widgets/conversation_tile.dart' show ListAvatar;
 import 'package:meshly/widgets/tab_header.dart' show TabGradientBackground;
 
@@ -307,9 +307,8 @@ class _ChatScreenState extends State<ChatScreen> {
               .copyWith(color: context.appColors.online),
         );
       } else if (lastHeard != null) {
-        // formatLastHeardRu is Russian-only for now; sprint 2 localizes it.
         statusLine = Text(
-          context.l10n.lastSeen(formatLastHeardRu(lastHeard)),
+          context.l10n.lastSeen(formatLastHeard(context.l10n, lastHeard)),
           style: AppTextStyles.caption(context),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -407,7 +406,8 @@ class _DateChip extends StatelessWidget {
           color: Theme.of(context).colorScheme.surfaceContainer,
           borderRadius: BorderRadius.circular(AppRadius.pill),
         ),
-        child: Text(chatDateRu(date), style: AppTextStyles.caption(context)),
+        child: Text(chatDate(context.l10n, date),
+            style: AppTextStyles.caption(context)),
       ),
     );
   }

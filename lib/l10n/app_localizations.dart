@@ -925,6 +925,48 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Ваше имя'**
   String get yourNameHint;
+
+  /// Chat date chip for messages sent today
+  ///
+  /// In ru, this message translates to:
+  /// **'Сегодня'**
+  String get dateToday;
+
+  /// No description provided for @dateYesterday.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вчера'**
+  String get dateYesterday;
+
+  /// Lowercase 'today' used mid-sentence, e.g. 'Добавлен сегодня'
+  ///
+  /// In ru, this message translates to:
+  /// **'сегодня'**
+  String get relativeToday;
+
+  /// Relative time: less than a minute ago
+  ///
+  /// In ru, this message translates to:
+  /// **'только что'**
+  String get dateJustNow;
+
+  /// No description provided for @minutesAgo.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count, plural, one{{count} минуту назад} few{{count} минуты назад} many{{count} минут назад} other{{count} минуты назад}}'**
+  String minutesAgo(int count);
+
+  /// No description provided for @hoursAgo.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count, plural, one{{count} час назад} few{{count} часа назад} many{{count} часов назад} other{{count} часа назад}}'**
+  String hoursAgo(int count);
+
+  /// No description provided for @daysAgo.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count, plural, one{{count} день назад} few{{count} дня назад} many{{count} дней назад} other{{count} дня назад}}'**
+  String daysAgo(int count);
 }
 
 class _AppLocalizationsDelegate

@@ -9,7 +9,7 @@ import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/notification_settings.dart';
 import 'package:meshly/services/qr_service.dart';
 import 'package:meshly/theme/app_theme.dart';
-import 'package:meshly/utils/date_format_ru.dart';
+import 'package:meshly/utils/date_format.dart';
 import 'package:meshly/widgets/qr_card.dart';
 import 'package:meshly/widgets/section_card.dart';
 import 'package:meshly/widgets/sheet_drag_handle.dart';
@@ -214,13 +214,13 @@ class _EditContactScreenState extends State<EditContactScreen> {
             const SizedBox(height: AppSpacing.s12),
             _InfoRow(
               label: ctx.l10n.addedLabel,
-              value: formatAddedRu(widget.contact.addedAt),
+              value: formatAdded(ctx.l10n, widget.contact.addedAt),
             ),
             if (lastHeard != null) ...[
               const SizedBox(height: AppSpacing.s12),
               _InfoRow(
                 label: ctx.l10n.lastHeardLabel,
-                value: formatLastHeardRu(lastHeard),
+                value: formatLastHeard(ctx.l10n, lastHeard),
               ),
             ],
           ],
@@ -295,7 +295,8 @@ class _EditContactScreenState extends State<EditContactScreen> {
         ),
         const SizedBox(height: AppSpacing.s4),
         Text(
-          context.l10n.addedOn(formatAddedRu(widget.contact.addedAt)),
+          context.l10n
+              .addedOn(formatAdded(context.l10n, widget.contact.addedAt)),
           style: AppTextStyles.caption(context),
         ),
       ],

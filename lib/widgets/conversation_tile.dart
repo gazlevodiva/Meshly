@@ -5,7 +5,7 @@ import 'package:meshly/models/message.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/notification_settings.dart';
 import 'package:meshly/theme/app_theme.dart';
-import 'package:meshly/utils/date_format_ru.dart';
+import 'package:meshly/utils/date_format.dart';
 
 /// A conversation rendered as a rounded surface card:
 /// 48px emoji avatar (with online dot), title + last-message preview
@@ -232,9 +232,8 @@ class PresenceLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // formatLastHeardRu is Russian-only for now; sprint 2 localizes it.
     return Text(
-      context.l10n.lastSeen(formatLastHeardRu(lastHeard)),
+      context.l10n.lastSeen(formatLastHeard(context.l10n, lastHeard)),
       style: AppTextStyles.label(context),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
