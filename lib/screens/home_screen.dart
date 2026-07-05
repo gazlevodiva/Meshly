@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/models/conversation.dart';
 import 'package:meshly/screens/add_contact_screen.dart';
 import 'package:meshly/screens/chat_screen.dart';
@@ -158,7 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       return query.isNotEmpty
                           ? Center(
                               child: Text(
-                                'Ничего не найдено',
+                                context.l10n.nothingFound,
                                 style: AppTextStyles.secondary(context),
                               ),
                             )
@@ -209,7 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.person_add),
-              title: const Text('Добавить контакт'),
+              title: Text(context.l10n.addContact),
               onTap: () {
                 Navigator.pop(context);
                 unawaited(Navigator.push<void>(
@@ -222,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.group_add),
-              title: const Text('Создать канал'),
+              title: Text(context.l10n.createChannel),
               onTap: () {
                 Navigator.pop(context);
                 unawaited(Navigator.push<void>(
@@ -236,7 +237,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.qr_code),
-              title: const Text('Мой контакт'),
+              title: Text(context.l10n.myContact),
               onTap: () {
                 Navigator.pop(context);
                 unawaited(Navigator.push<void>(
@@ -301,7 +302,9 @@ class _StatusPill extends StatelessWidget {
                       ),
                       const SizedBox(width: AppSpacing.s6),
                       Text(
-                        connected ? 'Подключено' : 'Нет подключения',
+                        connected
+                            ? context.l10n.statusConnected
+                            : context.l10n.statusNoConnection,
                         style: AppTextStyles.statusPill.copyWith(
                           color: connected
                               ? scheme.onSurface
@@ -344,20 +347,20 @@ class _EmptyState extends StatelessWidget {
         children: [
           const Text('👋', style: TextStyle(fontSize: AppSizes.emojiEmpty)),
           const SizedBox(height: AppSpacing.s16),
-          const Text(
-            'Пока нет чатов',
+          Text(
+            context.l10n.emptyChatsTitle,
             style: AppTextStyles.title,
           ),
           const SizedBox(height: AppSpacing.s8),
           Text(
-            'Добавьте контакт или создайте канал',
+            context.l10n.emptyChatsSubtitle,
             style: AppTextStyles.secondary(context),
           ),
           const SizedBox(height: AppSpacing.s24),
           ElevatedButton.icon(
             onPressed: onAddContact,
             icon: const Icon(Icons.person_add),
-            label: const Text('Добавить контакт'),
+            label: Text(context.l10n.addContact),
           ),
         ],
       ),

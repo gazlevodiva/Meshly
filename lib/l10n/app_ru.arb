@@ -1,0 +1,140 @@
+{
+  "@@locale": "ru",
+
+  "ok": "OK",
+  "cancel": "Отмена",
+  "add": "Добавить",
+  "@add": {
+    "description": "Short affirmative button: add a contact (stranger banner, add-contact dialog)"
+  },
+
+  "navChats": "Чаты",
+  "navContacts": "Контакты",
+  "navSettings": "Настройки",
+
+  "searchHint": "Поиск...",
+  "@searchHint": {
+    "description": "Placeholder in the inline search field on the Chats/Contacts tabs"
+  },
+  "nothingFound": "Ничего не найдено",
+  "@nothingFound": {
+    "description": "Empty state when a search query matches nothing"
+  },
+
+  "appTagline": "Люди, которым вы доверяете",
+  "@appTagline": {
+    "description": "Tagline under the Meshly logo on the scan screen"
+  },
+  "bluetoothPermissionNeeded": "Нужен доступ к Bluetooth",
+  "connectionErrorTitle": "Ошибка подключения",
+  "checkConnection": "Проверьте подключение",
+  "@checkConnection": {
+    "description": "Both the help bottom-sheet title and the footer link that opens it"
+  },
+  "helpTipPoweredOn": "Девайс включён и заряжен",
+  "helpTipBluetoothOn": "Bluetooth включён на телефоне",
+  "helpTipKeepClose": "Держите девайс ближе к телефону",
+  "helpTipRestart": "Перезагрузите девайс",
+  "searchAgain": "Искать снова",
+  "connectToDeviceTitle": "Подключитесь к устройству",
+  "connectToDeviceHint": "Включите Bluetooth и держите устройство рядом",
+  "stopScan": "Остановить",
+  "@stopScan": {
+    "description": "Button that stops an active BLE scan"
+  },
+  "findDevice": "Найти устройство",
+  "scanningNearby": "Поиск устройств рядом...",
+  "availableDevices": "Доступные устройства",
+  "searchingMeshtastic": "Ищем Meshtastic-устройства...",
+  "deviceNotListed": "Устройство не в списке?",
+  "connectingTo": "Подключение к {name}...",
+  "@connectingTo": {
+    "description": "Shown while connecting to a BLE device",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Meshtastic_a1b2"
+      }
+    }
+  },
+  "otherDevice": "Другое устройство",
+  "@otherDevice": {
+    "description": "Button to cancel auto-connect and pick another device"
+  },
+
+  "onboardingTitle1": "Общайтесь без интернета\nи сотовой связи",
+  "onboardingText1": "Сообщения идут напрямую между устройствами Meshtastic по радио. Никаких тарифов и вышек — связь работает даже там, где нет сети.",
+  "onboardingTitle2": "Нужен Meshtastic-девайс",
+  "onboardingText2": "Включите девайс и держите его рядом с телефоном. Приложение само подключится к нему по Bluetooth.",
+  "onboardingTitle3": "Люди, которым\nвы доверяете",
+  "onboardingText3": "Обменяйтесь QR-кодами с теми, кому доверяете, и создайте общий канал для своих.",
+  "onboardingSkip": "Пропустить",
+  "onboardingNext": "Далее",
+  "onboardingStart": "Начать",
+
+  "addContact": "Добавить контакт",
+  "@addContact": {
+    "description": "Add-options sheet item, empty-state button and add-contact dialog title"
+  },
+  "createChannel": "Создать канал",
+  "myContact": "Мой контакт",
+  "@myContact": {
+    "description": "Add-options sheet item that opens the user's own QR card"
+  },
+  "statusConnected": "Подключено",
+  "@statusConnected": {
+    "description": "Status pill: connected to a Meshtastic device"
+  },
+  "statusNoConnection": "Нет подключения",
+  "emptyChatsTitle": "Пока нет чатов",
+  "emptyChatsSubtitle": "Добавьте контакт или создайте канал",
+
+  "contactsTitle": "Контакты",
+  "noContactsHint": "Нет контактов. Добавьте через +",
+
+  "chatFallbackTitle": "Чат",
+  "@chatFallbackTitle": {
+    "description": "Fallback chat header title when the peer/channel is unknown"
+  },
+  "strangerNodeId": "Незнакомец · {nodeId}",
+  "@strangerNodeId": {
+    "description": "Banner over a DM from an unknown sender",
+    "placeholders": {
+      "nodeId": {
+        "type": "String",
+        "example": "!1f8e42c9"
+      }
+    }
+  },
+  "online": "В сети",
+  "@online": {
+    "description": "Presence line: the DM peer is currently reachable on the mesh"
+  },
+  "lastSeen": "Был(а) в сети {time}",
+  "@lastSeen": {
+    "description": "Presence line for an offline peer; {time} is a pre-formatted relative time like '5 минут назад'",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "5 минут назад"
+      }
+    }
+  },
+  "editContactTooltip": "Изменить контакт",
+  "aboutChannelTooltip": "О канале",
+  "backTooltip": "Назад",
+  "messageHint": "Сообщение...",
+  "@messageHint": {
+    "description": "Placeholder in the chat message input field"
+  },
+  "notDeliveredTitle": "Не доставлено",
+  "resendQuestion": "Отправить это сообщение ещё раз?",
+  "retrySend": "Повторить отправку",
+  "writeFirstMessage": "Напишите первое сообщение!",
+  "nameLabel": "Имя",
+
+  "mePrefix": "Я",
+  "@mePrefix": {
+    "description": "Prefix in the conversation list preview for the user's own last message, rendered as 'Я: <text>'"
+  }
+}

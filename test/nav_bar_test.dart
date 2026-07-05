@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:meshly/l10n/app_localizations.dart';
 import 'package:meshly/theme/app_theme.dart';
 import 'package:meshly/widgets/floating_nav_bar.dart';
 
@@ -12,6 +13,9 @@ Widget _host({
 }) {
   return MaterialApp(
     theme: buildLightTheme(),
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    locale: const Locale('ru'),
     home: MediaQuery(
       data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
       child: Scaffold(

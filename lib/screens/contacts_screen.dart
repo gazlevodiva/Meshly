@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/models/contact.dart';
 import 'package:meshly/screens/add_contact_screen.dart';
 import 'package:meshly/screens/chat_screen.dart';
@@ -84,7 +85,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                         onClose: _stopSearch,
                       )
                     : TabHeader(
-                        title: 'Контакты',
+                        title: context.l10n.contactsTitle,
                         onSearch: _startSearch,
                         onAdd: () => _openAddContact(context),
                       ),
@@ -105,8 +106,8 @@ class _ContactsScreenState extends State<ContactsScreen> {
                       return Center(
                         child: Text(
                           query.isNotEmpty
-                              ? 'Ничего не найдено'
-                              : 'Нет контактов. Добавьте через +',
+                              ? context.l10n.nothingFound
+                              : context.l10n.noContactsHint,
                           style: AppTextStyles.secondary(context),
                         ),
                       );

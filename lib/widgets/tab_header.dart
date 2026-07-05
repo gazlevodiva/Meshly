@@ -3,6 +3,7 @@
 // inline search row that replaces the header while searching.
 
 import 'package:flutter/material.dart';
+import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/theme/app_theme.dart';
 
 /// Full-screen vertical gradient backdrop for the main tabs
@@ -144,8 +145,8 @@ class TabSearchRow extends StatelessWidget {
               child: TextField(
                 controller: controller,
                 autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: 'Поиск...',
+                decoration: InputDecoration(
+                  hintText: context.l10n.searchHint,
                   border: InputBorder.none,
                   isDense: true,
                 ),

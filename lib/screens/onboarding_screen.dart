@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/screens/scan_screen.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/theme/app_theme.dart';
@@ -20,32 +21,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _controller = PageController();
   int _page = 0;
 
-  static const _pages = [
-    _OnboardingPage(
-      emoji: '📡',
-      title: 'Общайтесь без интернета\nи сотовой связи',
-      text:
-          'Сообщения идут напрямую между устройствами '
-          'Meshtastic по радио. Никаких тарифов и вышек — '
-          'связь работает даже там, где нет сети.',
-    ),
-    _OnboardingPage(
-      emoji: '🔌',
-      title: 'Нужен Meshtastic-девайс',
-      text:
-          'Включите девайс и держите его рядом с телефоном. '
-          'Приложение само подключится к нему по Bluetooth.',
-    ),
-    _OnboardingPage(
-      emoji: '👋',
-      title: 'Люди, которым\nвы доверяете',
-      text:
-          'Обменяйтесь QR-кодами с теми, кому доверяете, '
-          'и создайте общий канал для своих.',
-    ),
-  ];
+  static const _pageCount = 3;
 
-  bool get _isLast => _page == _pages.length - 1;
+  List<_OnboardingPage> _pages(BuildContext context) {
+    final l10n = context.l10n;
+    return [
+      _OnboardingPage(
+        emoji: '📡',
+        title: l10n.onboardingTitle1,
+        text: l10n.onboardingText1,
+      ),
+      _OnboardingPage(
+        emoji: '🔌',
+        title: l10n.onboardingTitle2,
+        text: l10n.onboardingText2,
+      ),
+      _OnboardingPage(
+        emoji: '👋',
+        title: l10n.onboardingTitle3,
+        text: l10n.onboardingText3,
+      ),
+    ];
+  }
+
+  bool get _isLast => _page == _pageCount - 1;
 
   Future<void> _finish() async {
     final prefs = await SharedPreferences.getInstance();
@@ -98,7 +97,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           padding: const EdgeInsets.only(right: AppSpacing.s8),
                           child: TextButton(
                             onPressed: () => unawaited(_finish()),
-                            child: const Text('Пропустить'),
+                            child: Text(context.l10n.onboardingSkip),
                           ),
                         ),
                 ),
@@ -107,13 +106,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: PageView(
                   controller: _controller,
                   onPageChanged: (i) => setState(() => _page = i),
-                  children: _pages,
+                  children: _pages(context),
                 ),
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  for (var i = 0; i < _pages.length; i++)
+                  for (var i = 0; i < _pageCount; i++)
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       margin: const EdgeInsets.symmetric(
@@ -138,7 +137,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   width: double.infinity,
                   child: FilledButton(
                     onPressed: _next,
-                    child: Text(_isLast ? 'Начать' : 'Далее'),
+                    child: Text(
+                      _isLast
+                          ? context.l10n.onboardingStart
+                          : context.l10n.onboardingNext,
+                    ),
                   ),
                 ),
               ),

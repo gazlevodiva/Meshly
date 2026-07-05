@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/models/conversation.dart';
 import 'package:meshly/models/message.dart';
 import 'package:meshly/services/contact_store.dart';
@@ -231,8 +232,9 @@ class PresenceLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // formatLastHeardRu is Russian-only for now; sprint 2 localizes it.
     return Text(
-      'Был(а) в сети ${formatLastHeardRu(lastHeard)}',
+      context.l10n.lastSeen(formatLastHeardRu(lastHeard)),
       style: AppTextStyles.label(context),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
@@ -249,7 +251,7 @@ class _LastMessageRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = ContactStore.instance;
     final prefix = msg.isMe
-        ? 'Я: '
+        ? '${context.l10n.mePrefix}: '
         : '${store.displayNameFor(msg.fromNodeId)}: ';
     return Text(
       '$prefix${msg.text}',

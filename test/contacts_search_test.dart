@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:meshly/l10n/app_localizations.dart';
 import 'package:meshly/models/contact.dart';
 import 'package:meshly/screens/contacts_screen.dart';
 import 'package:meshly/services/app_database.dart'
@@ -22,7 +23,12 @@ void main() {
 
   Future<void> pumpContacts(WidgetTester tester) async {
     await tester.pumpWidget(
-      MaterialApp(home: ContactsScreen(meshService: MeshService())),
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('ru'),
+        home: ContactsScreen(meshService: MeshService()),
+      ),
     );
     await tester.pumpAndSettle();
   }

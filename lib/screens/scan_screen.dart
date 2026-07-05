@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/screens/main_screen.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/theme/app_theme.dart';
@@ -117,7 +118,7 @@ class _ScanScreenState extends State<ScanScreen> {
     if (status.values.any((s) => s.isDenied)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Нужен доступ к Bluetooth')),
+          SnackBar(content: Text(context.l10n.bluetoothPermissionNeeded)),
         );
       }
     }
@@ -187,13 +188,13 @@ class _ScanScreenState extends State<ScanScreen> {
         setState(() => _state = _ScreenState.idle);
         unawaited(showDialog(
           context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('Ошибка подключения'),
+          builder: (dialogContext) => AlertDialog(
+            title: Text(dialogContext.l10n.connectionErrorTitle),
             content: Text(e.toString().replaceFirst('Exception: ', '')),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(dialogContext.l10n.ok),
               ),
             ],
           ),
@@ -229,30 +230,31 @@ class _ScanScreenState extends State<ScanScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SheetDragHandle(),
-              const Text('Проверьте подключение', style: AppTextStyles.title),
+              Text(sheetContext.l10n.checkConnection,
+                  style: AppTextStyles.title),
               const SizedBox(height: AppSpacing.s16),
-              const _HelpTip(
+              _HelpTip(
                 icon: Icons.power_settings_new,
-                text: 'Девайс включён и заряжен',
+                text: sheetContext.l10n.helpTipPoweredOn,
               ),
-              const _HelpTip(
+              _HelpTip(
                 icon: Icons.bluetooth,
-                text: 'Bluetooth включён на телефоне',
+                text: sheetContext.l10n.helpTipBluetoothOn,
               ),
-              const _HelpTip(
+              _HelpTip(
                 icon: Icons.near_me_outlined,
-                text: 'Держите девайс ближе к телефону',
+                text: sheetContext.l10n.helpTipKeepClose,
               ),
-              const _HelpTip(
+              _HelpTip(
                 icon: Icons.restart_alt,
-                text: 'Перезагрузите девайс',
+                text: sheetContext.l10n.helpTipRestart,
               ),
               const SizedBox(height: AppSpacing.s24),
               SizedBox(
                 height: AppSizes.ctaHeight,
                 child: FilledButton(
                   onPressed: () => Navigator.pop(sheetContext, true),
-                  child: const Text('Искать снова'),
+                  child: Text(sheetContext.l10n.searchAgain),
                 ),
               ),
             ],
@@ -307,7 +309,7 @@ class _ScanScreenState extends State<ScanScreen> {
         const Text('Meshly', style: AppTextStyles.logo),
         const SizedBox(height: AppSpacing.s4),
         Text(
-          'Люди, которым вы доверяете',
+          context.l10n.appTagline,
           style: AppTextStyles.hint(context),
           textAlign: TextAlign.center,
         ),
@@ -331,13 +333,13 @@ class _ScanScreenState extends State<ScanScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Подключитесь к устройству',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                Text(
+                  context.l10n.connectToDeviceTitle,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: AppSpacing.s2),
                 Text(
-                  'Включите Bluetooth и держите устройство рядом',
+                  context.l10n.connectToDeviceHint,
                   style: AppTextStyles.subtitle(context),
                 ),
               ],
@@ -357,12 +359,12 @@ class _ScanScreenState extends State<ScanScreen> {
           ? FilledButton.tonalIcon(
               onPressed: _stopScan,
               icon: const Icon(Icons.stop),
-              label: const Text('Остановить'),
+              label: Text(context.l10n.stopScan),
             )
           : FilledButton.icon(
               onPressed: _startScan,
               icon: const Icon(Icons.bluetooth_searching),
-              label: const Text('Найти устройство'),
+              label: Text(context.l10n.findDevice),
             ),
     );
   }
@@ -382,7 +384,7 @@ class _ScanScreenState extends State<ScanScreen> {
         ),
         const SizedBox(width: AppSpacing.s10),
         Text(
-          'Поиск устройств рядом...',
+          context.l10n.scanningNearby,
           style: AppTextStyles.hint(context).copyWith(color: primary),
         ),
       ],
@@ -425,10 +427,11 @@ class _ScanScreenState extends State<ScanScreen> {
   Widget _buildFooter() {
     return Column(
       children: [
-        Text('Устройство не в списке?', style: AppTextStyles.subtitle(context)),
+        Text(context.l10n.deviceNotListed,
+            style: AppTextStyles.subtitle(context)),
         TextButton(
           onPressed: _showHelpSheet,
-          child: const Text('Проверьте подключение'),
+          child: Text(context.l10n.checkConnection),
         ),
       ],
     );
@@ -459,7 +462,7 @@ class _ScanScreenState extends State<ScanScreen> {
         if (showDevices) ...[
           const SizedBox(height: AppSpacing.s24),
           Text(
-            'Доступные устройства',
+            context.l10n.availableDevices,
             style: AppTextStyles.sectionHeader
                 .copyWith(color: context.appColors.textSecondary),
           ),
@@ -468,7 +471,7 @@ class _ScanScreenState extends State<ScanScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.s16),
               child: Text(
-                'Ищем Meshtastic-устройства...',
+                context.l10n.searchingMeshtastic,
                 style: AppTextStyles.secondary(context),
                 textAlign: TextAlign.center,
               ),
@@ -485,17 +488,17 @@ class _ScanScreenState extends State<ScanScreen> {
 
   Widget _buildAutoConnecting() {
     return _buildConnectingBody(
-      label: 'Подключение к ${_lastDeviceName ?? ''}...',
+      label: context.l10n.connectingTo(_lastDeviceName ?? ''),
       trailing: TextButton(
         onPressed: _cancelAutoConnect,
-        child: const Text('Другое устройство'),
+        child: Text(context.l10n.otherDevice),
       ),
     );
   }
 
   Widget _buildConnecting() {
     return _buildConnectingBody(
-      label: 'Подключение к ${_connectingName ?? ''}...',
+      label: context.l10n.connectingTo(_connectingName ?? ''),
     );
   }
 

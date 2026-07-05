@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/models/contact.dart';
 import 'package:meshly/models/conversation.dart';
 import 'package:meshly/models/message.dart';
@@ -153,16 +154,16 @@ class _ChatScreenState extends State<ChatScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Не доставлено'),
-        content: const Text('Отправить это сообщение ещё раз?'),
+        title: Text(ctx.l10n.notDeliveredTitle),
+        content: Text(ctx.l10n.resendQuestion),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отмена'),
+            child: Text(ctx.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Повторить отправку'),
+            child: Text(ctx.l10n.retrySend),
           ),
         ],
       ),
@@ -203,12 +204,13 @@ class _ChatScreenState extends State<ChatScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          'Незнакомец · ${_shortNodeId(conv.peerId!)}',
+                          context.l10n
+                              .strangerNodeId(_shortNodeId(conv.peerId!)),
                         ),
                       ),
                       TextButton(
                         onPressed: _showAddContactDialog,
-                        child: const Text('Добавить'),
+                        child: Text(context.l10n.add),
                       ),
                     ],
                   ),
@@ -224,7 +226,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     final messages = _messages;
                     return messages.isEmpty
                         ? Center(
-                            child: Text('Напишите первое сообщение!',
+                            child: Text(context.l10n.writeFirstMessage,
                                 style: AppTextStyles.secondary(context)))
                         : ListView.builder(
                             controller: _scrollController,
@@ -283,7 +285,7 @@ class _ChatScreenState extends State<ChatScreen> {
   /// line, and a context action (channel info / edit contact).
   Widget _buildHeader(BuildContext context) {
     final conv = widget.conversation;
-    var name = 'Чат';
+    var name = context.l10n.chatFallbackTitle;
     String? emoji;
     var showDot = false;
     Widget? statusLine;
@@ -300,13 +302,14 @@ class _ChatScreenState extends State<ChatScreen> {
       final lastHeard = widget.meshService.lastHeardFor(peerId);
       if (online) {
         statusLine = Text(
-          'В сети',
+          context.l10n.online,
           style: AppTextStyles.caption(context)
               .copyWith(color: context.appColors.online),
         );
       } else if (lastHeard != null) {
+        // formatLastHeardRu is Russian-only for now; sprint 2 localizes it.
         statusLine = Text(
-          'Был(а) в сети ${formatLastHeardRu(lastHeard)}',
+          context.l10n.lastSeen(formatLastHeardRu(lastHeard)),
           style: AppTextStyles.caption(context),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -316,7 +319,7 @@ class _ChatScreenState extends State<ChatScreen> {
         onTapInfo = _openEditContact;
         action = IconButton(
           icon: const Icon(Icons.more_vert),
-          tooltip: 'Изменить контакт',
+          tooltip: context.l10n.editContactTooltip,
           onPressed: _openEditContact,
         );
       }
@@ -328,7 +331,7 @@ class _ChatScreenState extends State<ChatScreen> {
         onTapInfo = _openChannelInfo;
         action = IconButton(
           icon: const Icon(Icons.info_outline),
-          tooltip: 'О канале',
+          tooltip: context.l10n.aboutChannelTooltip,
           onPressed: _openChannelInfo,
         );
       }
@@ -341,7 +344,7 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           IconButton(
             icon: const Icon(Icons.arrow_back),
-            tooltip: 'Назад',
+            tooltip: context.l10n.backTooltip,
             onPressed: () => Navigator.pop(context),
           ),
           Expanded(
@@ -631,10 +634,10 @@ class _InputBar extends StatelessWidget {
                           controller: controller,
                           onSubmitted: (_) => onSend(),
                           textInputAction: TextInputAction.send,
-                          decoration: const InputDecoration(
-                            hintText: 'Сообщение...',
+                          decoration: InputDecoration(
+                            hintText: context.l10n.messageHint,
                             border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
+                            contentPadding: const EdgeInsets.symmetric(
                                 vertical: AppSpacing.s12),
                           ),
                         ),
@@ -718,7 +721,7 @@ class _AddContactDialogState extends State<_AddContactDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Добавить контакт'),
+      title: Text(context.l10n.addContact),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -727,7 +730,7 @@ class _AddContactDialogState extends State<_AddContactDialog> {
           const SizedBox(height: AppSpacing.s16),
           TextField(
             controller: _nameCtrl,
-            decoration: const InputDecoration(labelText: 'Имя'),
+            decoration: InputDecoration(labelText: context.l10n.nameLabel),
             autofocus: true,
             onChanged: (_) => setState(() {}),
           ),
@@ -765,14 +768,14 @@ class _AddContactDialogState extends State<_AddContactDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Отмена'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: _nameCtrl.text.trim().isNotEmpty
               ? () => Navigator.pop(
                   context, (name: _nameCtrl.text.trim(), emoji: _emoji))
               : null,
-          child: const Text('Добавить'),
+          child: Text(context.l10n.add),
         ),
       ],
     );

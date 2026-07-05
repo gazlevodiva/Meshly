@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:meshly/l10n/app_localizations.dart';
 import 'package:meshly/screens/onboarding_screen.dart';
 import 'package:meshly/screens/scan_screen.dart';
 import 'package:meshly/services/contact_store.dart';
@@ -46,6 +47,8 @@ class _MeshlyAppState extends State<MeshlyApp> {
       builder: (context, _) => MaterialApp(
         title: 'Meshly',
         debugShowCheckedModeBanner: false,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: buildLightTheme(),
         darkTheme: buildDarkTheme(),
         themeMode: ThemeController.instance.mode,

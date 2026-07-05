@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:meshly/l10n/app_localizations.dart';
 import 'package:meshly/models/conversation.dart';
 import 'package:meshly/screens/chat_screen.dart';
 import 'package:meshly/services/mesh_service.dart';
@@ -8,6 +9,9 @@ void main() {
   Future<MeshService> pumpChat(WidgetTester tester) async {
     final mesh = MeshService();
     await tester.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: const Locale('ru'),
       home: ChatScreen(
         meshService: mesh,
         conversation: Conversation.dm('!1f8e42c9'),

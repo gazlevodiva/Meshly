@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/theme/app_theme.dart';
 
 /// Floating "island" bottom navigation bar.
@@ -20,28 +21,17 @@ class FloatingNavBar extends StatelessWidget {
   /// Called with the tapped tab index.
   final ValueChanged<int> onTap;
 
-  static const List<({IconData icon, IconData activeIcon, String label})>
-      _items = [
-    (
-      icon: Icons.chat_bubble_outline,
-      activeIcon: Icons.chat_bubble,
-      label: 'Чаты',
-    ),
-    (
-      icon: Icons.people_outline,
-      activeIcon: Icons.people,
-      label: 'Контакты',
-    ),
-    (
-      icon: Icons.settings_outlined,
-      activeIcon: Icons.settings,
-      label: 'Настройки',
-    ),
+  static const List<({IconData icon, IconData activeIcon})> _icons = [
+    (icon: Icons.chat_bubble_outline, activeIcon: Icons.chat_bubble),
+    (icon: Icons.people_outline, activeIcon: Icons.people),
+    (icon: Icons.settings_outlined, activeIcon: Icons.settings),
   ];
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
+    final labels = [l10n.navChats, l10n.navContacts, l10n.navSettings];
     const islandRadius = BorderRadius.all(Radius.circular(AppRadius.island));
 
     return SafeArea(
@@ -73,14 +63,14 @@ class FloatingNavBar extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  for (var i = 0; i < _items.length; i++)
+                  for (var i = 0; i < _icons.length; i++)
                     // Flexible + FittedBox inside the item: on narrow screens
                     // items shrink proportionally instead of overflowing.
                     Flexible(
                       child: _NavItem(
-                        icon: _items[i].icon,
-                        activeIcon: _items[i].activeIcon,
-                        label: _items[i].label,
+                        icon: _icons[i].icon,
+                        activeIcon: _icons[i].activeIcon,
+                        label: labels[i],
                         selected: currentIndex == i,
                         onTap: () => onTap(i),
                       ),
