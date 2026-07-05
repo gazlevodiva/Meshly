@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/models/contact.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
@@ -74,7 +75,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
           children: [
             const SheetDragHandle(),
             Text(
-              'Поделиться контактом',
+              context.l10n.shareContact,
               style: Theme.of(ctx).textTheme.titleLarge,
             ),
             const SizedBox(height: AppSpacing.s20),
@@ -98,14 +99,14 @@ class _EditContactScreenState extends State<EditContactScreen> {
               width: double.infinity,
               child: FilledButton.icon(
                 icon: const Icon(Icons.copy),
-                label: const Text('Скопировать ссылку'),
+                label: Text(context.l10n.copyLinkButton),
                 onPressed: () async {
                   await Clipboard.setData(ClipboardData(text: qrUrl));
                   if (!ctx.mounted) return;
                   Navigator.pop(ctx);
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Ссылка скопирована')),
+                    SnackBar(content: Text(context.l10n.linkCopied)),
                   );
                 },
               ),
@@ -120,22 +121,19 @@ class _EditContactScreenState extends State<EditContactScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Заблокировать?'),
-        content: const Text(
-          'Нода больше не будет отображаться в мессенджере. '
-          'Сообщения от неё будут игнорироваться.',
-        ),
+        title: Text(ctx.l10n.blockNodeQuestion),
+        content: Text(ctx.l10n.blockNodeWarning),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отмена'),
+            child: Text(ctx.l10n.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(ctx).colorScheme.error,
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Заблокировать'),
+            child: Text(ctx.l10n.blockAction),
           ),
         ],
       ),
@@ -150,19 +148,20 @@ class _EditContactScreenState extends State<EditContactScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Удалить контакт?'),
-        content: Text('Контакт «${widget.contact.displayName}» будет удалён.'),
+        title: Text(ctx.l10n.deleteContactQuestion),
+        content: Text(
+            ctx.l10n.deleteContactWarning(widget.contact.displayName)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отмена'),
+            child: Text(ctx.l10n.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(ctx).colorScheme.error,
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Удалить'),
+            child: Text(ctx.l10n.deleteAction),
           ),
         ],
       ),
@@ -208,18 +207,19 @@ class _EditContactScreenState extends State<EditContactScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SheetDragHandle(),
-            Text('Дополнительно', style: Theme.of(ctx).textTheme.titleLarge),
+            Text(ctx.l10n.additionalInfoTitle,
+                style: Theme.of(ctx).textTheme.titleLarge),
             const SizedBox(height: AppSpacing.s20),
             _InfoRow(label: 'Node ID', value: nodeId),
             const SizedBox(height: AppSpacing.s12),
             _InfoRow(
-              label: 'Добавлен',
+              label: ctx.l10n.addedLabel,
               value: formatAddedRu(widget.contact.addedAt),
             ),
             if (lastHeard != null) ...[
               const SizedBox(height: AppSpacing.s12),
               _InfoRow(
-                label: 'Последний раз в сети',
+                label: ctx.l10n.lastHeardLabel,
                 value: formatLastHeardRu(lastHeard),
               ),
             ],
@@ -284,7 +284,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
             ),
             const SizedBox(width: AppSpacing.s6),
             Text(
-              online ? 'В сети' : 'Не в сети',
+              online ? context.l10n.online : context.l10n.offline,
               style: AppTextStyles.body.copyWith(
                 color: online
                     ? context.appColors.online
@@ -295,7 +295,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
         ),
         const SizedBox(height: AppSpacing.s4),
         Text(
-          'Добавлен ${formatAddedRu(widget.contact.addedAt)}',
+          context.l10n.addedOn(formatAddedRu(widget.contact.addedAt)),
           style: AppTextStyles.caption(context),
         ),
       ],
@@ -315,7 +315,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
         actions: [
           TextButton(
             onPressed: _name.trim().isNotEmpty && !_saving ? _save : null,
-            child: const Text('Сохранить'),
+            child: Text(context.l10n.saveButton),
           ),
         ],
       ),
@@ -344,7 +344,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
                     secondary: Icon(muted
                         ? Icons.notifications_off_outlined
                         : Icons.notifications_outlined),
-                    title: const Text('Уведомления'),
+                    title: Text(context.l10n.notificationsTitle),
                     value: !muted,
                     onChanged: (v) async {
                       if (v) {
@@ -365,15 +365,14 @@ class _EditContactScreenState extends State<EditContactScreen> {
                 children: [
                   ListTile(
                     leading: const Icon(Icons.share),
-                    title: const Text('Поделиться контактом'),
+                    title: Text(context.l10n.shareContact),
                     onTap: _shareContact,
                   ),
                   const Divider(height: 1),
                   ListTile(
                     leading: const Icon(Icons.info_outline),
-                    title: const Text('Дополнительно'),
-                    subtitle: const Text(
-                        'Node ID, время последнего соединения и другая информация'),
+                    title: Text(context.l10n.additionalInfoTitle),
+                    subtitle: Text(context.l10n.additionalInfoSubtitle),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: _showAdditionalInfo,
                   ),
@@ -390,7 +389,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
                     leading:
                         Icon(Icons.block, color: context.appColors.warning),
                     title: Text(
-                      'Заблокировать',
+                      context.l10n.blockAction,
                       style: TextStyle(color: context.appColors.warning),
                     ),
                     onTap: _blockNode,
@@ -400,7 +399,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
                     leading: Icon(Icons.delete,
                         color: Theme.of(context).colorScheme.error),
                     title: Text(
-                      'Удалить контакт',
+                      context.l10n.deleteContactAction,
                       style: TextStyle(
                           color: Theme.of(context).colorScheme.error),
                     ),
@@ -502,15 +501,15 @@ class _EditNameEmojiSheetState extends State<_EditNameEmojiSheet> {
         children: [
           const SheetDragHandle(bottomMargin: AppSpacing.s16),
           Text(
-            'Редактировать',
+            context.l10n.editSheetTitle,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: AppSpacing.s16),
           TextField(
             controller: _nameCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Имя',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: context.l10n.nameLabel,
+              border: const OutlineInputBorder(),
             ),
             onChanged: (v) {
               widget.onNameChanged(v);
@@ -520,10 +519,10 @@ class _EditNameEmojiSheetState extends State<_EditNameEmojiSheet> {
           const SizedBox(height: AppSpacing.s16),
           TextField(
             controller: _emojiCtrl,
-            decoration: const InputDecoration(
-              hintText: 'Введите любой эмодзи...',
-              border: OutlineInputBorder(),
-              labelText: 'Иконка',
+            decoration: InputDecoration(
+              hintText: context.l10n.emojiInputHint,
+              border: const OutlineInputBorder(),
+              labelText: context.l10n.iconLabel,
             ),
             maxLength: 2,
             onChanged: (v) {
@@ -572,7 +571,7 @@ class _EditNameEmojiSheetState extends State<_EditNameEmojiSheet> {
               onPressed: _nameCtrl.text.trim().isEmpty
                   ? null
                   : () => Navigator.pop(context),
-              child: const Text('Готово'),
+              child: Text(context.l10n.doneButton),
             ),
           ),
         ],

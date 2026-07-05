@@ -194,4 +194,262 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get mePrefix => 'Я';
+
+  @override
+  String get settingsTitle => 'Настройки';
+
+  @override
+  String get settingsSectionProfile => 'Профиль';
+
+  @override
+  String get myProfileQrTitle => 'Мой профиль и QR-код';
+
+  @override
+  String get shareYourContactSubtitle => 'Поделитесь своим контактом';
+
+  @override
+  String get settingsSectionDevice => 'Устройство';
+
+  @override
+  String connectedToName(String name) {
+    return 'Подключено: $name';
+  }
+
+  @override
+  String get tapToDisconnect => 'Нажмите чтобы отключиться';
+
+  @override
+  String get notificationsTitle => 'Уведомления';
+
+  @override
+  String get notificationSettingsTile => 'Настройки уведомлений';
+
+  @override
+  String get notificationsEnabled => 'Включены';
+
+  @override
+  String get notificationsDisabled => 'Выключены';
+
+  @override
+  String get settingsSectionBlocked => 'Заблокированные';
+
+  @override
+  String get blockedNodesTile => 'Заблокированные ноды';
+
+  @override
+  String get noBlockedNodes => 'Нет заблокированных нод';
+
+  @override
+  String blockedCount(int count) {
+    return 'Заблокировано: $count';
+  }
+
+  @override
+  String get settingsSectionAppearance => 'Внешний вид';
+
+  @override
+  String get themeTile => 'Тема';
+
+  @override
+  String get themeSystem => 'Системная';
+
+  @override
+  String get themeLight => 'Светлая';
+
+  @override
+  String get themeDark => 'Тёмная';
+
+  @override
+  String get settingsSectionAbout => 'О приложении';
+
+  @override
+  String versionOpenSource(String version) {
+    return 'v$version · Open source';
+  }
+
+  @override
+  String get allNotifications => 'Все уведомления';
+
+  @override
+  String get masterSwitchSubtitle => 'Главный переключатель';
+
+  @override
+  String get sourcesSection => 'Источники';
+
+  @override
+  String get directMessages => 'Личные сообщения';
+
+  @override
+  String get channelsLabel => 'Каналы';
+
+  @override
+  String get mutedSection => 'Замьюченные';
+
+  @override
+  String get unmuteButton => 'Включить';
+
+  @override
+  String get unblockButton => 'Разблокировать';
+
+  @override
+  String get saveButton => 'Сохранить';
+
+  @override
+  String get shareContact => 'Поделиться контактом';
+
+  @override
+  String get copyLinkButton => 'Скопировать ссылку';
+
+  @override
+  String get linkCopied => 'Ссылка скопирована';
+
+  @override
+  String get blockNodeQuestion => 'Заблокировать?';
+
+  @override
+  String get blockNodeWarning =>
+      'Нода больше не будет отображаться в мессенджере. Сообщения от неё будут игнорироваться.';
+
+  @override
+  String get blockAction => 'Заблокировать';
+
+  @override
+  String get deleteContactQuestion => 'Удалить контакт?';
+
+  @override
+  String deleteContactWarning(String name) {
+    return 'Контакт «$name» будет удалён.';
+  }
+
+  @override
+  String get deleteAction => 'Удалить';
+
+  @override
+  String get deleteContactAction => 'Удалить контакт';
+
+  @override
+  String get additionalInfoTitle => 'Дополнительно';
+
+  @override
+  String get additionalInfoSubtitle =>
+      'Node ID, время последнего соединения и другая информация';
+
+  @override
+  String get addedLabel => 'Добавлен';
+
+  @override
+  String get lastHeardLabel => 'Последний раз в сети';
+
+  @override
+  String get offline => 'Не в сети';
+
+  @override
+  String addedOn(String date) {
+    return 'Добавлен $date';
+  }
+
+  @override
+  String get editSheetTitle => 'Редактировать';
+
+  @override
+  String get iconLabel => 'Иконка';
+
+  @override
+  String get emojiInputHint => 'Введите любой эмодзи...';
+
+  @override
+  String get doneButton => 'Готово';
+
+  @override
+  String slotN(int slot) {
+    return 'Слот $slot';
+  }
+
+  @override
+  String get shareQrToInvite =>
+      'Поделитесь QR-кодом чтобы пригласить участника';
+
+  @override
+  String get encryptionLabel => 'Шифрование';
+
+  @override
+  String get encryptionValue => 'AES-256, уникальный ключ';
+
+  @override
+  String get pskLabel => 'Ключ (PSK)';
+
+  @override
+  String get deleteChannelAction => 'Удалить канал';
+
+  @override
+  String get deleteChannelQuestion => 'Удалить канал?';
+
+  @override
+  String deleteChannelWarning(String name) {
+    return 'Канал \"$name\" будет удалён локально. Другие участники продолжат его видеть.';
+  }
+
+  @override
+  String get addTitle => 'Добавить';
+
+  @override
+  String get unrecognizedQr => 'Нераспознанный QR-код';
+
+  @override
+  String get tabScanQr => 'Скан QR';
+
+  @override
+  String get tabManual => 'Вручную';
+
+  @override
+  String cameraError(String error) {
+    return 'Ошибка камеры: $error';
+  }
+
+  @override
+  String get pointCameraAtQr => 'Наведите камеру на QR-код контакта или канала';
+
+  @override
+  String get addContactQuestion => 'Добавить контакт?';
+
+  @override
+  String get addChannelQuestion => 'Добавить канал?';
+
+  @override
+  String get emojiLabel => 'Эмодзи';
+
+  @override
+  String get newChannelTitle => 'Новый канал';
+
+  @override
+  String get allSlotsBusy => 'Все слоты заняты (максимум 7 каналов)';
+
+  @override
+  String get channelNameLabel => 'Название канала';
+
+  @override
+  String get channelNameHint => 'Горная группа';
+
+  @override
+  String get channelIconLabel => 'Иконка канала';
+
+  @override
+  String get channelCreateInfo =>
+      'Канал создастся с уникальным ключом шифрования. Поделитесь QR-кодом канала с теми кого хотите добавить.';
+
+  @override
+  String get chooseIconTitle => 'Выберите иконку';
+
+  @override
+  String get defaultMyName => 'Я';
+
+  @override
+  String get askScanQr =>
+      'Попросите собеседника отсканировать этот QR\nили поделитесь ссылкой';
+
+  @override
+  String get chooseEmojiTitle => 'Выберите эмодзи';
+
+  @override
+  String get yourNameHint => 'Ваше имя';
 }

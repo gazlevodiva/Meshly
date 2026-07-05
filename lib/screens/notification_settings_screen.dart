@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/notification_settings.dart';
 import 'package:meshly/theme/app_theme.dart';
@@ -16,7 +17,7 @@ class NotificationSettingsScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: const Text('Уведомления'),
+        title: Text(context.l10n.notificationsTitle),
       ),
       body: TabGradientBackground(
         child: ListenableBuilder(
@@ -71,8 +72,8 @@ class _Body extends StatelessWidget {
         SectionCard(
           child: SwitchListTile(
             secondary: const Icon(Icons.notifications_outlined),
-            title: const Text('Все уведомления'),
-            subtitle: const Text('Главный переключатель'),
+            title: Text(context.l10n.allNotifications),
+            subtitle: Text(context.l10n.masterSwitchSubtitle),
             value: settings.enabled,
             onChanged: (v) => settings.setEnabled(value: v),
           ),
@@ -80,12 +81,12 @@ class _Body extends StatelessWidget {
 
         // ── По источнику ────────────────────────────────────
         SectionCard(
-          title: 'Источники',
+          title: context.l10n.sourcesSection,
           child: Column(
             children: [
               SwitchListTile(
                 secondary: const Icon(Icons.person_outline),
-                title: const Text('Личные сообщения'),
+                title: Text(context.l10n.directMessages),
                 value: settings.dmsEnabled && settings.enabled,
                 onChanged: settings.enabled
                     ? (v) => settings.setDmsEnabled(value: v)
@@ -94,7 +95,7 @@ class _Body extends StatelessWidget {
               const Divider(height: 1),
               SwitchListTile(
                 secondary: const Icon(Icons.tag),
-                title: const Text('Каналы'),
+                title: Text(context.l10n.channelsLabel),
                 value: settings.channelsEnabled && settings.enabled,
                 onChanged: settings.enabled
                     ? (v) => settings.setChannelsEnabled(value: v)
@@ -107,7 +108,7 @@ class _Body extends StatelessWidget {
         // ── Замьюченные чаты ────────────────────────────────
         if (muted.isNotEmpty)
           SectionCard(
-            title: 'Замьюченные',
+            title: context.l10n.mutedSection,
             child: Column(
               children: [
                 for (var i = 0; i < muted.length; i++) ...[
@@ -117,7 +118,7 @@ class _Body extends StatelessWidget {
                     title: Text(labelForConvId(muted[i])),
                     trailing: TextButton(
                       onPressed: () => settings.unmuteConversation(muted[i]),
-                      child: const Text('Включить'),
+                      child: Text(context.l10n.unmuteButton),
                     ),
                   ),
                 ],

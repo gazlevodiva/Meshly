@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/screens/blocked_nodes_screen.dart';
 import 'package:meshly/screens/my_card_screen.dart';
 import 'package:meshly/screens/notification_settings_screen.dart';
@@ -76,14 +77,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  static String _themeModeLabel(ThemeMode mode) {
+  static String _themeModeLabel(BuildContext context, ThemeMode mode) {
     switch (mode) {
       case ThemeMode.system:
-        return 'Системная';
+        return context.l10n.themeSystem;
       case ThemeMode.light:
-        return 'Светлая';
+        return context.l10n.themeLight;
       case ThemeMode.dark:
-        return 'Тёмная';
+        return context.l10n.themeDark;
     }
   }
 
@@ -109,20 +110,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       }
                       if (sheetContext.mounted) Navigator.pop(sheetContext);
                     },
-                    child: const Column(
+                    child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         RadioListTile<ThemeMode>(
                           value: ThemeMode.system,
-                          title: Text('Системная'),
+                          title: Text(sheetContext.l10n.themeSystem),
                         ),
                         RadioListTile<ThemeMode>(
                           value: ThemeMode.light,
-                          title: Text('Светлая'),
+                          title: Text(sheetContext.l10n.themeLight),
                         ),
                         RadioListTile<ThemeMode>(
                           value: ThemeMode.dark,
-                          title: Text('Тёмная'),
+                          title: Text(sheetContext.l10n.themeDark),
                         ),
                       ],
                     ),
@@ -145,10 +146,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           bottom: false,
           child: Column(
             children: [
-              const Padding(
-                padding: EdgeInsets.fromLTRB(AppSpacing.s20, AppSpacing.s12,
-                    AppSpacing.s20, AppSpacing.s12),
-                child: TabHeader(title: 'Настройки'),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.s20,
+                    AppSpacing.s12, AppSpacing.s20, AppSpacing.s12),
+                child: TabHeader(title: context.l10n.settingsTitle),
               ),
               Expanded(
                 child: ListView(
@@ -160,11 +161,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     // ── Профиль ──────────────────────────────────────
                     SectionCard(
-                      title: 'Профиль',
+                      title: context.l10n.settingsSectionProfile,
                       child: ListTile(
                         leading: const Icon(Icons.qr_code),
-                        title: const Text('Мой профиль и QR-код'),
-                        subtitle: const Text('Поделитесь своим контактом'),
+                        title: Text(context.l10n.myProfileQrTitle),
+                        subtitle: Text(context.l10n.shareYourContactSubtitle),
                         onTap: () => unawaited(Navigator.push<void>(
                           context,
                           MaterialPageRoute<void>(
@@ -177,7 +178,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                     // ── Устройство ───────────────────────────────────
                     SectionCard(
-                      title: 'Устройство',
+                      title: context.l10n.settingsSectionDevice,
                       child: ValueListenableBuilder<String?>(
                         valueListenable: widget.meshService.deviceName,
                         builder: (_, name, _) {
@@ -186,17 +187,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             return ListTile(
                               leading: Icon(Icons.bluetooth_connected,
                                   color: context.appColors.brand),
-                              title: Text(
-                                  'Подключено${name != null ? ': $name' : ''}'),
-                              subtitle:
-                                  const Text('Нажмите чтобы отключиться'),
+                              title: Text(name != null
+                                  ? context.l10n.connectedToName(name)
+                                  : context.l10n.statusConnected),
+                              subtitle: Text(context.l10n.tapToDisconnect),
                               onTap: _disconnect,
                             );
                           } else {
                             return ListTile(
                               leading: Icon(Icons.bluetooth_disabled,
                                   color: context.appColors.iconSecondary),
-                              title: const Text('Нет подключения'),
+                              title: Text(context.l10n.statusNoConnection),
                             );
                           }
                         },
@@ -205,7 +206,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                     // ── Уведомления ──────────────────────────────────
                     SectionCard(
-                      title: 'Уведомления',
+                      title: context.l10n.notificationsTitle,
                       child: ListenableBuilder(
                         listenable: NotificationSettings.instance,
                         builder: (context, _) {
@@ -219,8 +220,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ? null
                                   : context.appColors.iconSecondary,
                             ),
-                            title: const Text('Настройки уведомлений'),
-                            subtitle: Text(enabled ? 'Включены' : 'Выключены'),
+                            title: Text(context.l10n.notificationSettingsTile),
+                            subtitle: Text(enabled
+                                ? context.l10n.notificationsEnabled
+                                : context.l10n.notificationsDisabled),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () => unawaited(Navigator.push<void>(
                               context,
@@ -236,7 +239,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                     // ── Заблокированные ──────────────────────────────
                     SectionCard(
-                      title: 'Заблокированные',
+                      title: context.l10n.settingsSectionBlocked,
                       child: ListenableBuilder(
                         listenable: ContactStore.instance,
                         builder: (context, _) {
@@ -244,10 +247,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ContactStore.instance.blockedNodes.length;
                           return ListTile(
                             leading: const Icon(Icons.block),
-                            title: const Text('Заблокированные ноды'),
+                            title: Text(context.l10n.blockedNodesTile),
                             subtitle: Text(count == 0
-                                ? 'Нет заблокированных нод'
-                                : 'Заблокировано: $count'),
+                                ? context.l10n.noBlockedNodes
+                                : context.l10n.blockedCount(count)),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () => unawaited(Navigator.push<void>(
                               context,
@@ -262,15 +265,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                     // ── Внешний вид ──────────────────────────────────
                     SectionCard(
-                      title: 'Внешний вид',
+                      title: context.l10n.settingsSectionAppearance,
                       child: ListenableBuilder(
                         listenable: ThemeController.instance,
                         builder: (context, _) {
                           return ListTile(
                             leading: const Icon(Icons.brightness_6_outlined),
-                            title: const Text('Тема'),
+                            title: Text(context.l10n.themeTile),
                             subtitle: Text(_themeModeLabel(
-                                ThemeController.instance.mode)),
+                                context, ThemeController.instance.mode)),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () => _showThemePicker(context),
                           );
@@ -280,13 +283,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                     // ── О приложении ─────────────────────────────────
                     SectionCard(
-                      title: 'О приложении',
+                      title: context.l10n.settingsSectionAbout,
                       child: Column(
                         children: [
                           ListTile(
                             leading: const Icon(Icons.info_outline),
                             title: const Text('Meshly'),
-                            subtitle: Text('v$_version · Open source'),
+                            subtitle:
+                                Text(context.l10n.versionOpenSource(_version)),
                           ),
                           ListTile(
                             leading: const Icon(Icons.open_in_new),

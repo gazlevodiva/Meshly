@@ -47,6 +47,9 @@ class NotificationService {
       const NotificationDetails(
         android: AndroidNotificationDetails(
           'messages',
+          // TODO(l10n): Android notification-channel name shown in system
+          // settings. NotificationService has no BuildContext, so this stays
+          // a Russian literal until localization is plumbed through.
           'Сообщения',
           importance: Importance.high,
           priority: Priority.high,

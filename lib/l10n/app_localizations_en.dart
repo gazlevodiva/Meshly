@@ -195,4 +195,262 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mePrefix => 'Me';
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsSectionProfile => 'Profile';
+
+  @override
+  String get myProfileQrTitle => 'My profile & QR code';
+
+  @override
+  String get shareYourContactSubtitle => 'Share your contact with others';
+
+  @override
+  String get settingsSectionDevice => 'Device';
+
+  @override
+  String connectedToName(String name) {
+    return 'Connected: $name';
+  }
+
+  @override
+  String get tapToDisconnect => 'Tap to disconnect';
+
+  @override
+  String get notificationsTitle => 'Notifications';
+
+  @override
+  String get notificationSettingsTile => 'Notification settings';
+
+  @override
+  String get notificationsEnabled => 'On';
+
+  @override
+  String get notificationsDisabled => 'Off';
+
+  @override
+  String get settingsSectionBlocked => 'Blocked';
+
+  @override
+  String get blockedNodesTile => 'Blocked nodes';
+
+  @override
+  String get noBlockedNodes => 'No blocked nodes';
+
+  @override
+  String blockedCount(int count) {
+    return 'Blocked: $count';
+  }
+
+  @override
+  String get settingsSectionAppearance => 'Appearance';
+
+  @override
+  String get themeTile => 'Theme';
+
+  @override
+  String get themeSystem => 'System';
+
+  @override
+  String get themeLight => 'Light';
+
+  @override
+  String get themeDark => 'Dark';
+
+  @override
+  String get settingsSectionAbout => 'About';
+
+  @override
+  String versionOpenSource(String version) {
+    return 'v$version · Open source';
+  }
+
+  @override
+  String get allNotifications => 'All notifications';
+
+  @override
+  String get masterSwitchSubtitle => 'Master switch';
+
+  @override
+  String get sourcesSection => 'Sources';
+
+  @override
+  String get directMessages => 'Direct messages';
+
+  @override
+  String get channelsLabel => 'Channels';
+
+  @override
+  String get mutedSection => 'Muted';
+
+  @override
+  String get unmuteButton => 'Unmute';
+
+  @override
+  String get unblockButton => 'Unblock';
+
+  @override
+  String get saveButton => 'Save';
+
+  @override
+  String get shareContact => 'Share contact';
+
+  @override
+  String get copyLinkButton => 'Copy link';
+
+  @override
+  String get linkCopied => 'Link copied';
+
+  @override
+  String get blockNodeQuestion => 'Block this node?';
+
+  @override
+  String get blockNodeWarning =>
+      'The node will no longer appear in the messenger. Messages from it will be ignored.';
+
+  @override
+  String get blockAction => 'Block';
+
+  @override
+  String get deleteContactQuestion => 'Delete contact?';
+
+  @override
+  String deleteContactWarning(String name) {
+    return 'The contact \"$name\" will be deleted.';
+  }
+
+  @override
+  String get deleteAction => 'Delete';
+
+  @override
+  String get deleteContactAction => 'Delete contact';
+
+  @override
+  String get additionalInfoTitle => 'Details';
+
+  @override
+  String get additionalInfoSubtitle =>
+      'Node ID, last connection time and other info';
+
+  @override
+  String get addedLabel => 'Added';
+
+  @override
+  String get lastHeardLabel => 'Last heard';
+
+  @override
+  String get offline => 'Offline';
+
+  @override
+  String addedOn(String date) {
+    return 'Added $date';
+  }
+
+  @override
+  String get editSheetTitle => 'Edit';
+
+  @override
+  String get iconLabel => 'Icon';
+
+  @override
+  String get emojiInputHint => 'Type any emoji...';
+
+  @override
+  String get doneButton => 'Done';
+
+  @override
+  String slotN(int slot) {
+    return 'Slot $slot';
+  }
+
+  @override
+  String get shareQrToInvite => 'Share this QR code to invite a member';
+
+  @override
+  String get encryptionLabel => 'Encryption';
+
+  @override
+  String get encryptionValue => 'AES-256, unique key';
+
+  @override
+  String get pskLabel => 'Key (PSK)';
+
+  @override
+  String get deleteChannelAction => 'Delete channel';
+
+  @override
+  String get deleteChannelQuestion => 'Delete channel?';
+
+  @override
+  String deleteChannelWarning(String name) {
+    return 'The channel \"$name\" will be deleted locally. Other members will still see it.';
+  }
+
+  @override
+  String get addTitle => 'Add';
+
+  @override
+  String get unrecognizedQr => 'Unrecognized QR code';
+
+  @override
+  String get tabScanQr => 'Scan QR';
+
+  @override
+  String get tabManual => 'Manual';
+
+  @override
+  String cameraError(String error) {
+    return 'Camera error: $error';
+  }
+
+  @override
+  String get pointCameraAtQr =>
+      'Point the camera at a contact or channel QR code';
+
+  @override
+  String get addContactQuestion => 'Add contact?';
+
+  @override
+  String get addChannelQuestion => 'Add channel?';
+
+  @override
+  String get emojiLabel => 'Emoji';
+
+  @override
+  String get newChannelTitle => 'New channel';
+
+  @override
+  String get allSlotsBusy => 'All slots are taken (7 channels max)';
+
+  @override
+  String get channelNameLabel => 'Channel name';
+
+  @override
+  String get channelNameHint => 'Hiking group';
+
+  @override
+  String get channelIconLabel => 'Channel icon';
+
+  @override
+  String get channelCreateInfo =>
+      'The channel will be created with a unique encryption key. Share the channel QR code with the people you want to add.';
+
+  @override
+  String get chooseIconTitle => 'Choose an icon';
+
+  @override
+  String get defaultMyName => 'Me';
+
+  @override
+  String get askScanQr =>
+      'Ask the other person to scan this QR\nor share the link';
+
+  @override
+  String get chooseEmojiTitle => 'Choose an emoji';
+
+  @override
+  String get yourNameHint => 'Your name';
 }

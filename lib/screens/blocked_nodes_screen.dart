@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/theme/app_theme.dart';
 import 'package:meshly/widgets/section_card.dart';
@@ -19,7 +20,7 @@ class BlockedNodesScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: const Text('Заблокированные'),
+        title: Text(context.l10n.settingsSectionBlocked),
       ),
       body: TabGradientBackground(
         child: ListenableBuilder(
@@ -29,7 +30,7 @@ class BlockedNodesScreen extends StatelessWidget {
             if (blocked.isEmpty) {
               return Center(
                 child: Text(
-                  'Нет заблокированных нод',
+                  context.l10n.noBlockedNodes,
                   style: AppTextStyles.secondary(context),
                 ),
               );
@@ -60,7 +61,7 @@ class BlockedNodesScreen extends StatelessWidget {
                             onPressed: () => unawaited(
                               ContactStore.instance.unblockNode(blocked[i]),
                             ),
-                            child: const Text('Разблокировать'),
+                            child: Text(context.l10n.unblockButton),
                           ),
                         ),
                       ],

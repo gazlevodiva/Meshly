@@ -451,6 +451,480 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Я'**
   String get mePrefix;
+
+  /// No description provided for @settingsTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Настройки'**
+  String get settingsTitle;
+
+  /// No description provided for @settingsSectionProfile.
+  ///
+  /// In ru, this message translates to:
+  /// **'Профиль'**
+  String get settingsSectionProfile;
+
+  /// No description provided for @myProfileQrTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мой профиль и QR-код'**
+  String get myProfileQrTitle;
+
+  /// No description provided for @shareYourContactSubtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поделитесь своим контактом'**
+  String get shareYourContactSubtitle;
+
+  /// No description provided for @settingsSectionDevice.
+  ///
+  /// In ru, this message translates to:
+  /// **'Устройство'**
+  String get settingsSectionDevice;
+
+  /// Device tile title when connected and the device name is known
+  ///
+  /// In ru, this message translates to:
+  /// **'Подключено: {name}'**
+  String connectedToName(String name);
+
+  /// No description provided for @tapToDisconnect.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нажмите чтобы отключиться'**
+  String get tapToDisconnect;
+
+  /// Settings section title, the notification-settings screen title and the per-chat notifications switch
+  ///
+  /// In ru, this message translates to:
+  /// **'Уведомления'**
+  String get notificationsTitle;
+
+  /// No description provided for @notificationSettingsTile.
+  ///
+  /// In ru, this message translates to:
+  /// **'Настройки уведомлений'**
+  String get notificationSettingsTile;
+
+  /// No description provided for @notificationsEnabled.
+  ///
+  /// In ru, this message translates to:
+  /// **'Включены'**
+  String get notificationsEnabled;
+
+  /// No description provided for @notificationsDisabled.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выключены'**
+  String get notificationsDisabled;
+
+  /// Settings section title and the blocked-nodes screen title
+  ///
+  /// In ru, this message translates to:
+  /// **'Заблокированные'**
+  String get settingsSectionBlocked;
+
+  /// No description provided for @blockedNodesTile.
+  ///
+  /// In ru, this message translates to:
+  /// **'Заблокированные ноды'**
+  String get blockedNodesTile;
+
+  /// No description provided for @noBlockedNodes.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет заблокированных нод'**
+  String get noBlockedNodes;
+
+  /// Subtitle of the blocked-nodes tile when there is at least one blocked node
+  ///
+  /// In ru, this message translates to:
+  /// **'Заблокировано: {count}'**
+  String blockedCount(int count);
+
+  /// No description provided for @settingsSectionAppearance.
+  ///
+  /// In ru, this message translates to:
+  /// **'Внешний вид'**
+  String get settingsSectionAppearance;
+
+  /// No description provided for @themeTile.
+  ///
+  /// In ru, this message translates to:
+  /// **'Тема'**
+  String get themeTile;
+
+  /// No description provided for @themeSystem.
+  ///
+  /// In ru, this message translates to:
+  /// **'Системная'**
+  String get themeSystem;
+
+  /// No description provided for @themeLight.
+  ///
+  /// In ru, this message translates to:
+  /// **'Светлая'**
+  String get themeLight;
+
+  /// No description provided for @themeDark.
+  ///
+  /// In ru, this message translates to:
+  /// **'Тёмная'**
+  String get themeDark;
+
+  /// No description provided for @settingsSectionAbout.
+  ///
+  /// In ru, this message translates to:
+  /// **'О приложении'**
+  String get settingsSectionAbout;
+
+  /// Subtitle of the About tile
+  ///
+  /// In ru, this message translates to:
+  /// **'v{version} · Open source'**
+  String versionOpenSource(String version);
+
+  /// No description provided for @allNotifications.
+  ///
+  /// In ru, this message translates to:
+  /// **'Все уведомления'**
+  String get allNotifications;
+
+  /// No description provided for @masterSwitchSubtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Главный переключатель'**
+  String get masterSwitchSubtitle;
+
+  /// No description provided for @sourcesSection.
+  ///
+  /// In ru, this message translates to:
+  /// **'Источники'**
+  String get sourcesSection;
+
+  /// No description provided for @directMessages.
+  ///
+  /// In ru, this message translates to:
+  /// **'Личные сообщения'**
+  String get directMessages;
+
+  /// No description provided for @channelsLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Каналы'**
+  String get channelsLabel;
+
+  /// No description provided for @mutedSection.
+  ///
+  /// In ru, this message translates to:
+  /// **'Замьюченные'**
+  String get mutedSection;
+
+  /// Button that unmutes a muted conversation
+  ///
+  /// In ru, this message translates to:
+  /// **'Включить'**
+  String get unmuteButton;
+
+  /// No description provided for @unblockButton.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разблокировать'**
+  String get unblockButton;
+
+  /// No description provided for @saveButton.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранить'**
+  String get saveButton;
+
+  /// Both the action tile and the share bottom-sheet title
+  ///
+  /// In ru, this message translates to:
+  /// **'Поделиться контактом'**
+  String get shareContact;
+
+  /// No description provided for @copyLinkButton.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скопировать ссылку'**
+  String get copyLinkButton;
+
+  /// No description provided for @linkCopied.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ссылка скопирована'**
+  String get linkCopied;
+
+  /// No description provided for @blockNodeQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'Заблокировать?'**
+  String get blockNodeQuestion;
+
+  /// No description provided for @blockNodeWarning.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нода больше не будет отображаться в мессенджере. Сообщения от неё будут игнорироваться.'**
+  String get blockNodeWarning;
+
+  /// Danger-zone tile and the confirm button in the block dialog
+  ///
+  /// In ru, this message translates to:
+  /// **'Заблокировать'**
+  String get blockAction;
+
+  /// No description provided for @deleteContactQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить контакт?'**
+  String get deleteContactQuestion;
+
+  /// No description provided for @deleteContactWarning.
+  ///
+  /// In ru, this message translates to:
+  /// **'Контакт «{name}» будет удалён.'**
+  String deleteContactWarning(String name);
+
+  /// Confirm button in delete dialogs (contact, channel)
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить'**
+  String get deleteAction;
+
+  /// No description provided for @deleteContactAction.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить контакт'**
+  String get deleteContactAction;
+
+  /// No description provided for @additionalInfoTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Дополнительно'**
+  String get additionalInfoTitle;
+
+  /// No description provided for @additionalInfoSubtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Node ID, время последнего соединения и другая информация'**
+  String get additionalInfoSubtitle;
+
+  /// Info-row label: when the contact was added
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавлен'**
+  String get addedLabel;
+
+  /// No description provided for @lastHeardLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Последний раз в сети'**
+  String get lastHeardLabel;
+
+  /// No description provided for @offline.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не в сети'**
+  String get offline;
+
+  /// Caption under the contact name; {date} is a pre-formatted relative or absolute date like 'сегодня' or '2 мая 2026'
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавлен {date}'**
+  String addedOn(String date);
+
+  /// No description provided for @editSheetTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Редактировать'**
+  String get editSheetTitle;
+
+  /// No description provided for @iconLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Иконка'**
+  String get iconLabel;
+
+  /// No description provided for @emojiInputHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Введите любой эмодзи...'**
+  String get emojiInputHint;
+
+  /// No description provided for @doneButton.
+  ///
+  /// In ru, this message translates to:
+  /// **'Готово'**
+  String get doneButton;
+
+  /// Meshtastic channel slot index (0–7)
+  ///
+  /// In ru, this message translates to:
+  /// **'Слот {slot}'**
+  String slotN(int slot);
+
+  /// No description provided for @shareQrToInvite.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поделитесь QR-кодом чтобы пригласить участника'**
+  String get shareQrToInvite;
+
+  /// No description provided for @encryptionLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Шифрование'**
+  String get encryptionLabel;
+
+  /// No description provided for @encryptionValue.
+  ///
+  /// In ru, this message translates to:
+  /// **'AES-256, уникальный ключ'**
+  String get encryptionValue;
+
+  /// No description provided for @pskLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ключ (PSK)'**
+  String get pskLabel;
+
+  /// No description provided for @deleteChannelAction.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить канал'**
+  String get deleteChannelAction;
+
+  /// No description provided for @deleteChannelQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить канал?'**
+  String get deleteChannelQuestion;
+
+  /// No description provided for @deleteChannelWarning.
+  ///
+  /// In ru, this message translates to:
+  /// **'Канал \"{name}\" будет удалён локально. Другие участники продолжат его видеть.'**
+  String deleteChannelWarning(String name);
+
+  /// Add-contact screen title
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить'**
+  String get addTitle;
+
+  /// No description provided for @unrecognizedQr.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нераспознанный QR-код'**
+  String get unrecognizedQr;
+
+  /// No description provided for @tabScanQr.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скан QR'**
+  String get tabScanQr;
+
+  /// No description provided for @tabManual.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вручную'**
+  String get tabManual;
+
+  /// No description provided for @cameraError.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка камеры: {error}'**
+  String cameraError(String error);
+
+  /// No description provided for @pointCameraAtQr.
+  ///
+  /// In ru, this message translates to:
+  /// **'Наведите камеру на QR-код контакта или канала'**
+  String get pointCameraAtQr;
+
+  /// No description provided for @addContactQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить контакт?'**
+  String get addContactQuestion;
+
+  /// No description provided for @addChannelQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить канал?'**
+  String get addChannelQuestion;
+
+  /// No description provided for @emojiLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Эмодзи'**
+  String get emojiLabel;
+
+  /// No description provided for @newChannelTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новый канал'**
+  String get newChannelTitle;
+
+  /// No description provided for @allSlotsBusy.
+  ///
+  /// In ru, this message translates to:
+  /// **'Все слоты заняты (максимум 7 каналов)'**
+  String get allSlotsBusy;
+
+  /// No description provided for @channelNameLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Название канала'**
+  String get channelNameLabel;
+
+  /// No description provided for @channelNameHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Горная группа'**
+  String get channelNameHint;
+
+  /// No description provided for @channelIconLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Иконка канала'**
+  String get channelIconLabel;
+
+  /// No description provided for @channelCreateInfo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Канал создастся с уникальным ключом шифрования. Поделитесь QR-кодом канала с теми кого хотите добавить.'**
+  String get channelCreateInfo;
+
+  /// No description provided for @chooseIconTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выберите иконку'**
+  String get chooseIconTitle;
+
+  /// Default display name on the user's own card before they set a name
+  ///
+  /// In ru, this message translates to:
+  /// **'Я'**
+  String get defaultMyName;
+
+  /// No description provided for @askScanQr.
+  ///
+  /// In ru, this message translates to:
+  /// **'Попросите собеседника отсканировать этот QR\nили поделитесь ссылкой'**
+  String get askScanQr;
+
+  /// No description provided for @chooseEmojiTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выберите эмодзи'**
+  String get chooseEmojiTitle;
+
+  /// No description provided for @yourNameHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ваше имя'**
+  String get yourNameHint;
 }
 
 class _AppLocalizationsDelegate

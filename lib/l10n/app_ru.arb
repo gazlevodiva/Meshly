@@ -136,5 +136,188 @@
   "mePrefix": "Я",
   "@mePrefix": {
     "description": "Prefix in the conversation list preview for the user's own last message, rendered as 'Я: <text>'"
-  }
+  },
+
+  "settingsTitle": "Настройки",
+  "settingsSectionProfile": "Профиль",
+  "myProfileQrTitle": "Мой профиль и QR-код",
+  "shareYourContactSubtitle": "Поделитесь своим контактом",
+  "settingsSectionDevice": "Устройство",
+  "connectedToName": "Подключено: {name}",
+  "@connectedToName": {
+    "description": "Device tile title when connected and the device name is known",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Meshtastic_a1b2"
+      }
+    }
+  },
+  "tapToDisconnect": "Нажмите чтобы отключиться",
+  "notificationsTitle": "Уведомления",
+  "@notificationsTitle": {
+    "description": "Settings section title, the notification-settings screen title and the per-chat notifications switch"
+  },
+  "notificationSettingsTile": "Настройки уведомлений",
+  "notificationsEnabled": "Включены",
+  "notificationsDisabled": "Выключены",
+  "settingsSectionBlocked": "Заблокированные",
+  "@settingsSectionBlocked": {
+    "description": "Settings section title and the blocked-nodes screen title"
+  },
+  "blockedNodesTile": "Заблокированные ноды",
+  "noBlockedNodes": "Нет заблокированных нод",
+  "blockedCount": "Заблокировано: {count}",
+  "@blockedCount": {
+    "description": "Subtitle of the blocked-nodes tile when there is at least one blocked node",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "settingsSectionAppearance": "Внешний вид",
+  "themeTile": "Тема",
+  "themeSystem": "Системная",
+  "themeLight": "Светлая",
+  "themeDark": "Тёмная",
+  "settingsSectionAbout": "О приложении",
+  "versionOpenSource": "v{version} · Open source",
+  "@versionOpenSource": {
+    "description": "Subtitle of the About tile",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.0.0"
+      }
+    }
+  },
+
+  "allNotifications": "Все уведомления",
+  "masterSwitchSubtitle": "Главный переключатель",
+  "sourcesSection": "Источники",
+  "directMessages": "Личные сообщения",
+  "channelsLabel": "Каналы",
+  "mutedSection": "Замьюченные",
+  "unmuteButton": "Включить",
+  "@unmuteButton": {
+    "description": "Button that unmutes a muted conversation"
+  },
+
+  "unblockButton": "Разблокировать",
+
+  "saveButton": "Сохранить",
+  "shareContact": "Поделиться контактом",
+  "@shareContact": {
+    "description": "Both the action tile and the share bottom-sheet title"
+  },
+  "copyLinkButton": "Скопировать ссылку",
+  "linkCopied": "Ссылка скопирована",
+  "blockNodeQuestion": "Заблокировать?",
+  "blockNodeWarning": "Нода больше не будет отображаться в мессенджере. Сообщения от неё будут игнорироваться.",
+  "blockAction": "Заблокировать",
+  "@blockAction": {
+    "description": "Danger-zone tile and the confirm button in the block dialog"
+  },
+  "deleteContactQuestion": "Удалить контакт?",
+  "deleteContactWarning": "Контакт «{name}» будет удалён.",
+  "@deleteContactWarning": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Мама"
+      }
+    }
+  },
+  "deleteAction": "Удалить",
+  "@deleteAction": {
+    "description": "Confirm button in delete dialogs (contact, channel)"
+  },
+  "deleteContactAction": "Удалить контакт",
+  "additionalInfoTitle": "Дополнительно",
+  "additionalInfoSubtitle": "Node ID, время последнего соединения и другая информация",
+  "addedLabel": "Добавлен",
+  "@addedLabel": {
+    "description": "Info-row label: when the contact was added"
+  },
+  "lastHeardLabel": "Последний раз в сети",
+  "offline": "Не в сети",
+  "addedOn": "Добавлен {date}",
+  "@addedOn": {
+    "description": "Caption under the contact name; {date} is a pre-formatted relative or absolute date like 'сегодня' or '2 мая 2026'",
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "5 дней назад"
+      }
+    }
+  },
+  "editSheetTitle": "Редактировать",
+  "iconLabel": "Иконка",
+  "emojiInputHint": "Введите любой эмодзи...",
+  "doneButton": "Готово",
+
+  "slotN": "Слот {slot}",
+  "@slotN": {
+    "description": "Meshtastic channel slot index (0–7)",
+    "placeholders": {
+      "slot": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "shareQrToInvite": "Поделитесь QR-кодом чтобы пригласить участника",
+  "encryptionLabel": "Шифрование",
+  "encryptionValue": "AES-256, уникальный ключ",
+  "pskLabel": "Ключ (PSK)",
+  "deleteChannelAction": "Удалить канал",
+  "deleteChannelQuestion": "Удалить канал?",
+  "deleteChannelWarning": "Канал \"{name}\" будет удалён локально. Другие участники продолжат его видеть.",
+  "@deleteChannelWarning": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Семья"
+      }
+    }
+  },
+
+  "addTitle": "Добавить",
+  "@addTitle": {
+    "description": "Add-contact screen title"
+  },
+  "unrecognizedQr": "Нераспознанный QR-код",
+  "tabScanQr": "Скан QR",
+  "tabManual": "Вручную",
+  "cameraError": "Ошибка камеры: {error}",
+  "@cameraError": {
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "permission denied"
+      }
+    }
+  },
+  "pointCameraAtQr": "Наведите камеру на QR-код контакта или канала",
+  "addContactQuestion": "Добавить контакт?",
+  "addChannelQuestion": "Добавить канал?",
+  "emojiLabel": "Эмодзи",
+
+  "newChannelTitle": "Новый канал",
+  "allSlotsBusy": "Все слоты заняты (максимум 7 каналов)",
+  "channelNameLabel": "Название канала",
+  "channelNameHint": "Горная группа",
+  "channelIconLabel": "Иконка канала",
+  "channelCreateInfo": "Канал создастся с уникальным ключом шифрования. Поделитесь QR-кодом канала с теми кого хотите добавить.",
+  "chooseIconTitle": "Выберите иконку",
+
+  "defaultMyName": "Я",
+  "@defaultMyName": {
+    "description": "Default display name on the user's own card before they set a name"
+  },
+  "askScanQr": "Попросите собеседника отсканировать этот QR\nили поделитесь ссылкой",
+  "chooseEmojiTitle": "Выберите эмодзи",
+  "yourNameHint": "Ваше имя"
 }

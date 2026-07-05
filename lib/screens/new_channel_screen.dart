@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/services/channel_manager.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/theme/app_theme.dart';
@@ -42,7 +43,7 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
 
     if (ch == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Все слоты заняты (максимум 7 каналов)')),
+        SnackBar(content: Text(context.l10n.allSlotsBusy)),
       );
       return;
     }
@@ -66,7 +67,7 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: const Text('Новый канал'),
+        title: Text(context.l10n.newChannelTitle),
       ),
       body: TabGradientBackground(
         child: ListView(
@@ -100,9 +101,9 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
                         controller: _nameCtrl,
                         autofocus: true,
                         textCapitalization: TextCapitalization.sentences,
-                        decoration: const InputDecoration(
-                          labelText: 'Название канала',
-                          hintText: 'Горная группа',
+                        decoration: InputDecoration(
+                          labelText: context.l10n.channelNameLabel,
+                          hintText: context.l10n.channelNameHint,
                         ),
                         onChanged: (_) => setState(() {}),
                         onSubmitted: (_) => _create(),
@@ -121,7 +122,8 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Иконка канала', style: AppTextStyles.subtitle(context)),
+                    Text(context.l10n.channelIconLabel,
+                        style: AppTextStyles.subtitle(context)),
                     const SizedBox(height: AppSpacing.s8),
                     Wrap(
                       spacing: AppSpacing.s8,
@@ -167,8 +169,7 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
                     const SizedBox(width: AppSpacing.s10),
                     Expanded(
                       child: Text(
-                        'Канал создастся с уникальным ключом шифрования. '
-                        'Поделитесь QR-кодом канала с теми кого хотите добавить.',
+                        context.l10n.channelCreateInfo,
                         style: AppTextStyles.subtitle(context),
                       ),
                     ),
@@ -191,7 +192,7 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
                             color: context.appColors.onAccent),
                       )
                     : const Icon(Icons.add),
-                label: const Text('Создать канал'),
+                label: Text(context.l10n.createChannel),
               ),
             ),
           ],
@@ -204,7 +205,7 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
     final picked = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Выберите иконку'),
+        title: Text(context.l10n.chooseIconTitle),
         content: SizedBox(
           width: AppSizes.emojiDialogWidth,
           child: Wrap(

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/models/contact.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
@@ -31,14 +32,24 @@ class _MyCardScreenState extends State<MyCardScreen> {
   Contact get _myContact {
     final existing = _store.contactByNodeId(_nodeId);
     if (existing != null) return existing;
-    return Contact(nodeId: _nodeId, displayName: 'Я', avatarEmoji: _emoji);
+    return Contact(
+      nodeId: _nodeId,
+      displayName: context.l10n.defaultMyName,
+      avatarEmoji: _emoji,
+    );
   }
 
   String get _qrData => QrService.encodeContact(_myContact, myNodeId: _nodeId);
 
+  bool _initialized = false;
+
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // _myContact needs Localizations from the tree (default display name),
+    // so the one-time init lives here instead of initState.
+    if (_initialized) return;
+    _initialized = true;
     final c = _myContact;
     _nameController.text = c.displayName;
     _emoji = c.avatarEmoji ?? '😊';
@@ -64,13 +75,14 @@ class _MyCardScreenState extends State<MyCardScreen> {
       context: context,
       builder: (_) => _EmojiPickerDialog(current: _emoji),
     );
+    if (!mounted) return;
     if (picked != null) {
       setState(() => _emoji = picked);
       final c = Contact(
         nodeId: _nodeId,
         displayName: _nameController.text.trim().isNotEmpty
             ? _nameController.text.trim()
-            : 'Я',
+            : context.l10n.defaultMyName,
         avatarEmoji: picked,
       );
       await _store.saveContact(c);
@@ -80,7 +92,7 @@ class _MyCardScreenState extends State<MyCardScreen> {
   void _copyLink() {
     unawaited(Clipboard.setData(ClipboardData(text: _qrData)));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Ссылка скопирована')),
+      SnackBar(content: Text(context.l10n.linkCopied)),
     );
   }
 
@@ -132,7 +144,8 @@ class _MyCardScreenState extends State<MyCardScreen> {
                 child: TextField(
                   controller: _nameController,
                   autofocus: true,
-                  decoration: const InputDecoration(hintText: 'Ваше имя'),
+                  decoration:
+                      InputDecoration(hintText: context.l10n.yourNameHint),
                   onSubmitted: (_) => _saveName(),
                 ),
               ),
@@ -177,7 +190,7 @@ class _MyCardScreenState extends State<MyCardScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: const Text('Мой контакт'),
+        title: Text(context.l10n.myContact),
       ),
       body: TabGradientBackground(
         child: ListView(
@@ -199,8 +212,7 @@ class _MyCardScreenState extends State<MyCardScreen> {
                 child: Column(
                   children: [
                     Text(
-                      'Попросите собеседника отсканировать этот QR\n'
-                      'или поделитесь ссылкой',
+                      context.l10n.askScanQr,
                       textAlign: TextAlign.center,
                       style: AppTextStyles.subtitle(context),
                     ),
@@ -212,7 +224,7 @@ class _MyCardScreenState extends State<MyCardScreen> {
                       child: OutlinedButton.icon(
                         onPressed: _copyLink,
                         icon: const Icon(Icons.link),
-                        label: const Text('Скопировать ссылку'),
+                        label: Text(context.l10n.copyLinkButton),
                       ),
                     ),
                   ],
@@ -241,7 +253,7 @@ class _EmojiPickerDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Выберите эмодзи'),
+      title: Text(context.l10n.chooseEmojiTitle),
       content: SizedBox(
         width: AppSizes.emojiDialogWidth,
         child: Wrap(

@@ -285,6 +285,9 @@ class MeshService {
       final ch = store.channelById(conv.channelId!);
       final senderContact = store.contactByNodeId(fromNodeId);
       final senderName = senderContact?.displayName ?? fromNodeId;
+      // TODO(l10n): notification title fallback. MeshService has no
+      // BuildContext, so this stays a Russian literal until localization
+      // is plumbed through.
       notifTitle = '${ch?.name ?? "Канал"} · $senderName';
     } else {
       notifTitle = fromNodeId;

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/models/contact.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/qr_service.dart';
@@ -53,7 +54,7 @@ class _AddContactScreenState extends State<AddContactScreen>
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Нераспознанный QR-код')),
+          SnackBar(content: Text(context.l10n.unrecognizedQr)),
         );
         setState(() => _scanned = false);
       }
@@ -121,8 +122,9 @@ class _AddContactScreenState extends State<AddContactScreen>
                   ? const Center(child: CircularProgressIndicator())
                   : MobileScanner(
                       onDetect: _onQrDetected,
-                      errorBuilder: (_, error) => Center(
-                        child: Text('Ошибка камеры: $error',
+                      errorBuilder: (errorContext, error) => Center(
+                        child: Text(
+                            errorContext.l10n.cameraError(error.toString()),
                             textAlign: TextAlign.center),
                       ),
                     ),
@@ -130,7 +132,7 @@ class _AddContactScreenState extends State<AddContactScreen>
           ),
           const SizedBox(height: AppSpacing.s12),
           Text(
-            'Наведите камеру на QR-код контакта или канала',
+            context.l10n.pointCameraAtQr,
             textAlign: TextAlign.center,
             style: AppTextStyles.subtitle(context),
           ),
@@ -149,7 +151,7 @@ class _AddContactScreenState extends State<AddContactScreen>
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: const Text('Добавить'),
+        title: Text(context.l10n.addTitle),
       ),
       body: TabGradientBackground(
         child: Column(
@@ -160,9 +162,13 @@ class _AddContactScreenState extends State<AddContactScreen>
                   const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
               child: TabBar(
                 controller: _tabs,
-                tabs: const [
-                  Tab(icon: Icon(Icons.qr_code_scanner), text: 'Скан QR'),
-                  Tab(icon: Icon(Icons.keyboard), text: 'Вручную'),
+                tabs: [
+                  Tab(
+                      icon: const Icon(Icons.qr_code_scanner),
+                      text: context.l10n.tabScanQr),
+                  Tab(
+                      icon: const Icon(Icons.keyboard),
+                      text: context.l10n.tabManual),
                 ],
               ),
             ),
@@ -223,7 +229,7 @@ class _ConfirmContactDialogState extends State<_ConfirmContactDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Добавить контакт?'),
+      title: Text(context.l10n.addContactQuestion),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -231,7 +237,7 @@ class _ConfirmContactDialogState extends State<_ConfirmContactDialog> {
           const SizedBox(height: AppSpacing.s16),
           TextField(
             controller: _name,
-            decoration: const InputDecoration(labelText: 'Имя'),
+            decoration: InputDecoration(labelText: context.l10n.nameLabel),
           ),
           const SizedBox(height: AppSpacing.s12),
           Wrap(
@@ -256,7 +262,7 @@ class _ConfirmContactDialogState extends State<_ConfirmContactDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Отмена'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: () {
@@ -265,7 +271,7 @@ class _ConfirmContactDialogState extends State<_ConfirmContactDialog> {
             widget.contact.avatarEmoji = _emoji;
             Navigator.pop(context, true);
           },
-          child: const Text('Добавить'),
+          child: Text(context.l10n.add),
         ),
       ],
     );
@@ -282,7 +288,7 @@ class _ConfirmChannelDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Добавить канал?'),
+      title: Text(context.l10n.addChannelQuestion),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,17 +296,18 @@ class _ConfirmChannelDialog extends StatelessWidget {
           Text('${data.avatarEmoji ?? '📡'} ${data.name}',
               style: AppTextStyles.title),
           const SizedBox(height: AppSpacing.s4),
-          Text('Слот ${data.slotIndex}', style: AppTextStyles.secondary(context)),
+          Text(context.l10n.slotN(data.slotIndex),
+              style: AppTextStyles.secondary(context)),
         ],
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Отмена'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, true),
-          child: const Text('Добавить'),
+          child: Text(context.l10n.add),
         ),
       ],
     );
@@ -383,7 +390,8 @@ class _ManualInputTabState extends State<_ManualInputTab> {
                   const SizedBox(height: AppSpacing.s16),
                   TextField(
                     controller: _nameCtrl,
-                    decoration: const InputDecoration(labelText: 'Имя'),
+                    decoration:
+                        InputDecoration(labelText: context.l10n.nameLabel),
                     onChanged: (_) => setState(() {}),
                   ),
                 ],
@@ -399,7 +407,8 @@ class _ManualInputTabState extends State<_ManualInputTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Эмодзи', style: AppTextStyles.subtitle(context)),
+                  Text(context.l10n.emojiLabel,
+                      style: AppTextStyles.subtitle(context)),
                   const SizedBox(height: AppSpacing.s8),
                   Wrap(
                     spacing: AppSpacing.s8,
@@ -437,7 +446,7 @@ class _ManualInputTabState extends State<_ManualInputTab> {
                           color: context.appColors.onAccent),
                     ),
                   )
-                : const Text('Добавить контакт'),
+                : Text(context.l10n.addContact),
           ),
         ],
       ),

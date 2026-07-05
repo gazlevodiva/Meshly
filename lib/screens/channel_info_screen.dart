@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/models/mesh_channel.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/notification_settings.dart';
@@ -21,7 +22,7 @@ class ChannelInfoScreen extends StatelessWidget {
   void _copyLink(BuildContext context) {
     unawaited(Clipboard.setData(ClipboardData(text: _qrData)));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Ссылка скопирована')),
+      SnackBar(content: Text(context.l10n.linkCopied)),
     );
   }
 
@@ -29,19 +30,18 @@ class ChannelInfoScreen extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Удалить канал?'),
-        content: Text('Канал "${channel.name}" будет удалён локально. '
-            'Другие участники продолжат его видеть.'),
+        title: Text(context.l10n.deleteChannelQuestion),
+        content: Text(context.l10n.deleteChannelWarning(channel.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Отмена'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             style: TextButton.styleFrom(
                 foregroundColor: Theme.of(context).colorScheme.error),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Удалить'),
+            child: Text(context.l10n.deleteAction),
           ),
         ],
       ),
@@ -93,7 +93,7 @@ class ChannelInfoScreen extends StatelessWidget {
                 Text(channel.name, style: AppTextStyles.headline),
                 const SizedBox(height: AppSpacing.s2),
                 Text(
-                  'Слот ${channel.slotIndex}',
+                  context.l10n.slotN(channel.slotIndex),
                   style: AppTextStyles.secondary(context),
                 ),
               ],
@@ -107,7 +107,7 @@ class ChannelInfoScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      'Поделитесь QR-кодом чтобы пригласить участника',
+                      context.l10n.shareQrToInvite,
                       textAlign: TextAlign.center,
                       style: AppTextStyles.subtitle(context),
                     ),
@@ -119,7 +119,7 @@ class ChannelInfoScreen extends StatelessWidget {
                       child: OutlinedButton.icon(
                         onPressed: () => _copyLink(context),
                         icon: const Icon(Icons.link),
-                        label: const Text('Скопировать ссылку'),
+                        label: Text(context.l10n.copyLinkButton),
                       ),
                     ),
                   ],
@@ -140,7 +140,7 @@ class ChannelInfoScreen extends StatelessWidget {
                     secondary: Icon(muted
                         ? Icons.notifications_off_outlined
                         : Icons.notifications_outlined),
-                    title: const Text('Уведомления'),
+                    title: Text(context.l10n.notificationsTitle),
                     value: !muted,
                     onChanged: (v) async {
                       if (v) {
@@ -162,13 +162,13 @@ class ChannelInfoScreen extends StatelessWidget {
                     horizontal: AppSpacing.s16, vertical: AppSpacing.s8),
                 child: Column(
                   children: [
-                    const _InfoRow(
-                      label: 'Шифрование',
-                      value: 'AES-256, уникальный ключ',
+                    _InfoRow(
+                      label: context.l10n.encryptionLabel,
+                      value: context.l10n.encryptionValue,
                       icon: Icons.lock_outline,
                     ),
                     _InfoRow(
-                      label: 'Ключ (PSK)',
+                      label: context.l10n.pskLabel,
                       value: _truncatePsk(channel.psk),
                       icon: Icons.key,
                       monospace: true,
@@ -185,7 +185,7 @@ class ChannelInfoScreen extends StatelessWidget {
                 leading: Icon(Icons.delete_outline,
                     color: Theme.of(context).colorScheme.error),
                 title: Text(
-                  'Удалить канал',
+                  context.l10n.deleteChannelAction,
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
                 onTap: () => _deleteChannel(context),
