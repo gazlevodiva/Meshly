@@ -249,6 +249,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSectionAppearance => 'Appearance';
 
   @override
+  String get languageTile => 'Language';
+
+  @override
+  String get languageSystem => 'System';
+
+  @override
+  String get languageRussian => 'Русский';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
   String get themeTile => 'Theme';
 
   @override

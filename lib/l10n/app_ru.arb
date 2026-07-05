@@ -178,6 +178,16 @@
     }
   },
   "settingsSectionAppearance": "Внешний вид",
+  "languageTile": "Язык",
+  "languageSystem": "Системный",
+  "languageRussian": "Русский",
+  "@languageRussian": {
+    "description": "Endonym — stays 'Русский' in every locale"
+  },
+  "languageEnglish": "English",
+  "@languageEnglish": {
+    "description": "Endonym — stays 'English' in every locale"
+  },
   "themeTile": "Тема",
   "themeSystem": "Системная",
   "themeLight": "Светлая",

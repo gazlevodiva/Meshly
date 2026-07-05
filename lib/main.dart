@@ -3,6 +3,7 @@ import 'package:meshly/l10n/app_localizations.dart';
 import 'package:meshly/screens/onboarding_screen.dart';
 import 'package:meshly/screens/scan_screen.dart';
 import 'package:meshly/services/contact_store.dart';
+import 'package:meshly/services/locale_controller.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/notification_service.dart';
 import 'package:meshly/services/notification_settings.dart';
@@ -15,6 +16,7 @@ void main() async {
   await ContactStore.instance.init();
   await NotificationSettings.instance.load();
   await ThemeController.instance.load();
+  await LocaleController.instance.load();
   await NotificationService.instance.init();
   await NotificationService.instance.requestPermissions();
   final prefs = await SharedPreferences.getInstance();
@@ -43,10 +45,12 @@ class _MeshlyAppState extends State<MeshlyApp> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeController.instance,
+      listenable: Listenable.merge(
+          [ThemeController.instance, LocaleController.instance]),
       builder: (context, _) => MaterialApp(
         title: 'Meshly',
         debugShowCheckedModeBanner: false,
+        locale: LocaleController.instance.locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         theme: buildLightTheme(),

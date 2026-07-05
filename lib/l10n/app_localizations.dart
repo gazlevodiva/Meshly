@@ -548,6 +548,30 @@ abstract class AppLocalizations {
   /// **'Внешний вид'**
   String get settingsSectionAppearance;
 
+  /// No description provided for @languageTile.
+  ///
+  /// In ru, this message translates to:
+  /// **'Язык'**
+  String get languageTile;
+
+  /// No description provided for @languageSystem.
+  ///
+  /// In ru, this message translates to:
+  /// **'Системный'**
+  String get languageSystem;
+
+  /// Endonym — stays 'Русский' in every locale
+  ///
+  /// In ru, this message translates to:
+  /// **'Русский'**
+  String get languageRussian;
+
+  /// Endonym — stays 'English' in every locale
+  ///
+  /// In ru, this message translates to:
+  /// **'English'**
+  String get languageEnglish;
+
   /// No description provided for @themeTile.
   ///
   /// In ru, this message translates to:

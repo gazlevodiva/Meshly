@@ -248,6 +248,18 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsSectionAppearance => 'Внешний вид';
 
   @override
+  String get languageTile => 'Язык';
+
+  @override
+  String get languageSystem => 'Системный';
+
+  @override
+  String get languageRussian => 'Русский';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
   String get themeTile => 'Тема';
 
   @override

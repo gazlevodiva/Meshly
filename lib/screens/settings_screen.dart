@@ -7,6 +7,7 @@ import 'package:meshly/screens/my_card_screen.dart';
 import 'package:meshly/screens/notification_settings_screen.dart';
 import 'package:meshly/screens/scan_screen.dart';
 import 'package:meshly/services/contact_store.dart';
+import 'package:meshly/services/locale_controller.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/notification_settings.dart';
 import 'package:meshly/services/theme_controller.dart';
@@ -86,6 +87,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
       case ThemeMode.dark:
         return context.l10n.themeDark;
     }
+  }
+
+  static String _languageLabel(BuildContext context, Locale? locale) {
+    switch (locale?.languageCode) {
+      case 'ru':
+        return context.l10n.languageRussian;
+      case 'en':
+        return context.l10n.languageEnglish;
+      default:
+        return context.l10n.languageSystem;
+    }
+  }
+
+  void _showLanguagePicker(BuildContext context) {
+    unawaited(showModalBottomSheet<void>(
+      context: context,
+      shape: AppShapes.bottomSheet,
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.s12),
+          child: ListenableBuilder(
+            listenable: LocaleController.instance,
+            builder: (sheetContext, _) {
+              // 'system' sentinel — RadioGroup can't use null as a value.
+              final current =
+                  LocaleController.instance.locale?.languageCode ?? 'system';
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SheetDragHandle(bottomMargin: AppSpacing.s8),
+                  RadioGroup<String>(
+                    groupValue: current,
+                    onChanged: (code) async {
+                      if (code != null) {
+                        await LocaleController.instance.setLocale(
+                            code == 'system' ? null : Locale(code));
+                      }
+                      if (sheetContext.mounted) Navigator.pop(sheetContext);
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        RadioListTile<String>(
+                          value: 'system',
+                          title: Text(sheetContext.l10n.languageSystem),
+                        ),
+                        RadioListTile<String>(
+                          value: 'ru',
+                          title: Text(sheetContext.l10n.languageRussian),
+                        ),
+                        RadioListTile<String>(
+                          value: 'en',
+                          title: Text(sheetContext.l10n.languageEnglish),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.s8),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    ));
   }
 
   void _showThemePicker(BuildContext context) {
@@ -266,18 +332,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     // ── Внешний вид ──────────────────────────────────
                     SectionCard(
                       title: context.l10n.settingsSectionAppearance,
-                      child: ListenableBuilder(
-                        listenable: ThemeController.instance,
-                        builder: (context, _) {
-                          return ListTile(
-                            leading: const Icon(Icons.brightness_6_outlined),
-                            title: Text(context.l10n.themeTile),
-                            subtitle: Text(_themeModeLabel(
-                                context, ThemeController.instance.mode)),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: () => _showThemePicker(context),
-                          );
-                        },
+                      child: Column(
+                        children: [
+                          ListenableBuilder(
+                            listenable: ThemeController.instance,
+                            builder: (context, _) {
+                              return ListTile(
+                                leading:
+                                    const Icon(Icons.brightness_6_outlined),
+                                title: Text(context.l10n.themeTile),
+                                subtitle: Text(_themeModeLabel(
+                                    context, ThemeController.instance.mode)),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () => _showThemePicker(context),
+                              );
+                            },
+                          ),
+                          const Divider(height: 1),
+                          ListenableBuilder(
+                            listenable: LocaleController.instance,
+                            builder: (context, _) {
+                              return ListTile(
+                                leading: const Icon(Icons.language),
+                                title: Text(context.l10n.languageTile),
+                                subtitle: Text(_languageLabel(context,
+                                    LocaleController.instance.locale)),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () => _showLanguagePicker(context),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ),
 
