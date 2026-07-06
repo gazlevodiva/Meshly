@@ -67,11 +67,13 @@ class _ChatScreenState extends State<ChatScreen> {
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
-        unawaited(_scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-        ));
+        unawaited(
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+          ),
+        );
       }
     });
   }
@@ -113,9 +115,9 @@ class _ChatScreenState extends State<ChatScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => EditContactScreen(
-              contact: contact,
-              meshService: widget.meshService,
-            ),
+          contact: contact,
+          meshService: widget.meshService,
+        ),
       ),
     );
     if (!mounted) return;
@@ -131,12 +133,14 @@ class _ChatScreenState extends State<ChatScreen> {
     if (conv.channelId == null) return;
     final ch = _store.channelById(conv.channelId!);
     if (ch == null) return;
-    unawaited(Navigator.push(
-      context,
-      MaterialPageRoute<void>(
-        builder: (_) => ChannelInfoScreen(channel: ch),
+    unawaited(
+      Navigator.push(
+        context,
+        MaterialPageRoute<void>(
+          builder: (_) => ChannelInfoScreen(channel: ch),
+        ),
       ),
-    ));
+    );
   }
 
   Future<void> _send() async {
@@ -199,13 +203,16 @@ class _ChatScreenState extends State<ChatScreen> {
                 Container(
                   color: Theme.of(context).colorScheme.primaryContainer,
                   padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.s16, vertical: AppSpacing.s10),
+                    horizontal: AppSpacing.s16,
+                    vertical: AppSpacing.s10,
+                  ),
                   child: Row(
                     children: [
                       Expanded(
                         child: Text(
-                          context.l10n
-                              .strangerNodeId(_shortNodeId(conv.peerId!)),
+                          context.l10n.strangerNodeId(
+                            _shortNodeId(conv.peerId!),
+                          ),
                         ),
                       ),
                       TextButton(
@@ -221,49 +228,55 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: Stack(
                   children: [
                     ListenableBuilder(
-                  listenable: _store,
-                  builder: (context, _) {
-                    final messages = _messages;
-                    return messages.isEmpty
-                        ? Center(
-                            child: Text(context.l10n.writeFirstMessage,
-                                style: AppTextStyles.secondary(context)))
-                        : ListView.builder(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.fromLTRB(
-                                AppSpacing.s12,
-                                AppSpacing.s12,
-                                AppSpacing.s12,
-                                AppSpacing.chatListBottomPadding),
-                            itemCount: messages.length,
-                            itemBuilder: (_, i) {
-                              final msg = messages[i];
-                              final prev = i > 0 ? messages[i - 1] : null;
-                              final newDay = prev == null ||
-                                  !_sameDay(prev.time, msg.time);
-                              // In channels the sender avatar + name are shown
-                              // once per run of consecutive same-sender
-                              // messages (and again after a date chip).
-                              final showSender = conv.isChannel &&
-                                  !msg.isMe &&
-                                  (newDay ||
-                                      prev.isMe ||
-                                      prev.fromNodeId != msg.fromNodeId);
-                              return Column(
-                                children: [
-                                  if (newDay) _DateChip(date: msg.time),
-                                  _MessageBubble(
-                                    msg: msg,
-                                    store: _store,
-                                    inChannel: conv.isChannel,
-                                    showSender: showSender,
-                                    onRetry: _retry,
-                                  ),
-                                ],
+                      listenable: _store,
+                      builder: (context, _) {
+                        final messages = _messages;
+                        return messages.isEmpty
+                            ? Center(
+                                child: Text(
+                                  context.l10n.writeFirstMessage,
+                                  style: AppTextStyles.secondary(context),
+                                ),
+                              )
+                            : ListView.builder(
+                                controller: _scrollController,
+                                padding: const EdgeInsets.fromLTRB(
+                                  AppSpacing.s12,
+                                  AppSpacing.s12,
+                                  AppSpacing.s12,
+                                  AppSpacing.chatListBottomPadding,
+                                ),
+                                itemCount: messages.length,
+                                itemBuilder: (_, i) {
+                                  final msg = messages[i];
+                                  final prev = i > 0 ? messages[i - 1] : null;
+                                  final newDay =
+                                      prev == null ||
+                                      !_sameDay(prev.time, msg.time);
+                                  // In channels the sender avatar + name are shown
+                                  // once per run of consecutive same-sender
+                                  // messages (and again after a date chip).
+                                  final showSender =
+                                      conv.isChannel &&
+                                      !msg.isMe &&
+                                      (newDay ||
+                                          prev.isMe ||
+                                          prev.fromNodeId != msg.fromNodeId);
+                                  return Column(
+                                    children: [
+                                      if (newDay) _DateChip(date: msg.time),
+                                      _MessageBubble(
+                                        msg: msg,
+                                        store: _store,
+                                        inChannel: conv.isChannel,
+                                        showSender: showSender,
+                                        onRetry: _retry,
+                                      ),
+                                    ],
+                                  );
+                                },
                               );
-                            },
-                          );
-                  },
+                      },
                     ),
                     Positioned(
                       left: 0,
@@ -303,8 +316,9 @@ class _ChatScreenState extends State<ChatScreen> {
       if (online) {
         statusLine = Text(
           context.l10n.online,
-          style: AppTextStyles.caption(context)
-              .copyWith(color: context.appColors.online),
+          style: AppTextStyles.caption(
+            context,
+          ).copyWith(color: context.appColors.online),
         );
       } else if (lastHeard != null) {
         statusLine = Text(
@@ -338,7 +352,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-          AppSpacing.s4, AppSpacing.s4, AppSpacing.s4, AppSpacing.s4),
+        AppSpacing.s4,
+        AppSpacing.s4,
+        AppSpacing.s4,
+        AppSpacing.s4,
+      ),
       child: Row(
         children: [
           IconButton(
@@ -401,13 +419,17 @@ class _DateChip extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
         padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.s12, vertical: AppSpacing.s4),
+          horizontal: AppSpacing.s12,
+          vertical: AppSpacing.s4,
+        ),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainer,
           borderRadius: BorderRadius.circular(AppRadius.pill),
         ),
-        child: Text(chatDate(context.l10n, date),
-            style: AppTextStyles.caption(context)),
+        child: Text(
+          chatDate(context.l10n, date),
+          style: AppTextStyles.caption(context),
+        ),
       ),
     );
   }
@@ -461,8 +483,7 @@ class _MessageBubble extends StatelessWidget {
           _time(msg.time),
           style: AppTextStyles.label(context).copyWith(
             color: isMe
-                ? appColors.onAccent
-                    .withValues(alpha: AppOpacities.bubbleMeta)
+                ? appColors.onAccent.withValues(alpha: AppOpacities.bubbleMeta)
                 : appColors.textSecondary,
           ),
         ),
@@ -477,11 +498,13 @@ class _MessageBubble extends StatelessWidget {
 
     Widget bubble = Container(
       constraints: BoxConstraints(
-        maxWidth: MediaQuery.of(context).size.width *
-            AppSizes.bubbleMaxWidthFraction,
+        maxWidth:
+            MediaQuery.of(context).size.width * AppSizes.bubbleMaxWidthFraction,
       ),
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.s12, vertical: AppSpacing.s8),
+        horizontal: AppSpacing.s12,
+        vertical: AppSpacing.s8,
+      ),
       decoration: BoxDecoration(
         color: isMe ? scheme.primary : scheme.surfaceContainer,
         borderRadius: borderRadius,
@@ -525,8 +548,9 @@ class _MessageBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.s2),
       child: Row(
-        mainAxisAlignment:
-            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe && inChannel) ...[
@@ -558,20 +582,30 @@ class _StatusIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appColors = context.appColors;
-    final dimmed =
-        appColors.onAccent.withValues(alpha: AppOpacities.bubbleMeta);
+    final dimmed = appColors.onAccent.withValues(
+      alpha: AppOpacities.bubbleMeta,
+    );
     switch (status) {
       case MessageStatus.sending:
-        return Icon(Icons.access_time,
-            size: AppIconSizes.status, color: dimmed);
+        return Icon(
+          Icons.access_time,
+          size: AppIconSizes.status,
+          color: dimmed,
+        );
       case MessageStatus.sent:
         return Icon(Icons.check, size: AppIconSizes.status, color: dimmed);
       case MessageStatus.acked:
-        return Icon(Icons.done_all,
-            size: AppIconSizes.status, color: appColors.onAccent);
+        return Icon(
+          Icons.done_all,
+          size: AppIconSizes.status,
+          color: appColors.onAccent,
+        );
       case MessageStatus.failed:
-        return Icon(Icons.error_outline,
-            size: AppIconSizes.status, color: appColors.danger);
+        return Icon(
+          Icons.error_outline,
+          size: AppIconSizes.status,
+          color: appColors.danger,
+        );
     }
   }
 }
@@ -590,12 +624,15 @@ class _InputBar extends StatelessWidget {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
-            AppSpacing.s12, AppSpacing.s8, AppSpacing.s12, AppSpacing.s8),
+          AppSpacing.s12,
+          AppSpacing.s8,
+          AppSpacing.s12,
+          AppSpacing.s8,
+        ),
         child: ValueListenableBuilder<TextEditingValue>(
           valueListenable: controller,
           builder: (context, value, _) {
-            final remaining =
-                _maxPayloadBytes - utf8.encode(value.text).length;
+            final remaining = _maxPayloadBytes - utf8.encode(value.text).length;
             final overLimit = remaining < 0;
             return Column(
               mainAxisSize: MainAxisSize.min,
@@ -604,7 +641,9 @@ class _InputBar extends StatelessWidget {
                 if (remaining <= _counterThreshold)
                   Padding(
                     padding: const EdgeInsets.only(
-                        right: AppSpacing.s8, bottom: AppSpacing.s4),
+                      right: AppSpacing.s8,
+                      bottom: AppSpacing.s4,
+                    ),
                     child: Text(
                       '$remaining',
                       style: AppTextStyles.label(context).copyWith(
@@ -613,15 +652,18 @@ class _InputBar extends StatelessWidget {
                     ),
                   ),
                 Row(
+                  // Keep the send button pinned to the bottom of the pill as
+                  // the text field grows to multiple lines.
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Expanded(
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.s16),
+                          horizontal: AppSpacing.s16,
+                        ),
                         decoration: BoxDecoration(
                           color: scheme.surfaceContainer,
-                          borderRadius:
-                              BorderRadius.circular(AppRadius.input),
+                          borderRadius: BorderRadius.circular(AppRadius.input),
                           boxShadow: [
                             BoxShadow(
                               color: context.appColors.islandShadow,
@@ -632,13 +674,19 @@ class _InputBar extends StatelessWidget {
                         ),
                         child: TextField(
                           controller: controller,
-                          onSubmitted: (_) => onSend(),
-                          textInputAction: TextInputAction.send,
+                          // Grows downward with the text up to 6 lines, then
+                          // scrolls internally. Enter inserts a newline; the
+                          // send button sends.
+                          minLines: 1,
+                          maxLines: 6,
+                          keyboardType: TextInputType.multiline,
+                          textInputAction: TextInputAction.newline,
                           decoration: InputDecoration(
                             hintText: context.l10n.messageHint,
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(
-                                vertical: AppSpacing.s12),
+                              vertical: AppSpacing.s12,
+                            ),
                           ),
                         ),
                       ),
@@ -708,8 +756,20 @@ class _AddContactDialogState extends State<_AddContactDialog> {
   String _emoji = '😊';
 
   static const _emojis = [
-    '😊', '👩', '👨', '👵', '👴', '👦', '👧',
-    '🐕', '🐈', '🏕️', '🏠', '❤️', '⭐', '🔥',
+    '😊',
+    '👩',
+    '👨',
+    '👵',
+    '👴',
+    '👦',
+    '👧',
+    '🐕',
+    '🐈',
+    '🏕️',
+    '🏠',
+    '❤️',
+    '⭐',
+    '🔥',
   ];
 
   @override
@@ -748,14 +808,14 @@ class _AddContactDialogState extends State<_AddContactDialog> {
                         color: e == _emoji
                             ? Theme.of(context).colorScheme.primaryContainer
                             : Colors.transparent,
-                        borderRadius:
-                            BorderRadius.circular(AppRadius.chipSmall),
+                        borderRadius: BorderRadius.circular(
+                          AppRadius.chipSmall,
+                        ),
                       ),
                       child: Center(
                         child: Text(
                           e,
-                          style:
-                              const TextStyle(fontSize: AppSizes.emojiSmall),
+                          style: const TextStyle(fontSize: AppSizes.emojiSmall),
                         ),
                       ),
                     ),
@@ -772,8 +832,10 @@ class _AddContactDialogState extends State<_AddContactDialog> {
         ),
         FilledButton(
           onPressed: _nameCtrl.text.trim().isNotEmpty
-              ? () => Navigator.pop(
-                  context, (name: _nameCtrl.text.trim(), emoji: _emoji))
+              ? () => Navigator.pop(context, (
+                  name: _nameCtrl.text.trim(),
+                  emoji: _emoji,
+                ))
               : null,
           child: Text(context.l10n.add),
         ),
