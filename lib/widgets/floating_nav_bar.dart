@@ -6,8 +6,8 @@ import 'package:meshly/theme/app_theme.dart';
 ///
 /// Minimal by design: three icon+label tabs laid out space-evenly (equal
 /// gaps around and between items regardless of label length). The active
-/// tab is simply tinted with a soft brand-blue gradient — no background
-/// pill, no sliding indicator.
+/// tab is a flat primary-blue tint — no gradient, no background pill, no
+/// sliding indicator.
 class FloatingNavBar extends StatelessWidget {
   const FloatingNavBar({
     required this.currentIndex,
@@ -85,8 +85,9 @@ class FloatingNavBar extends StatelessWidget {
   }
 }
 
-/// One tab: icon + label in a row. The active tab is tinted with a soft
-/// brand gradient via [ShaderMask]; states cross-fade with AnimatedSwitcher.
+/// One tab: icon + label in a row. The active tab is a flat primary tint,
+/// the inactive a dimmed onSurface; states cross-fade with an
+/// [AnimatedSwitcher].
 class _NavItem extends StatelessWidget {
   const _NavItem({
     required this.icon,
