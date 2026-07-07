@@ -1,5 +1,9 @@
 # Meshly
 
+[![CI](https://github.com/gazlevodiva/Meshly/actions/workflows/ci.yml/badge.svg)](https://github.com/gazlevodiva/Meshly/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)](https://flutter.dev)
+
 A simple messenger built on top of the [Meshtastic](https://meshtastic.org/) LoRa mesh network. Designed for people you trust — minimal UI, one tap to connect and chat.
 
 > **Goal:** Strip everything unnecessary from the official Meshtastic app and leave just one thing — send a message. Your mom should be able to use it on the first try.

@@ -5,6 +5,8 @@ LoRa mesh network. This guide covers everything you need to set up the
 project, follow its conventions, and get a change merged. It applies equally
 to human contributors and AI coding agents.
 
+By participating, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## Getting set up
 
 ```bash
