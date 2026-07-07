@@ -107,9 +107,13 @@ If your device uses different UUIDs, update the constants in `lib/services/mesh_
 - ⚠️ Protobuf encoding is implemented manually (no official Meshtastic Dart package exists)
 - ⚠️ iOS free developer certificate expires every 7 days — use Apple Developer Program ($99/yr) for permanent install
 
+## Architecture
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the data flow (BLE → protobuf → services → reactive UI), the manual Meshtastic protobuf layer, the drift schema/migrations, and the theming/localization layers.
+
 ## Security & Privacy
 
-Be honest with yourself about what this protects:
+Be honest with yourself about what this protects. For how to report a vulnerability, see [SECURITY.md](SECURITY.md).
 
 - **Channels** are AES-256 encrypted by Meshtastic, with the pre-shared key (PSK) exchanged via QR code.
 - **Direct messages** currently go over the primary channel (slot 0) with the default well-known PSK — anyone running Meshtastic nearby can read them. Do not treat DMs as private yet.
@@ -118,7 +122,7 @@ Be honest with yourself about what this protects:
 
 ## Contributing
 
-Issues and PRs are welcome. The project is intentionally minimal — the goal is simplicity, not features.
+Issues and PRs are welcome. The project is intentionally minimal — the goal is simplicity, not features. Read [CONTRIBUTING.md](CONTRIBUTING.md) for the dev setup, code conventions (design tokens, both themes, ARB localization), and the verification checklist.
 
 ## License
 
