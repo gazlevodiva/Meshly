@@ -39,6 +39,17 @@ class $ContactsTable extends Contacts with TableInfo<$ContactsTable, Contact> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _publicKeyMeta = const VerificationMeta(
+    'publicKey',
+  );
+  @override
+  late final GeneratedColumn<Uint8List> publicKey = GeneratedColumn<Uint8List>(
+    'public_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.blob,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _addedAtMeta = const VerificationMeta(
     'addedAt',
   );
@@ -55,6 +66,7 @@ class $ContactsTable extends Contacts with TableInfo<$ContactsTable, Contact> {
     nodeId,
     displayName,
     avatarEmoji,
+    publicKey,
     addedAt,
   ];
   @override
@@ -97,6 +109,12 @@ class $ContactsTable extends Contacts with TableInfo<$ContactsTable, Contact> {
         ),
       );
     }
+    if (data.containsKey('public_key')) {
+      context.handle(
+        _publicKeyMeta,
+        publicKey.isAcceptableOrUnknown(data['public_key']!, _publicKeyMeta),
+      );
+    }
     if (data.containsKey('added_at')) {
       context.handle(
         _addedAtMeta,
@@ -126,6 +144,10 @@ class $ContactsTable extends Contacts with TableInfo<$ContactsTable, Contact> {
         DriftSqlType.string,
         data['${effectivePrefix}avatar_emoji'],
       ),
+      publicKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}public_key'],
+      ),
       addedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}added_at'],
@@ -143,11 +165,13 @@ class Contact extends DataClass implements Insertable<Contact> {
   final String nodeId;
   final String displayName;
   final String? avatarEmoji;
+  final Uint8List? publicKey;
   final DateTime addedAt;
   const Contact({
     required this.nodeId,
     required this.displayName,
     this.avatarEmoji,
+    this.publicKey,
     required this.addedAt,
   });
   @override
@@ -157,6 +181,9 @@ class Contact extends DataClass implements Insertable<Contact> {
     map['display_name'] = Variable<String>(displayName);
     if (!nullToAbsent || avatarEmoji != null) {
       map['avatar_emoji'] = Variable<String>(avatarEmoji);
+    }
+    if (!nullToAbsent || publicKey != null) {
+      map['public_key'] = Variable<Uint8List>(publicKey);
     }
     map['added_at'] = Variable<DateTime>(addedAt);
     return map;
@@ -169,6 +196,9 @@ class Contact extends DataClass implements Insertable<Contact> {
       avatarEmoji: avatarEmoji == null && nullToAbsent
           ? const Value.absent()
           : Value(avatarEmoji),
+      publicKey: publicKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(publicKey),
       addedAt: Value(addedAt),
     );
   }
@@ -182,6 +212,7 @@ class Contact extends DataClass implements Insertable<Contact> {
       nodeId: serializer.fromJson<String>(json['nodeId']),
       displayName: serializer.fromJson<String>(json['displayName']),
       avatarEmoji: serializer.fromJson<String?>(json['avatarEmoji']),
+      publicKey: serializer.fromJson<Uint8List?>(json['publicKey']),
       addedAt: serializer.fromJson<DateTime>(json['addedAt']),
     );
   }
@@ -192,6 +223,7 @@ class Contact extends DataClass implements Insertable<Contact> {
       'nodeId': serializer.toJson<String>(nodeId),
       'displayName': serializer.toJson<String>(displayName),
       'avatarEmoji': serializer.toJson<String?>(avatarEmoji),
+      'publicKey': serializer.toJson<Uint8List?>(publicKey),
       'addedAt': serializer.toJson<DateTime>(addedAt),
     };
   }
@@ -200,11 +232,13 @@ class Contact extends DataClass implements Insertable<Contact> {
     String? nodeId,
     String? displayName,
     Value<String?> avatarEmoji = const Value.absent(),
+    Value<Uint8List?> publicKey = const Value.absent(),
     DateTime? addedAt,
   }) => Contact(
     nodeId: nodeId ?? this.nodeId,
     displayName: displayName ?? this.displayName,
     avatarEmoji: avatarEmoji.present ? avatarEmoji.value : this.avatarEmoji,
+    publicKey: publicKey.present ? publicKey.value : this.publicKey,
     addedAt: addedAt ?? this.addedAt,
   );
   Contact copyWithCompanion(ContactsCompanion data) {
@@ -216,6 +250,7 @@ class Contact extends DataClass implements Insertable<Contact> {
       avatarEmoji: data.avatarEmoji.present
           ? data.avatarEmoji.value
           : this.avatarEmoji,
+      publicKey: data.publicKey.present ? data.publicKey.value : this.publicKey,
       addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
     );
   }
@@ -226,13 +261,20 @@ class Contact extends DataClass implements Insertable<Contact> {
           ..write('nodeId: $nodeId, ')
           ..write('displayName: $displayName, ')
           ..write('avatarEmoji: $avatarEmoji, ')
+          ..write('publicKey: $publicKey, ')
           ..write('addedAt: $addedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(nodeId, displayName, avatarEmoji, addedAt);
+  int get hashCode => Object.hash(
+    nodeId,
+    displayName,
+    avatarEmoji,
+    $driftBlobEquality.hash(publicKey),
+    addedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -240,6 +282,7 @@ class Contact extends DataClass implements Insertable<Contact> {
           other.nodeId == this.nodeId &&
           other.displayName == this.displayName &&
           other.avatarEmoji == this.avatarEmoji &&
+          $driftBlobEquality.equals(other.publicKey, this.publicKey) &&
           other.addedAt == this.addedAt);
 }
 
@@ -247,12 +290,14 @@ class ContactsCompanion extends UpdateCompanion<Contact> {
   final Value<String> nodeId;
   final Value<String> displayName;
   final Value<String?> avatarEmoji;
+  final Value<Uint8List?> publicKey;
   final Value<DateTime> addedAt;
   final Value<int> rowid;
   const ContactsCompanion({
     this.nodeId = const Value.absent(),
     this.displayName = const Value.absent(),
     this.avatarEmoji = const Value.absent(),
+    this.publicKey = const Value.absent(),
     this.addedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -260,6 +305,7 @@ class ContactsCompanion extends UpdateCompanion<Contact> {
     required String nodeId,
     required String displayName,
     this.avatarEmoji = const Value.absent(),
+    this.publicKey = const Value.absent(),
     required DateTime addedAt,
     this.rowid = const Value.absent(),
   }) : nodeId = Value(nodeId),
@@ -269,6 +315,7 @@ class ContactsCompanion extends UpdateCompanion<Contact> {
     Expression<String>? nodeId,
     Expression<String>? displayName,
     Expression<String>? avatarEmoji,
+    Expression<Uint8List>? publicKey,
     Expression<DateTime>? addedAt,
     Expression<int>? rowid,
   }) {
@@ -276,6 +323,7 @@ class ContactsCompanion extends UpdateCompanion<Contact> {
       if (nodeId != null) 'node_id': nodeId,
       if (displayName != null) 'display_name': displayName,
       if (avatarEmoji != null) 'avatar_emoji': avatarEmoji,
+      if (publicKey != null) 'public_key': publicKey,
       if (addedAt != null) 'added_at': addedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -285,6 +333,7 @@ class ContactsCompanion extends UpdateCompanion<Contact> {
     Value<String>? nodeId,
     Value<String>? displayName,
     Value<String?>? avatarEmoji,
+    Value<Uint8List?>? publicKey,
     Value<DateTime>? addedAt,
     Value<int>? rowid,
   }) {
@@ -292,6 +341,7 @@ class ContactsCompanion extends UpdateCompanion<Contact> {
       nodeId: nodeId ?? this.nodeId,
       displayName: displayName ?? this.displayName,
       avatarEmoji: avatarEmoji ?? this.avatarEmoji,
+      publicKey: publicKey ?? this.publicKey,
       addedAt: addedAt ?? this.addedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -309,6 +359,9 @@ class ContactsCompanion extends UpdateCompanion<Contact> {
     if (avatarEmoji.present) {
       map['avatar_emoji'] = Variable<String>(avatarEmoji.value);
     }
+    if (publicKey.present) {
+      map['public_key'] = Variable<Uint8List>(publicKey.value);
+    }
     if (addedAt.present) {
       map['added_at'] = Variable<DateTime>(addedAt.value);
     }
@@ -324,6 +377,7 @@ class ContactsCompanion extends UpdateCompanion<Contact> {
           ..write('nodeId: $nodeId, ')
           ..write('displayName: $displayName, ')
           ..write('avatarEmoji: $avatarEmoji, ')
+          ..write('publicKey: $publicKey, ')
           ..write('addedAt: $addedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -1853,6 +1907,7 @@ typedef $$ContactsTableCreateCompanionBuilder =
       required String nodeId,
       required String displayName,
       Value<String?> avatarEmoji,
+      Value<Uint8List?> publicKey,
       required DateTime addedAt,
       Value<int> rowid,
     });
@@ -1861,6 +1916,7 @@ typedef $$ContactsTableUpdateCompanionBuilder =
       Value<String> nodeId,
       Value<String> displayName,
       Value<String?> avatarEmoji,
+      Value<Uint8List?> publicKey,
       Value<DateTime> addedAt,
       Value<int> rowid,
     });
@@ -1886,6 +1942,11 @@ class $$ContactsTableFilterComposer
 
   ColumnFilters<String> get avatarEmoji => $composableBuilder(
     column: $table.avatarEmoji,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<Uint8List> get publicKey => $composableBuilder(
+    column: $table.publicKey,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1919,6 +1980,11 @@ class $$ContactsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<Uint8List> get publicKey => $composableBuilder(
+    column: $table.publicKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get addedAt => $composableBuilder(
     column: $table.addedAt,
     builder: (column) => ColumnOrderings(column),
@@ -1946,6 +2012,9 @@ class $$ContactsTableAnnotationComposer
     column: $table.avatarEmoji,
     builder: (column) => column,
   );
+
+  GeneratedColumn<Uint8List> get publicKey =>
+      $composableBuilder(column: $table.publicKey, builder: (column) => column);
 
   GeneratedColumn<DateTime> get addedAt =>
       $composableBuilder(column: $table.addedAt, builder: (column) => column);
@@ -1982,12 +2051,14 @@ class $$ContactsTableTableManager
                 Value<String> nodeId = const Value.absent(),
                 Value<String> displayName = const Value.absent(),
                 Value<String?> avatarEmoji = const Value.absent(),
+                Value<Uint8List?> publicKey = const Value.absent(),
                 Value<DateTime> addedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ContactsCompanion(
                 nodeId: nodeId,
                 displayName: displayName,
                 avatarEmoji: avatarEmoji,
+                publicKey: publicKey,
                 addedAt: addedAt,
                 rowid: rowid,
               ),
@@ -1996,12 +2067,14 @@ class $$ContactsTableTableManager
                 required String nodeId,
                 required String displayName,
                 Value<String?> avatarEmoji = const Value.absent(),
+                Value<Uint8List?> publicKey = const Value.absent(),
                 required DateTime addedAt,
                 Value<int> rowid = const Value.absent(),
               }) => ContactsCompanion.insert(
                 nodeId: nodeId,
                 displayName: displayName,
                 avatarEmoji: avatarEmoji,
+                publicKey: publicKey,
                 addedAt: addedAt,
                 rowid: rowid,
               ),

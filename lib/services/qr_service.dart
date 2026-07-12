@@ -17,6 +17,7 @@ class QrService {
     final nodeId = myNodeId ?? c.nodeId;
     final params = {'name': c.displayName};
     if (c.avatarEmoji != null) params['emoji'] = c.avatarEmoji!;
+    if (c.publicKey != null) params['pk'] = base64Url.encode(c.publicKey!);
     return Uri(
       scheme: _scheme,
       host: 'contact',
@@ -44,12 +45,16 @@ class QrService {
     try {
       final uri = Uri.parse(raw);
       if (uri.scheme != _scheme || uri.host != 'contact') return null;
-      final nodeId = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
+      final nodeId = uri.pathSegments.isNotEmpty
+          ? uri.pathSegments.first
+          : null;
       if (nodeId == null || !nodeId.startsWith('!')) return null;
+      final pkStr = uri.queryParameters['pk'];
       return ContactQrData(
         nodeId: nodeId,
         displayName: uri.queryParameters['name'] ?? nodeId,
         avatarEmoji: uri.queryParameters['emoji'],
+        publicKey: pkStr != null ? base64Url.decode(pkStr) : null,
       );
     } on Exception catch (_) {
       return null;
@@ -98,11 +103,13 @@ class ContactQrData {
     required this.nodeId,
     required this.displayName,
     this.avatarEmoji,
+    this.publicKey,
   });
 
   final String nodeId;
   final String displayName;
   final String? avatarEmoji;
+  final Uint8List? publicKey;
 }
 
 class ChannelQrData {

@@ -51,6 +51,43 @@ channel settings, acks). This is the most delicate part of the codebase:
 ToRadio, FromRadio, FromNum) and the connection lifecycle; it's the only
 place that should touch `flutter_blue_plus` directly.
 
+## End-to-end DM encryption
+
+Direct messages between two Meshly installs are end-to-end encrypted;
+channel messages are unaffected and still rely on the Meshtastic channel
+PSK.
+
+- **`lib/services/crypto_service.dart`** (`CryptoService`) owns the
+  device's X25519 identity keypair. The private key is generated on first
+  run and stored only via `flutter_secure_storage` (Keychain on iOS,
+  Keystore on Android) — it never touches the drift database. The pure
+  crypto functions (`generateKeyPair`/`encryptFor`/`decryptFrom`) are
+  key-bytes-in/bytes-out so they can be unit-tested without touching secure
+  storage.
+- **Envelope**: static ECDH (`X25519(myPrivate, peerPublic)`) derives a
+  shared secret; XChaCha20-Poly1305 AEAD with a fresh random 24-byte nonce
+  per message encrypts and authenticates the plaintext. Wire format is
+  `[version:1][nonce:24][ciphertext+MAC]`, roughly 41 bytes of overhead on
+  top of the plaintext. There is no ratchet — no forward secrecy — a
+  deliberate tradeoff for an unreliable, unordered LoRa transport with no
+  session handshake.
+- **Key distribution**: a contact's X25519 public key is bundled into the
+  QR payload alongside their node ID (see `lib/services/qr_service.dart`),
+  so a key is only known once you've scanned that contact's QR in person
+  (or received theirs). `ContactStore`/drift persists the peer's public key
+  per contact (`app_database.dart`).
+- **Wire framing**: encrypted DM envelopes are sent as Meshtastic packets
+  with `portnum = MeshtasticProto.PRIVATE_APP` (256) instead of the normal
+  `TEXT_MESSAGE_APP`. This is intentional — the stock Meshtastic app and
+  other firmware clients don't recognize `PRIVATE_APP` and will ignore
+  these packets, so encrypted DMs no longer interoperate with non-Meshly
+  clients. `MeshService.sendText` returns `SendResult.needsKey` instead of
+  sending in the clear when the peer's public key isn't known yet; an
+  incoming DM that fails to decrypt (missing key, corruption, or a
+  plaintext DM from a non-Meshly sender) is stored with the
+  `kUndecryptableSentinel` text placeholder rather than being dropped or
+  shown garbled.
+
 ## Reactive store pattern
 
 State that the UI needs to react to lives in singleton `ChangeNotifier`s,

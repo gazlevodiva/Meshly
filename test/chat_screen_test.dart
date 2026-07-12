@@ -8,21 +8,24 @@ import 'package:meshly/services/mesh_service.dart';
 void main() {
   Future<MeshService> pumpChat(WidgetTester tester) async {
     final mesh = MeshService();
-    await tester.pumpWidget(MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      locale: const Locale('ru'),
-      home: ChatScreen(
-        meshService: mesh,
-        conversation: Conversation.dm('!1f8e42c9'),
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('ru'),
+        home: ChatScreen(
+          meshService: mesh,
+          conversation: Conversation.dm('!1f8e42c9'),
+        ),
       ),
-    ));
+    );
     await tester.pump();
     return mesh;
   }
 
-  testWidgets('shows header, unknown-DM banner, input and empty state',
-      (tester) async {
+  testWidgets('shows header, unknown-DM banner, input and empty state', (
+    tester,
+  ) async {
     final mesh = await pumpChat(tester);
 
     // Header title (unknown contact → node id) and stranger banner.
@@ -42,20 +45,24 @@ void main() {
     mesh.dispose();
   });
 
-  testWidgets('byte counter appears near the 200-byte limit', (tester) async {
-    final mesh = await pumpChat(tester);
+  testWidgets(
+    'byte counter appears near the limit, accounting for DM encryption overhead',
+    (tester) async {
+      final mesh = await pumpChat(tester);
 
-    // 165 ASCII bytes → 35 left (≤ 40 → counter visible).
-    await tester.enterText(find.byType(TextField), 'a' * 165);
-    await tester.pump();
-    expect(find.text('35'), findsOneWidget);
+      // DM budget is 200 - 41 (envelope overhead) = 159 bytes.
+      // 124 ASCII bytes → 35 left (≤ 40 → counter visible).
+      await tester.enterText(find.byType(TextField), 'a' * 124);
+      await tester.pump();
+      expect(find.text('35'), findsOneWidget);
 
-    // 205 bytes → over the limit, negative counter shown.
-    await tester.enterText(find.byType(TextField), 'a' * 205);
-    await tester.pump();
-    expect(find.text('-5'), findsOneWidget);
+      // 164 bytes → over the limit, negative counter shown.
+      await tester.enterText(find.byType(TextField), 'a' * 164);
+      await tester.pump();
+      expect(find.text('-5'), findsOneWidget);
 
-    await tester.pumpWidget(const SizedBox());
-    mesh.dispose();
-  });
+      await tester.pumpWidget(const SizedBox());
+      mesh.dispose();
+    },
+  );
 }

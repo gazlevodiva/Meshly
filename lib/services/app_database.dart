@@ -11,6 +11,9 @@ class Contacts extends Table {
   TextColumn get nodeId => text()();
   TextColumn get displayName => text()();
   TextColumn get avatarEmoji => text().nullable()();
+  // Peer's X25519 public key (32 bytes), used for E2E DM encryption.
+  // Null until exchanged via QR.
+  BlobColumn get publicKey => blob().nullable()();
   DateTimeColumn get addedAt => dateTime()();
 
   @override
@@ -31,7 +34,7 @@ class Channels extends Table {
 
 class Conversations extends Table {
   TextColumn get id => text()();
-  TextColumn get type => text()();        // 'dm' | 'channel'
+  TextColumn get type => text()(); // 'dm' | 'channel'
   TextColumn get peerId => text().nullable()();
   TextColumn get channelId => text().nullable()();
   IntColumn get unreadCount => integer().withDefault(const Constant(0))();
@@ -62,13 +65,15 @@ class BlockedNodes extends Table {
   Set<Column> get primaryKey => {nodeId};
 }
 
-@DriftDatabase(tables: [Contacts, Channels, Conversations, Messages, BlockedNodes])
+@DriftDatabase(
+  tables: [Contacts, Channels, Conversations, Messages, BlockedNodes],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -91,6 +96,9 @@ class AppDatabase extends _$AppDatabase {
           'is_me FROM messages_old',
         );
         await m.database.customStatement('DROP TABLE messages_old');
+      }
+      if (from < 4) {
+        await m.addColumn(contacts, contacts.publicKey);
       }
     },
   );

@@ -3,6 +3,7 @@ import 'package:meshly/l10n/app_localizations.dart';
 import 'package:meshly/screens/onboarding_screen.dart';
 import 'package:meshly/screens/scan_screen.dart';
 import 'package:meshly/services/contact_store.dart';
+import 'package:meshly/services/crypto_service.dart';
 import 'package:meshly/services/locale_controller.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/notification_service.dart';
@@ -14,6 +15,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ContactStore.instance.init();
+  try {
+    await CryptoService.instance.ensureIdentity();
+  } on Exception {
+    // Non-fatal: identity generation should normally succeed, but the app
+    // must still boot if secure storage is unavailable on this device.
+  }
   await NotificationSettings.instance.load();
   await ThemeController.instance.load();
   await LocaleController.instance.load();
@@ -45,8 +52,10 @@ class _MeshlyAppState extends State<MeshlyApp> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge(
-          [ThemeController.instance, LocaleController.instance]),
+      listenable: Listenable.merge([
+        ThemeController.instance,
+        LocaleController.instance,
+      ]),
       builder: (context, _) => MaterialApp(
         title: 'Meshly',
         debugShowCheckedModeBanner: false,

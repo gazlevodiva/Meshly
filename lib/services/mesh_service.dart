@@ -5,6 +5,7 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:meshly/models/conversation.dart';
 import 'package:meshly/models/message.dart';
 import 'package:meshly/services/contact_store.dart';
+import 'package:meshly/services/crypto_service.dart';
 import 'package:meshly/services/meshtastic_proto.dart';
 import 'package:meshly/services/notification_service.dart';
 import 'package:meshly/services/notification_settings.dart';
@@ -12,10 +13,23 @@ import 'package:meshly/services/notification_settings.dart';
 // Prints are used for BLE debug logging in MeshService.
 // ignore_for_file: avoid_print
 
-const _meshServiceUuid   = '6ba1b218-15a8-461f-9fa8-5dcae273eafd';
-const _toRadioCharUuid   = 'f75c76d2-129e-4dad-a1dd-7866124401e7';
+const _meshServiceUuid = '6ba1b218-15a8-461f-9fa8-5dcae273eafd';
+const _toRadioCharUuid = 'f75c76d2-129e-4dad-a1dd-7866124401e7';
 const _fromRadioCharUuid = '2c55e69e-4993-11ed-b878-0242ac120002';
-const _fromNumCharUuid   = 'ed9da18c-a800-4f66-a670-aa7547e34453';
+const _fromNumCharUuid = 'ed9da18c-a800-4f66-a670-aa7547e34453';
+
+// Placeholder text stored for an incoming DM that could not be decrypted
+// (missing sender public key, auth failure, or a plaintext DM from a
+// non-Meshly node). Phase 4 UI renders this as a localized placeholder
+// instead of showing it verbatim.
+const kUndecryptableSentinel = ' meshly:undecryptable';
+
+/// Outcome of [MeshService.sendText]. Channel sends always resolve to
+/// [sent] (or [noChannel] if the target channel doesn't exist). DM sends
+/// resolve to [needsKey] when the peer contact has no known public key —
+/// DMs are encrypted-only, so we refuse to send rather than fall back to
+/// plaintext.
+enum SendResult { sent, needsKey, noChannel }
 
 class MeshService {
   BluetoothDevice? _device;
@@ -53,7 +67,9 @@ class MeshService {
 
   bool get isConnected => _device != null;
 
-  Stream<List<ScanResult>> scan({Duration timeout = const Duration(seconds: 10)}) {
+  Stream<List<ScanResult>> scan({
+    Duration timeout = const Duration(seconds: 10),
+  }) {
     unawaited(FlutterBluePlus.startScan(timeout: timeout));
     return FlutterBluePlus.scanResults;
   }
@@ -63,8 +79,9 @@ class MeshService {
   Future<void> connect(BluetoothDevice device) async {
     await device.connect(license: License.nonprofit);
     _device = device;
-    deviceName.value =
-        device.platformName.isNotEmpty ? device.platformName : device.remoteId.str;
+    deviceName.value = device.platformName.isNotEmpty
+        ? device.platformName
+        : device.remoteId.str;
 
     final services = await device.discoverServices();
     final meshSvc = _findService(services, _meshServiceUuid);
@@ -72,15 +89,19 @@ class MeshService {
       final found = services.map((s) => '  ${s.serviceUuid}').join('\n');
       await device.disconnect();
       _cleanupConnection();
-      throw Exception('Meshtastic-сервис не найден.\nНайденные сервисы:\n$found');
+      throw Exception(
+        'Meshtastic-сервис не найден.\nНайденные сервисы:\n$found',
+      );
     }
 
-    _toRadio   = _findChar(meshSvc, _toRadioCharUuid);
+    _toRadio = _findChar(meshSvc, _toRadioCharUuid);
     _fromRadio = _findChar(meshSvc, _fromRadioCharUuid);
-    _fromNum   = _findChar(meshSvc, _fromNumCharUuid);
+    _fromNum = _findChar(meshSvc, _fromNumCharUuid);
 
     if (_toRadio == null || _fromRadio == null) {
-      final found = meshSvc.characteristics.map((c) => '  ${c.characteristicUuid}').join('\n');
+      final found = meshSvc.characteristics
+          .map((c) => '  ${c.characteristicUuid}')
+          .join('\n');
       await device.disconnect();
       _cleanupConnection();
       throw Exception('Не найдены нужные характеристики.\nДоступные:\n$found');
@@ -88,12 +109,17 @@ class MeshService {
 
     if (_fromNum != null) {
       await _fromNum!.setNotifyValue(true);
-      unawaited(_fromNum!.onValueReceived.listen((_) => _drainFromRadio()).asFuture());
+      unawaited(
+        _fromNum!.onValueReceived.listen((_) => _drainFromRadio()).asFuture(),
+      );
     }
 
     await _toRadio!.write(MeshtasticProto.encodeWantConfig());
     await _drainFromRadio();
-    _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) => _drainFromRadio());
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => _drainFromRadio(),
+    );
 
     // Следим за реальным BLE-состоянием: если девайс отвалился
     // (вышел из зоны, разрядился) — отражаем это в UI.
@@ -133,28 +159,43 @@ class MeshService {
   }
 
   // Отправить текст в conversation (DM или канал)
-  Future<void> sendText(String text, Conversation conv) async {
-    if (_toRadio == null) return;
-
+  Future<SendResult> sendText(String text, Conversation conv) async {
     final store = ContactStore.instance;
     int? toNode;
     int channelSlot;
+    var portnum = MeshtasticProto.portTextMessage;
+    Uint8List? rawPayload;
 
     if (conv.isDm && conv.peerId != null) {
-      // DM: unicast к конкретному узлу, primary channel (slot 0)
+      // DM: unicast к конкретному узлу, primary channel (slot 0).
+      // DM — только шифрованные: без публичного ключа контакта не отправляем.
+      final peerKey = store.contactByNodeId(conv.peerId!)?.publicKey;
+      if (peerKey == null) {
+        print(
+          '[Mesh] sendText: no public key for ${conv.peerId}, needs QR rescan',
+        );
+        return SendResult.needsKey;
+      }
       toNode = _parseNodeId(conv.peerId!);
       channelSlot = 0;
+      portnum = MeshtasticProto.PRIVATE_APP;
+      rawPayload = await CryptoService.instance.encryptToContact(
+        peerPublicKey: peerKey,
+        plaintext: text,
+      );
     } else if (conv.isChannel && conv.channelId != null) {
       // Канал: broadcast, нужный слот
       final ch = store.channelById(conv.channelId!);
       if (ch == null) {
         print('[Mesh] sendText: channel ${conv.channelId} not found, aborting');
-        return;
+        return SendResult.noChannel;
       }
       channelSlot = ch.slotIndex;
     } else {
-      return;
+      return SendResult.noChannel;
     }
+
+    if (_toRadio == null) return SendResult.sent;
 
     // Генерируем packet id заранее и передаём его в encodeTextMessage,
     // чтобы радио отправило пакет с НАШИМ id — тогда ROUTING ACK (request_id)
@@ -166,11 +207,14 @@ class MeshService {
       channel: channelSlot,
       fromNode: _myNodeNum,
       id: msgId,
+      portnum: portnum,
+      rawPayload: rawPayload,
     );
 
     await _toRadio!.write(encoded);
 
-    // Добавляем исходящее сообщение в store
+    // Добавляем исходящее сообщение в store (локально всегда plaintext —
+    // это наш собственный текст до шифрования)
     final msg = Message(
       meshId: msgId,
       fromNodeId: myNodeId ?? '!00000000',
@@ -182,6 +226,7 @@ class MeshService {
     );
     await store.addMessage(msg);
     _incomingController.add(msg.copyWith());
+    return SendResult.sent;
   }
 
   // ── Incoming packet dispatch ───────────────────────────────
@@ -226,13 +271,19 @@ class MeshService {
     final ack = MeshtasticProto.decodeRoutingAck(bytes);
     if (ack != null) {
       print('[Mesh] routing ack meshId=${ack.meshId} error=${ack.errorCode}');
-      final status = ack.errorCode == 0 ? MessageStatus.acked : MessageStatus.failed;
+      final status = ack.errorCode == 0
+          ? MessageStatus.acked
+          : MessageStatus.failed;
       await store.updateMessageStatus(ack.meshId, status);
     }
 
-    // TEXT MESSAGE (portnum=1)
+    // MESSAGE (portnum=1 plaintext text, or portnum=PRIVATE_APP encrypted DM)
     final decoded = MeshtasticProto.decodeFromRadio(bytes);
-    if (decoded.text == null || decoded.text!.isEmpty) return;
+    final portnum = decoded.portnum;
+    if (portnum != MeshtasticProto.portTextMessage &&
+        portnum != MeshtasticProto.PRIVATE_APP) {
+      return;
+    }
 
     final fromNodeId = decoded.from ?? '!00000000';
     final channelSlot = decoded.channel ?? 0;
@@ -259,15 +310,43 @@ class MeshService {
     }
 
     if (conv == null) {
-      print('[Mesh] no conversation for fromNode=$fromNodeId slot=$channelSlot — ignoring');
+      print(
+        '[Mesh] no conversation for fromNode=$fromNodeId slot=$channelSlot — ignoring',
+      );
       return;
+    }
+
+    // Разбор текста в зависимости от порта:
+    // - DM: только PRIVATE_APP расшифровывается; TEXT_MESSAGE_APP-плейнтекст
+    //   от не-Meshly ноды или неудачная расшифровка → сентинел-заглушка.
+    // - Канал: как раньше, plaintext TEXT_MESSAGE_APP.
+    String? text;
+    var notify = true;
+    if (decoded.isDm) {
+      if (portnum == MeshtasticProto.PRIVATE_APP &&
+          decoded.rawPayload != null) {
+        final senderKey = store.contactByNodeId(fromNodeId)?.publicKey;
+        if (senderKey != null) {
+          text = await CryptoService.instance.decryptFromContact(
+            senderPublicKey: senderKey,
+            envelope: decoded.rawPayload!,
+          );
+        }
+      }
+      if (text == null) {
+        text = kUndecryptableSentinel;
+        notify = false;
+      }
+    } else {
+      if (decoded.text == null || decoded.text!.isEmpty) return;
+      text = decoded.text!.trim();
     }
 
     final msg = Message(
       meshId: decoded.meshId ?? 0,
       fromNodeId: fromNodeId,
       conversationId: conv.id,
-      text: decoded.text!.trim(),
+      text: text,
       time: DateTime.now(),
       isMe: false,
     );
@@ -277,6 +356,7 @@ class MeshService {
     print('[Mesh] message in ${conv.id} from $fromNodeId: "${msg.text}"');
 
     // Локальное уведомление для входящих сообщений
+    if (!notify) return;
     String notifTitle;
     if (conv.isDm && conv.peerId != null) {
       final contact = store.contactByNodeId(fromNodeId);
@@ -313,17 +393,21 @@ class MeshService {
     return int.tryParse(hex, radix: 16);
   }
 
-  static BluetoothService? _findService(List<BluetoothService> services, String uuid) =>
-      services.cast<BluetoothService?>().firstWhere(
-        (s) => s!.serviceUuid.toString().toLowerCase() == uuid.toLowerCase(),
-        orElse: () => null,
-      );
+  static BluetoothService? _findService(
+    List<BluetoothService> services,
+    String uuid,
+  ) => services.cast<BluetoothService?>().firstWhere(
+    (s) => s!.serviceUuid.toString().toLowerCase() == uuid.toLowerCase(),
+    orElse: () => null,
+  );
 
-  static BluetoothCharacteristic? _findChar(BluetoothService svc, String uuid) =>
-      svc.characteristics.cast<BluetoothCharacteristic?>().firstWhere(
-        (c) => c!.characteristicUuid.toString().toLowerCase() == uuid.toLowerCase(),
-        orElse: () => null,
-      );
+  static BluetoothCharacteristic? _findChar(
+    BluetoothService svc,
+    String uuid,
+  ) => svc.characteristics.cast<BluetoothCharacteristic?>().firstWhere(
+    (c) => c!.characteristicUuid.toString().toLowerCase() == uuid.toLowerCase(),
+    orElse: () => null,
+  );
 
   void dispose() {
     _disposed = true;

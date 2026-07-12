@@ -34,6 +34,47 @@ void main() {
       expect(decoded!.avatarEmoji, isNull);
     });
 
+    test('encodeContact / decodeContact roundtrip with publicKey', () {
+      final pk = Uint8List.fromList(List<int>.generate(32, (i) => i));
+      final contact = Contact(
+        nodeId: '!1f8e42c9',
+        displayName: 'Мама',
+        publicKey: pk,
+      );
+      final url = QrService.encodeContact(contact);
+      expect(url, contains('pk='));
+      final decoded = QrService.decodeContact(url);
+
+      expect(decoded, isNotNull);
+      expect(decoded!.publicKey, equals(pk));
+    });
+
+    test('encodeContact without publicKey omits pk param, decodes to null', () {
+      final contact = Contact(
+        nodeId: '!aabbccdd',
+        displayName: 'Папа',
+      );
+      final url = QrService.encodeContact(contact);
+      expect(url, isNot(contains('pk=')));
+      final decoded = QrService.decodeContact(url);
+
+      expect(decoded, isNotNull);
+      expect(decoded!.publicKey, isNull);
+    });
+
+    test(
+      'decodeContact: old-style URL without pk decodes with publicKey null',
+      () {
+        final decoded = QrService.decodeContact(
+          'mesh://contact/!1f8e42c9?name=Dentro&emoji=%F0%9F%91%A9',
+        );
+
+        expect(decoded, isNotNull);
+        expect(decoded!.publicKey, isNull);
+        expect(decoded.displayName, equals('Dentro'));
+      },
+    );
+
     test('encodeChannel / decodeChannel roundtrip', () {
       final psk = Uint8List(32);
       for (var i = 0; i < 32; i++) {
@@ -96,7 +137,10 @@ void main() {
     });
 
     test('decodeContact returns null for invalid URL', () {
-      expect(QrService.decodeContact('mesh://channel/test?psk=abc&slot=1'), isNull);
+      expect(
+        QrService.decodeContact('mesh://channel/test?psk=abc&slot=1'),
+        isNull,
+      );
       expect(QrService.decodeContact('https://example.com'), isNull);
     });
 
@@ -143,8 +187,12 @@ void main() {
       final url1 = QrService.encodeChannel(channel);
       expect(QrService.decodeChannel(url1)?.slotIndex, equals(1));
 
-      final channel7 =
-          MeshChannel(id: 'y', name: 'ch7', psk: psk, slotIndex: 7);
+      final channel7 = MeshChannel(
+        id: 'y',
+        name: 'ch7',
+        psk: psk,
+        slotIndex: 7,
+      );
       final url7 = QrService.encodeChannel(channel7);
       expect(QrService.decodeChannel(url7)?.slotIndex, equals(7));
     });

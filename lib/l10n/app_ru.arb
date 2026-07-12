@@ -132,6 +132,14 @@
   "retrySend": "Повторить отправку",
   "writeFirstMessage": "Напишите первое сообщение!",
   "nameLabel": "Имя",
+  "rescanForSecureChat": "Пересканируйте QR-код этого контакта, чтобы включить защищённую переписку",
+  "@rescanForSecureChat": {
+    "description": "Snackbar shown when a DM can't be sent because the peer's public key is unknown"
+  },
+  "undecryptableMessage": "🔒 Зашифрованное сообщение — добавьте контакт по QR",
+  "@undecryptableMessage": {
+    "description": "Placeholder shown instead of an incoming DM's text when it couldn't be decrypted"
+  },
 
   "mePrefix": "Я",
   "@mePrefix": {

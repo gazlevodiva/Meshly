@@ -66,6 +66,7 @@ class _AddContactScreenState extends State<AddContactScreen>
       nodeId: data.nodeId,
       displayName: data.displayName,
       avatarEmoji: data.avatarEmoji,
+      publicKey: data.publicKey,
     );
 
     // Показываем подтверждение с возможностью задать эмодзи
@@ -124,8 +125,9 @@ class _AddContactScreenState extends State<AddContactScreen>
                       onDetect: _onQrDetected,
                       errorBuilder: (errorContext, error) => Center(
                         child: Text(
-                            errorContext.l10n.cameraError(error.toString()),
-                            textAlign: TextAlign.center),
+                          errorContext.l10n.cameraError(error.toString()),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ),
             ),
@@ -158,17 +160,18 @@ class _AddContactScreenState extends State<AddContactScreen>
           children: [
             SizedBox(height: topInset + AppSpacing.s8),
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
               child: TabBar(
                 controller: _tabs,
                 tabs: [
                   Tab(
-                      icon: const Icon(Icons.qr_code_scanner),
-                      text: context.l10n.tabScanQr),
+                    icon: const Icon(Icons.qr_code_scanner),
+                    text: context.l10n.tabScanQr,
+                  ),
                   Tab(
-                      icon: const Icon(Icons.keyboard),
-                      text: context.l10n.tabManual),
+                    icon: const Icon(Icons.keyboard),
+                    text: context.l10n.tabManual,
+                  ),
                 ],
               ),
             ),
@@ -179,10 +182,12 @@ class _AddContactScreenState extends State<AddContactScreen>
                   // Tab 1: QR Scanner
                   _buildScannerTab(context),
                   // Tab 2: Manual input
-                  _ManualInputTab(onAdd: (contact) async {
-                    await _store.saveContact(contact);
-                    if (context.mounted) Navigator.pop(context, contact);
-                  }),
+                  _ManualInputTab(
+                    onAdd: (contact) async {
+                      await _store.saveContact(contact);
+                      if (context.mounted) Navigator.pop(context, contact);
+                    },
+                  ),
                 ],
               ),
             ),
@@ -222,8 +227,20 @@ class _ConfirmContactDialogState extends State<_ConfirmContactDialog> {
   }
 
   static const _emojis = [
-    '😊','👩','👨','👵','👴','👦','👧',
-    '🐕','🐈','🏕️','🏠','❤️','⭐','🔥',
+    '😊',
+    '👩',
+    '👨',
+    '👵',
+    '👴',
+    '👦',
+    '👧',
+    '🐕',
+    '🐈',
+    '🏕️',
+    '🏠',
+    '❤️',
+    '⭐',
+    '🔥',
   ];
 
   @override
@@ -233,7 +250,10 @@ class _ConfirmContactDialogState extends State<_ConfirmContactDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(widget.contact.nodeId, style: AppTextStyles.monoCaption(context)),
+          Text(
+            widget.contact.nodeId,
+            style: AppTextStyles.monoCaption(context),
+          ),
           const SizedBox(height: AppSpacing.s16),
           TextField(
             controller: _name,
@@ -242,20 +262,31 @@ class _ConfirmContactDialogState extends State<_ConfirmContactDialog> {
           const SizedBox(height: AppSpacing.s12),
           Wrap(
             spacing: AppSpacing.s6,
-            children: _emojis.map((e) => GestureDetector(
-              onTap: () => setState(() => _emoji = e),
-              child: Container(
-                width: AppSizes.emojiCellSmall, height: AppSizes.emojiCellSmall,
-                decoration: BoxDecoration(
-                  color: e == _emoji
-                      ? Theme.of(context).colorScheme.primaryContainer
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(AppRadius.chipSmall),
-                ),
-                child: Center(child: Text(e,
-                    style: const TextStyle(fontSize: AppSizes.emojiSmall))),
-              ),
-            )).toList(),
+            children: _emojis
+                .map(
+                  (e) => GestureDetector(
+                    onTap: () => setState(() => _emoji = e),
+                    child: Container(
+                      width: AppSizes.emojiCellSmall,
+                      height: AppSizes.emojiCellSmall,
+                      decoration: BoxDecoration(
+                        color: e == _emoji
+                            ? Theme.of(context).colorScheme.primaryContainer
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(
+                          AppRadius.chipSmall,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          e,
+                          style: const TextStyle(fontSize: AppSizes.emojiSmall),
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
           ),
         ],
       ),
@@ -266,8 +297,9 @@ class _ConfirmContactDialogState extends State<_ConfirmContactDialog> {
         ),
         FilledButton(
           onPressed: () {
-            widget.contact.displayName =
-                _name.text.trim().isNotEmpty ? _name.text.trim() : widget.contact.displayName;
+            widget.contact.displayName = _name.text.trim().isNotEmpty
+                ? _name.text.trim()
+                : widget.contact.displayName;
             widget.contact.avatarEmoji = _emoji;
             Navigator.pop(context, true);
           },
@@ -293,11 +325,15 @@ class _ConfirmChannelDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('${data.avatarEmoji ?? '📡'} ${data.name}',
-              style: AppTextStyles.title),
+          Text(
+            '${data.avatarEmoji ?? '📡'} ${data.name}',
+            style: AppTextStyles.title,
+          ),
           const SizedBox(height: AppSpacing.s4),
-          Text(context.l10n.slotN(data.slotIndex),
-              style: AppTextStyles.secondary(context)),
+          Text(
+            context.l10n.slotN(data.slotIndex),
+            style: AppTextStyles.secondary(context),
+          ),
         ],
       ),
       actions: [
@@ -332,8 +368,20 @@ class _ManualInputTabState extends State<_ManualInputTab> {
   bool _loading = false;
 
   static const _emojis = [
-    '😊','👩','👨','👵','👴','👦','👧',
-    '🐕','🐈','🏕️','🏠','❤️','⭐','🔥',
+    '😊',
+    '👩',
+    '👨',
+    '👵',
+    '👴',
+    '👦',
+    '👧',
+    '🐕',
+    '🐈',
+    '🏕️',
+    '🏠',
+    '❤️',
+    '⭐',
+    '🔥',
   ];
 
   bool get _valid {
@@ -390,8 +438,9 @@ class _ManualInputTabState extends State<_ManualInputTab> {
                   const SizedBox(height: AppSpacing.s16),
                   TextField(
                     controller: _nameCtrl,
-                    decoration:
-                        InputDecoration(labelText: context.l10n.nameLabel),
+                    decoration: InputDecoration(
+                      labelText: context.l10n.nameLabel,
+                    ),
                     onChanged: (_) => setState(() {}),
                   ),
                 ],
@@ -407,27 +456,43 @@ class _ManualInputTabState extends State<_ManualInputTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(context.l10n.emojiLabel,
-                      style: AppTextStyles.subtitle(context)),
+                  Text(
+                    context.l10n.emojiLabel,
+                    style: AppTextStyles.subtitle(context),
+                  ),
                   const SizedBox(height: AppSpacing.s8),
                   Wrap(
                     spacing: AppSpacing.s8,
                     runSpacing: AppSpacing.s8,
-                    children: _emojis.map((e) => GestureDetector(
-                      onTap: () => setState(() => _emoji = e),
-                      child: Container(
-                        width: AppSizes.emojiCell, height: AppSizes.emojiCell,
-                        decoration: BoxDecoration(
-                          color: e == _emoji
-                              ? Theme.of(context).colorScheme.primaryContainer
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(AppRadius.chip),
-                        ),
-                        child: Center(child: Text(e,
-                            style: const TextStyle(
-                                fontSize: AppSizes.emojiMedium))),
-                      ),
-                    )).toList(),
+                    children: _emojis
+                        .map(
+                          (e) => GestureDetector(
+                            onTap: () => setState(() => _emoji = e),
+                            child: Container(
+                              width: AppSizes.emojiCell,
+                              height: AppSizes.emojiCell,
+                              decoration: BoxDecoration(
+                                color: e == _emoji
+                                    ? Theme.of(
+                                        context,
+                                      ).colorScheme.primaryContainer
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.chip,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  e,
+                                  style: const TextStyle(
+                                    fontSize: AppSizes.emojiMedium,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
                   ),
                 ],
               ),
@@ -440,10 +505,12 @@ class _ManualInputTabState extends State<_ManualInputTab> {
             child: _loading
                 ? Center(
                     child: SizedBox(
-                      width: AppSizes.spinner, height: AppSizes.spinner,
+                      width: AppSizes.spinner,
+                      height: AppSizes.spinner,
                       child: CircularProgressIndicator(
-                          strokeWidth: AppSizes.spinnerStroke,
-                          color: context.appColors.onAccent),
+                        strokeWidth: AppSizes.spinnerStroke,
+                        color: context.appColors.onAccent,
+                      ),
                     ),
                   )
                 : Text(context.l10n.addContact),

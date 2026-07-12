@@ -193,6 +193,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get nameLabel => 'Имя';
 
   @override
+  String get rescanForSecureChat =>
+      'Пересканируйте QR-код этого контакта, чтобы включить защищённую переписку';
+
+  @override
+  String get undecryptableMessage =>
+      '🔒 Зашифрованное сообщение — добавьте контакт по QR';
+
+  @override
   String get mePrefix => 'Я';
 
   @override

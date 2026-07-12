@@ -9,6 +9,18 @@ class MeshtasticProto {
   static const int _broadcastAddr = 0xFFFFFFFF;
   static const int _portTextMessage = 1; // TEXT_MESSAGE_APP
 
+  // Public alias so callers (mesh_service) can pass the default portnum
+  // explicitly to encodeTextMessage without hardcoding the magic number.
+  static const int portTextMessage = _portTextMessage;
+
+  // Portnum used for E2E-encrypted DM envelopes (Phase 3). Official
+  // Meshtastic clients don't recognize this port and simply ignore the
+  // packet instead of rendering garbled ciphertext as text.
+  // Named to match the Meshtastic portnums.proto enum member (PRIVATE_APP),
+  // not lowerCamelCase, for cross-reference clarity with the upstream spec.
+  // ignore: constant_identifier_names
+  static const int PRIVATE_APP = 256;
+
   // ToRadio { want_config_id: id } — initiates BLE session, device starts sending packets
   static Uint8List encodeWantConfig() {
     final id = DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF;
@@ -49,10 +61,10 @@ class MeshtasticProto {
     final packet = _buf([
       _fixed32field(1, fromNode),
       _fixed32field(2, fromNode), // unicast to self
-      _varint(3, 0),              // primary channel (admin uses ch0)
+      _varint(3, 0), // primary channel (admin uses ch0)
       _msg(4, data),
       _fixed32field(6, msgId),
-      _varint(9, 1),              // hop_limit=1 (local only)
+      _varint(9, 1), // hop_limit=1 (local only)
     ]);
 
     return _buf([_msg(1, packet)]);
@@ -61,29 +73,39 @@ class MeshtasticProto {
   // `id` — наш packet id (MeshPacket.id, field 6). Радио использует его как есть,
   // и ROUTING ACK приходит с этим же id в Data.request_id — так мы сопоставляем
   // подтверждение доставки с сообщением в store.
-  static Uint8List encodeTextMessage(String text, {int? to, int channel = 0, int? fromNode, int? id}) {
+  static Uint8List encodeTextMessage(
+    String text, {
+    int? to,
+    int channel = 0,
+    int? fromNode,
+    int? id,
+    int portnum = _portTextMessage,
+    Uint8List? rawPayload,
+  }) {
     final dest = to ?? _broadcastAddr;
-    final textBytes = Uint8List.fromList(utf8.encode(text));
+    final payloadBytes = rawPayload ?? Uint8List.fromList(utf8.encode(text));
     final msgId = id ?? (DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF);
 
     final data = _buf([
-      _varint(1, _portTextMessage),
-      _bytes(2, textBytes),
+      _varint(1, portnum),
+      _bytes(2, payloadBytes),
     ]);
 
     // Proto: field1=from, field2=to, field3=channel, field4=decoded, field6=id(fixed32), field9=hop_limit, field10=want_ack
     final packet = _buf([
-      if (fromNode != null) _fixed32field(1, fromNode),  // from = our node ID
-      _fixed32field(2, dest),                            // to = destination
-      _varint(3, channel),                               // channel = slot index
+      if (fromNode != null) _fixed32field(1, fromNode), // from = our node ID
+      _fixed32field(2, dest), // to = destination
+      _varint(3, channel), // channel = slot index
       _msg(4, data),
-      _fixed32field(6, msgId),                           // id = fixed32
-      _varint(9, 3),                                     // hop_limit = 3
-      _varint(10, 1),                                    // want_ack = true → firmware генерирует end-to-end ACK
+      _fixed32field(6, msgId), // id = fixed32
+      _varint(9, 3), // hop_limit = 3
+      _varint(10, 1), // want_ack = true → firmware генерирует end-to-end ACK
     ]);
 
     final toRadio = _buf([_msg(1, packet)]);
-    debugPrint('[Proto] encodeTextMessage to=0x${dest.toRadixString(16)} text="$text" bytes=${toRadio.length}: $toRadio');
+    debugPrint(
+      '[Proto] encodeTextMessage to=0x${dest.toRadixString(16)} text="$text" bytes=${toRadio.length}: $toRadio',
+    );
     return toRadio;
   }
 
@@ -101,7 +123,9 @@ class MeshtasticProto {
 
   // Decode FromRadio → extract NodeInfo (for name cache)
   // Returns {nodeId: '!hex', shortName: 'abc', longName: 'Full Name'} or null
-  static ({String nodeId, String shortName, String longName})? decodeNodeInfo(List<int> raw) {
+  static ({String nodeId, String shortName, String longName})? decodeNodeInfo(
+    List<int> raw,
+  ) {
     try {
       final bytes = Uint8List.fromList(raw);
       // FromRadio field 4 = NodeInfo
@@ -120,8 +144,12 @@ class MeshtasticProto {
       if (idBytes == null) return null;
       return (
         nodeId: '!${num.toRadixString(16).padLeft(8, '0')}',
-        longName: longBytes != null ? utf8.decode(longBytes, allowMalformed: true) : '',
-        shortName: shortBytes != null ? utf8.decode(shortBytes, allowMalformed: true) : '',
+        longName: longBytes != null
+            ? utf8.decode(longBytes, allowMalformed: true)
+            : '',
+        shortName: shortBytes != null
+            ? utf8.decode(shortBytes, allowMalformed: true)
+            : '',
       );
     } on Exception catch (_) {
       return null;
@@ -129,9 +157,32 @@ class MeshtasticProto {
   }
 
   // Decode FromRadio → extract text message fields
-  // Returns: text, from nodeId, channel slot, meshId, isDm (unicast)
-  static ({String? text, String? from, int? channel, int? meshId, bool isDm}) decodeFromRadio(List<int> raw) {
-    const empty = (text: null, from: null, channel: null, meshId: null, isDm: false);
+  // Returns: text, from nodeId, channel slot, meshId, isDm (unicast),
+  // portnum (Data.portnum), rawPayload (Data.payload bytes, any portnum).
+  //
+  // `text` is only populated for TEXT_MESSAGE_APP (portnum=1) payloads,
+  // decoded as UTF-8 for backward compatibility with existing callers.
+  // `portnum`/`rawPayload` are populated for ANY recognized Data portnum
+  // (including PRIVATE_APP) so callers can branch on portnum themselves.
+  static ({
+    String? text,
+    String? from,
+    int? channel,
+    int? meshId,
+    bool isDm,
+    int? portnum,
+    Uint8List? rawPayload,
+  })
+  decodeFromRadio(List<int> raw) {
+    const empty = (
+      text: null,
+      from: null,
+      channel: null,
+      meshId: null,
+      isDm: false,
+      portnum: null,
+      rawPayload: null,
+    );
     try {
       final bytes = Uint8List.fromList(raw);
       final packet = _readMsg(bytes, 2); // FromRadio field 2 = MeshPacket
@@ -139,10 +190,10 @@ class MeshtasticProto {
 
       // MeshPacket: field1=from, field2=to, field3=channel, field6=id, field9=hop_limit
       final fromNode = _readFixed32(packet, 1);
-      final toNode   = _readFixed32(packet, 2);
-      final channel  = _readVarint(packet, 3);
-      final meshId   = _readFixed32(packet, 6);
-      final decoded  = _readMsg(packet, 4);
+      final toNode = _readFixed32(packet, 2);
+      final channel = _readVarint(packet, 3);
+      final meshId = _readFixed32(packet, 6);
+      final decoded = _readMsg(packet, 4);
 
       final fromStr = fromNode != null
           ? '!${(fromNode & 0xFFFFFFFF).toRadixString(16).padLeft(8, '0')}'
@@ -151,20 +202,32 @@ class MeshtasticProto {
       // isDm = unicast (to != broadcast и to != 0)
       final isDm = toNode != null && toNode != 0xFFFFFFFF && toNode != 0;
 
-      debugPrint('[Proto] from=$fromStr to=0x${toNode?.toRadixString(16)} channel=$channel meshId=$meshId');
+      debugPrint(
+        '[Proto] from=$fromStr to=0x${toNode?.toRadixString(16)} channel=$channel meshId=$meshId',
+      );
 
       if (decoded == null) return empty;
 
       final portnum = _readVarint(decoded, 1);
       debugPrint('[Proto] portnum=$portnum');
-      if (portnum != _portTextMessage) return empty;
+      if (portnum == null) return empty;
 
       final payload = _readMsg(decoded, 2);
       if (payload == null) return empty;
 
-      final text = utf8.decode(payload, allowMalformed: true);
-      debugPrint('[Proto] received text="$text"');
-      return (text: text, from: fromStr, channel: channel, meshId: meshId, isDm: isDm);
+      final text = portnum == _portTextMessage
+          ? utf8.decode(payload, allowMalformed: true)
+          : null;
+      if (text != null) debugPrint('[Proto] received text="$text"');
+      return (
+        text: text,
+        from: fromStr,
+        channel: channel,
+        meshId: meshId,
+        isDm: isDm,
+        portnum: portnum,
+        rawPayload: payload,
+      );
     } on Exception catch (e) {
       debugPrint('[Proto] decode error: $e');
       return empty;
@@ -199,7 +262,9 @@ class MeshtasticProto {
       // Data.payload = Routing message; request_id в Data field 6
       final requestId = _readFixed32(decoded, 6) ?? 0;
       final routingPayload = _readMsg(decoded, 2);
-      final errorCode = routingPayload != null ? (_readVarint(routingPayload, 3) ?? 0) : 0;
+      final errorCode = routingPayload != null
+          ? (_readVarint(routingPayload, 3) ?? 0)
+          : 0;
       return (meshId: requestId, errorCode: errorCode);
     } on Exception catch (_) {
       return null;
@@ -269,10 +334,12 @@ class MeshtasticProto {
         final end = pos + l.$1;
         if (f == field) return Uint8List.fromList(data.sublist(pos, end));
         pos = end;
-      } else if (wt == 5) { // fixed32
+      } else if (wt == 5) {
+        // fixed32
         if (pos + 4 > data.length) break;
         pos += 4;
-      } else if (wt == 1) { // fixed64
+      } else if (wt == 1) {
+        // fixed64
         if (pos + 8 > data.length) break;
         pos += 8;
       } else {
@@ -322,7 +389,10 @@ class MeshtasticProto {
       if (wt == 5) {
         if (pos + 4 > data.length) break;
         if (f == field) {
-          return data[pos] | (data[pos+1] << 8) | (data[pos+2] << 16) | (data[pos+3] << 24);
+          return data[pos] |
+              (data[pos + 1] << 8) |
+              (data[pos + 2] << 16) |
+              (data[pos + 3] << 24);
         }
         pos += 4;
       } else if (wt == 0) {

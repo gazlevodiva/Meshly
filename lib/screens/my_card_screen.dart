@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/models/contact.dart';
 import 'package:meshly/services/contact_store.dart';
+import 'package:meshly/services/crypto_service.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/qr_service.dart';
 import 'package:meshly/theme/app_theme.dart';
@@ -29,19 +30,50 @@ class _MyCardScreenState extends State<MyCardScreen> {
 
   String get _nodeId => widget.meshService.myNodeId ?? '!????????';
 
+  // Наш публичный ключ (для QR), если identity уже инициализирован.
+  // ensureIdentity() запускается в initState; до его завершения — null,
+  // тогда QR просто не несёт ключ (лучше без ключа, чем краш).
+  Uint8List? _myPublicKey;
+
   Contact get _myContact {
     final existing = _store.contactByNodeId(_nodeId);
-    if (existing != null) return existing;
+    final base =
+        existing ??
+        Contact(
+          nodeId: _nodeId,
+          displayName: context.l10n.defaultMyName,
+          avatarEmoji: _emoji,
+        );
+    if (_myPublicKey == null) return base;
     return Contact(
-      nodeId: _nodeId,
-      displayName: context.l10n.defaultMyName,
-      avatarEmoji: _emoji,
+      nodeId: base.nodeId,
+      displayName: base.displayName,
+      avatarEmoji: base.avatarEmoji,
+      publicKey: _myPublicKey,
+      addedAt: base.addedAt,
     );
   }
 
   String get _qrData => QrService.encodeContact(_myContact, myNodeId: _nodeId);
 
   bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadPublicKey());
+  }
+
+  Future<void> _loadPublicKey() async {
+    try {
+      await CryptoService.instance.ensureIdentity();
+      if (!mounted) return;
+      setState(() => _myPublicKey = CryptoService.instance.myPublicKey());
+    } on Exception {
+      // Identity unavailable (e.g. secure storage failure) — QR simply
+      // won't carry a key; skip rather than crash.
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -127,9 +159,11 @@ class _MyCardScreenState extends State<MyCardScreen> {
                   color: Theme.of(context).colorScheme.primary,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.edit,
-                    size: AppIconSizes.banner,
-                    color: context.appColors.onAccent),
+                child: Icon(
+                  Icons.edit,
+                  size: AppIconSizes.banner,
+                  color: context.appColors.onAccent,
+                ),
               ),
             ],
           ),
@@ -144,8 +178,9 @@ class _MyCardScreenState extends State<MyCardScreen> {
                 child: TextField(
                   controller: _nameController,
                   autofocus: true,
-                  decoration:
-                      InputDecoration(hintText: context.l10n.yourNameHint),
+                  decoration: InputDecoration(
+                    hintText: context.l10n.yourNameHint,
+                  ),
                   onSubmitted: (_) => _saveName(),
                 ),
               ),
@@ -244,10 +279,34 @@ class _EmojiPickerDialog extends StatelessWidget {
   final String current;
 
   static const _emojis = [
-    '😊', '👩', '👨', '👵', '👴', '👦', '👧',
-    '🐕', '🐈', '🐇', '🦊', '🐻', '🦁', '🐯',
-    '🏕️', '🏠', '🏔️', '🌲', '⛵', '🚀', '🎯',
-    '❤️', '⭐', '🔥', '💎', '🎸', '📡', '🛡️',
+    '😊',
+    '👩',
+    '👨',
+    '👵',
+    '👴',
+    '👦',
+    '👧',
+    '🐕',
+    '🐈',
+    '🐇',
+    '🦊',
+    '🐻',
+    '🦁',
+    '🐯',
+    '🏕️',
+    '🏠',
+    '🏔️',
+    '🌲',
+    '⛵',
+    '🚀',
+    '🎯',
+    '❤️',
+    '⭐',
+    '🔥',
+    '💎',
+    '🎸',
+    '📡',
+    '🛡️',
   ];
 
   @override
@@ -259,23 +318,29 @@ class _EmojiPickerDialog extends StatelessWidget {
         child: Wrap(
           spacing: AppSpacing.s8,
           runSpacing: AppSpacing.s8,
-          children: _emojis.map((e) => GestureDetector(
-            onTap: () => Navigator.pop(context, e),
-            child: Container(
-              width: AppSizes.emojiCell,
-              height: AppSizes.emojiCell,
-              decoration: BoxDecoration(
-                color: e == current
-                    ? Theme.of(context).colorScheme.primaryContainer
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(AppRadius.chip),
-              ),
-              child: Center(
-                child: Text(e,
-                    style: const TextStyle(fontSize: AppSizes.emojiMedium)),
-              ),
-            ),
-          )).toList(),
+          children: _emojis
+              .map(
+                (e) => GestureDetector(
+                  onTap: () => Navigator.pop(context, e),
+                  child: Container(
+                    width: AppSizes.emojiCell,
+                    height: AppSizes.emojiCell,
+                    decoration: BoxDecoration(
+                      color: e == current
+                          ? Theme.of(context).colorScheme.primaryContainer
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(AppRadius.chip),
+                    ),
+                    child: Center(
+                      child: Text(
+                        e,
+                        style: const TextStyle(fontSize: AppSizes.emojiMedium),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
         ),
       ),
     );

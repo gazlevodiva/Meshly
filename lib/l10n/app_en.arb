@@ -66,6 +66,8 @@
   "retrySend": "Resend",
   "writeFirstMessage": "Write the first message!",
   "nameLabel": "Name",
+  "rescanForSecureChat": "Rescan this contact's QR code to enable secure messaging",
+  "undecryptableMessage": "🔒 Encrypted message — add the contact by QR",
 
   "mePrefix": "Me",
 

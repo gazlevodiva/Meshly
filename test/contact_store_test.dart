@@ -1,8 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:meshly/models/contact.dart';
 import 'package:meshly/models/message.dart';
-import 'package:meshly/services/app_database.dart' hide Channel, Contact, Conversation, Message;
+import 'package:meshly/services/app_database.dart'
+    hide Channel, Contact, Conversation, Message;
 import 'package:meshly/services/contact_store.dart';
 
 void main() {
@@ -31,8 +34,35 @@ void main() {
       await store.saveContact(updated);
 
       expect(store.contacts.length, equals(1));
-      expect(store.contactByNodeId('!11111111')!.displayName, equals('Мамочка'));
+      expect(
+        store.contactByNodeId('!11111111')!.displayName,
+        equals('Мамочка'),
+      );
     });
+
+    test(
+      'saveContact with publicKey persists and reloads across reset',
+      () async {
+        final db = AppDatabase.forTesting(NativeDatabase.memory());
+        store.resetForTesting(db);
+        await store.init();
+
+        final pk = Uint8List.fromList(List<int>.generate(32, (i) => i));
+        final contact = Contact(
+          nodeId: '!pubkey01',
+          displayName: 'Ключевой',
+          publicKey: pk,
+        );
+        await store.saveContact(contact);
+
+        store.resetForTesting(db);
+        await store.init();
+
+        final reloaded = store.contactByNodeId('!pubkey01');
+        expect(reloaded, isNotNull);
+        expect(reloaded!.publicKey, equals(pk));
+      },
+    );
 
     test('saveContact creates DM Conversation automatically', () async {
       final contact = Contact(nodeId: '!cafebabe', displayName: 'Папа');
@@ -64,37 +94,43 @@ void main() {
       expect(messages.first.text, equals('Привет!'));
     });
 
-    test('messages with meshId 0 all survive a DB reload (no PK overwrite)',
-        () async {
-      final db = AppDatabase.forTesting(NativeDatabase.memory());
-      store.resetForTesting(db);
-      await store.init();
+    test(
+      'messages with meshId 0 all survive a DB reload (no PK overwrite)',
+      () async {
+        final db = AppDatabase.forTesting(NativeDatabase.memory());
+        store.resetForTesting(db);
+        await store.init();
 
-      final contact = Contact(nodeId: '!99990000', displayName: 'Дядя');
-      await store.saveContact(contact);
+        final contact = Contact(nodeId: '!99990000', displayName: 'Дядя');
+        await store.saveContact(contact);
 
-      const convId = 'dm_!99990000';
-      for (var i = 0; i < 3; i++) {
-        await store.addMessage(Message(
-          meshId: 0,
-          fromNodeId: '!99990000',
-          conversationId: convId,
-          text: 'Сообщение $i',
-          time: DateTime(2026, 7, 1 + i, 12),
-          isMe: false,
-        ));
-      }
-      expect(store.messagesFor(convId).length, equals(3));
+        const convId = 'dm_!99990000';
+        for (var i = 0; i < 3; i++) {
+          await store.addMessage(
+            Message(
+              meshId: 0,
+              fromNodeId: '!99990000',
+              conversationId: convId,
+              text: 'Сообщение $i',
+              time: DateTime(2026, 7, 1 + i, 12),
+              isMe: false,
+            ),
+          );
+        }
+        expect(store.messagesFor(convId).length, equals(3));
 
-      // Reopen the same DB — all three rows must still be there,
-      // in chronological order.
-      store.resetForTesting(db);
-      await store.init();
-      final reloaded = store.messagesFor(convId);
-      expect(reloaded.length, equals(3));
-      expect(reloaded.map((x) => x.text).toList(),
-          equals(['Сообщение 0', 'Сообщение 1', 'Сообщение 2']));
-    });
+        // Reopen the same DB — all three rows must still be there,
+        // in chronological order.
+        store.resetForTesting(db);
+        await store.init();
+        final reloaded = store.messagesFor(convId);
+        expect(reloaded.length, equals(3));
+        expect(
+          reloaded.map((x) => x.text).toList(),
+          equals(['Сообщение 0', 'Сообщение 1', 'Сообщение 2']),
+        );
+      },
+    );
 
     test('addMessage twice with same meshId does not duplicate', () async {
       final contact = Contact(nodeId: '!00001111', displayName: 'Брат');
@@ -135,34 +171,42 @@ void main() {
       expect(updated.status, equals(MessageStatus.acked));
     });
 
-    test('updateMessageStatus notifies listeners and persists new status', () async {
-      final db = AppDatabase.forTesting(NativeDatabase.memory());
-      store.resetForTesting(db);
-      await store.init();
+    test(
+      'updateMessageStatus notifies listeners and persists new status',
+      () async {
+        final db = AppDatabase.forTesting(NativeDatabase.memory());
+        store.resetForTesting(db);
+        await store.init();
 
-      final contact = Contact(nodeId: '!44445555', displayName: 'Тётя');
-      await store.saveContact(contact);
+        final contact = Contact(nodeId: '!44445555', displayName: 'Тётя');
+        await store.saveContact(contact);
 
-      const convId = 'dm_!44445555';
-      await store.addMessage(Message(
-        meshId: 300,
-        fromNodeId: '!44445555',
-        conversationId: convId,
-        text: 'статус-нотиф',
-        time: DateTime.now(),
-        isMe: true,
-      ));
+        const convId = 'dm_!44445555';
+        await store.addMessage(
+          Message(
+            meshId: 300,
+            fromNodeId: '!44445555',
+            conversationId: convId,
+            text: 'статус-нотиф',
+            time: DateTime.now(),
+            isMe: true,
+          ),
+        );
 
-      var notified = false;
-      store.addListener(() => notified = true);
-      await store.updateMessageStatus(300, MessageStatus.acked);
-      expect(notified, isTrue);
+        var notified = false;
+        store.addListener(() => notified = true);
+        await store.updateMessageStatus(300, MessageStatus.acked);
+        expect(notified, isTrue);
 
-      // Reopen the same DB (simulates app restart) — status must persist.
-      store.resetForTesting(db);
-      await store.init();
-      expect(store.messagesFor(convId).first.status, equals(MessageStatus.acked));
-    });
+        // Reopen the same DB (simulates app restart) — status must persist.
+        store.resetForTesting(db);
+        await store.init();
+        expect(
+          store.messagesFor(convId).first.status,
+          equals(MessageStatus.acked),
+        );
+      },
+    );
 
     test('createChannel + channelById returns the channel', () async {
       final ch = await store.createChannel(
@@ -217,33 +261,36 @@ void main() {
       expect(conv.unreadCount, equals(1));
     });
 
-    test('addMessage increments unreadCount only for incoming messages', () async {
-      final contact = Contact(nodeId: '!ccccdddd', displayName: 'Тест2');
-      await store.saveContact(contact);
-      const convId = 'dm_!ccccdddd';
+    test(
+      'addMessage increments unreadCount only for incoming messages',
+      () async {
+        final contact = Contact(nodeId: '!ccccdddd', displayName: 'Тест2');
+        await store.saveContact(contact);
+        const convId = 'dm_!ccccdddd';
 
-      final incoming = Message(
-        meshId: 10,
-        fromNodeId: '!ccccdddd',
-        conversationId: convId,
-        text: 'входящее',
-        time: DateTime.now(),
-        isMe: false,
-      );
-      final outgoing = Message(
-        meshId: 11,
-        fromNodeId: '!ccccdddd',
-        conversationId: convId,
-        text: 'исходящее',
-        time: DateTime.now(),
-        isMe: true,
-      );
-      await store.addMessage(incoming);
-      await store.addMessage(outgoing);
+        final incoming = Message(
+          meshId: 10,
+          fromNodeId: '!ccccdddd',
+          conversationId: convId,
+          text: 'входящее',
+          time: DateTime.now(),
+          isMe: false,
+        );
+        final outgoing = Message(
+          meshId: 11,
+          fromNodeId: '!ccccdddd',
+          conversationId: convId,
+          text: 'исходящее',
+          time: DateTime.now(),
+          isMe: true,
+        );
+        await store.addMessage(incoming);
+        await store.addMessage(outgoing);
 
-      final conv = store.dmForNode('!ccccdddd');
-      expect(conv!.unreadCount, equals(1));
-    });
+        final conv = store.dmForNode('!ccccdddd');
+        expect(conv!.unreadCount, equals(1));
+      },
+    );
 
     // ── markRead ──────────────────────────────────────────────
 
@@ -252,14 +299,16 @@ void main() {
       await store.saveContact(contact);
       const convId = 'dm_!11112222';
 
-      await store.addMessage(Message(
-        meshId: 50,
-        fromNodeId: '!11112222',
-        conversationId: convId,
-        text: 'входящее',
-        time: DateTime.now(),
-        isMe: false,
-      ));
+      await store.addMessage(
+        Message(
+          meshId: 50,
+          fromNodeId: '!11112222',
+          conversationId: convId,
+          text: 'входящее',
+          time: DateTime.now(),
+          isMe: false,
+        ),
+      );
       expect(store.dmForNode('!11112222')!.unreadCount, equals(1));
 
       await store.markRead(convId);
@@ -270,14 +319,16 @@ void main() {
       final contact = Contact(nodeId: '!33334444', displayName: 'Тест5');
       await store.saveContact(contact);
       const convId = 'dm_!33334444';
-      await store.addMessage(Message(
-        meshId: 60,
-        fromNodeId: '!33334444',
-        conversationId: convId,
-        text: 'msg',
-        time: DateTime.now(),
-        isMe: false,
-      ));
+      await store.addMessage(
+        Message(
+          meshId: 60,
+          fromNodeId: '!33334444',
+          conversationId: convId,
+          text: 'msg',
+          time: DateTime.now(),
+          isMe: false,
+        ),
+      );
 
       var notified = false;
       store.addListener(() => notified = true);
@@ -301,12 +352,16 @@ void main() {
     test('saveContact notifies listeners', () async {
       var notified = false;
       store.addListener(() => notified = true);
-      await store.saveContact(Contact(nodeId: '!77778888', displayName: 'Нотиф'));
+      await store.saveContact(
+        Contact(nodeId: '!77778888', displayName: 'Нотиф'),
+      );
       expect(notified, isTrue);
     });
 
     test('deleteContact notifies listeners', () async {
-      await store.saveContact(Contact(nodeId: '!99990000', displayName: 'Удалить'));
+      await store.saveContact(
+        Contact(nodeId: '!99990000', displayName: 'Удалить'),
+      );
       var notified = false;
       store.addListener(() => notified = true);
       await store.deleteContact('!99990000');
@@ -318,14 +373,16 @@ void main() {
       await store.saveContact(contact);
       var notified = false;
       store.addListener(() => notified = true);
-      await store.addMessage(Message(
-        meshId: 777,
-        fromNodeId: '!aaaabbbb',
-        conversationId: 'dm_!aaaabbbb',
-        text: 'нотиф',
-        time: DateTime.now(),
-        isMe: false,
-      ));
+      await store.addMessage(
+        Message(
+          meshId: 777,
+          fromNodeId: '!aaaabbbb',
+          conversationId: 'dm_!aaaabbbb',
+          text: 'нотиф',
+          time: DateTime.now(),
+          isMe: false,
+        ),
+      );
       expect(notified, isTrue);
     });
 
@@ -335,18 +392,21 @@ void main() {
       expect(store.isBlocked('!12341234'), isFalse);
     });
 
-    test('blockNode + unblockNode toggle isBlocked and notify listeners', () async {
-      var notifyCount = 0;
-      store.addListener(() => notifyCount++);
+    test(
+      'blockNode + unblockNode toggle isBlocked and notify listeners',
+      () async {
+        var notifyCount = 0;
+        store.addListener(() => notifyCount++);
 
-      await store.blockNode('!badbadba');
-      expect(store.isBlocked('!badbadba'), isTrue);
-      expect(notifyCount, equals(1));
+        await store.blockNode('!badbadba');
+        expect(store.isBlocked('!badbadba'), isTrue);
+        expect(notifyCount, equals(1));
 
-      await store.unblockNode('!badbadba');
-      expect(store.isBlocked('!badbadba'), isFalse);
-      expect(notifyCount, equals(2));
-    });
+        await store.unblockNode('!badbadba');
+        expect(store.isBlocked('!badbadba'), isFalse);
+        expect(notifyCount, equals(2));
+      },
+    );
 
     test('blockNode removes the DM conversation', () async {
       final contact = Contact(nodeId: '!66667777', displayName: 'Спамер');

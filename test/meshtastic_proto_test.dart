@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:meshly/services/meshtastic_proto.dart';
 
@@ -164,20 +166,24 @@ void main() {
 
     // ── Packet id / ACK correlation ────────────────────────
 
-    test('encodeTextMessage writes explicit id into MeshPacket.id (field 6)', () {
-      const msgId = 0x12345678;
-      final toRadio = MeshtasticProto.encodeTextMessage(
-        'ack me',
-        fromNode: 0x11111111,
-        id: msgId,
-      );
-      final fromRadio = toFromRadio(toRadio);
-      final result = MeshtasticProto.decodeFromRadio(fromRadio);
-      expect(result.meshId, equals(msgId));
-    });
+    test(
+      'encodeTextMessage writes explicit id into MeshPacket.id (field 6)',
+      () {
+        const msgId = 0x12345678;
+        final toRadio = MeshtasticProto.encodeTextMessage(
+          'ack me',
+          fromNode: 0x11111111,
+          id: msgId,
+        );
+        final fromRadio = toFromRadio(toRadio);
+        final result = MeshtasticProto.decodeFromRadio(fromRadio);
+        expect(result.meshId, equals(msgId));
+      },
+    );
 
     test('encodeTextMessage id roundtrips for max 31-bit value', () {
-      const msgId = 0x7FFFFFFF; // как в sendText: millisecondsSinceEpoch & 0x7FFFFFFF
+      const msgId =
+          0x7FFFFFFF; // как в sendText: millisecondsSinceEpoch & 0x7FFFFFFF
       final toRadio = MeshtasticProto.encodeTextMessage(
         'edge',
         fromNode: 0x22222222,
@@ -242,14 +248,21 @@ void main() {
           fail('unexpected wire type $wire in MeshPacket');
         }
       }
-      expect(wantAck, equals(1), reason: 'want_ack (field 10) must be set to 1');
+      expect(
+        wantAck,
+        equals(1),
+        reason: 'want_ack (field 10) must be set to 1',
+      );
     });
 
     test('decodeRoutingAck reads request_id matching the sent packet id', () {
       const requestId = 0x0A0B0C0D;
       // Data: field1=portnum(5=ROUTING_APP), field2=Routing payload,
       // field6=request_id (fixed32, tag = (6<<3)|5 = 0x35)
-      final routing = [0x18, 0x00]; // Routing.error_reason (field3 varint) = 0 = NONE
+      final routing = [
+        0x18,
+        0x00,
+      ]; // Routing.error_reason (field3 varint) = 0 = NONE
       final data = [
         0x08, 0x05, // portnum = 5
         0x12, routing.length, ...routing,
@@ -274,7 +287,7 @@ void main() {
       final invalidPayload = [0xFF, 0xFE, 0x00]; // not valid UTF-8
       // field2 of Data (wire type 2, tag = (2<<3)|2 = 18)
       final data = [
-        0x08, 0x01,                              // portnum = 1 (TEXT_MESSAGE_APP)
+        0x08, 0x01, // portnum = 1 (TEXT_MESSAGE_APP)
         0x12, invalidPayload.length, ...invalidPayload, // payload
       ];
       // MeshPacket.field4 = Data (tag 34)
@@ -291,6 +304,60 @@ void main() {
       expect(result.text, isNotNull);
     });
 
+    // ── Phase 3: portnum / rawPayload plumbing ─────────────
+
+    test(
+      'encodeTextMessage with rawPayload+portnum: decode returns portnum and exact bytes',
+      () {
+        final envelope = Uint8List.fromList([1, 2, 3, 4, 5, 0xFF, 0x80, 0x00]);
+        final toRadio = MeshtasticProto.encodeTextMessage(
+          '', // ignored when rawPayload is set
+          fromNode: 0x1f8e42c9,
+          to: 0x22222222,
+          portnum: MeshtasticProto.PRIVATE_APP,
+          rawPayload: envelope,
+        );
+        final fromRadio = toFromRadio(toRadio);
+        final result = MeshtasticProto.decodeFromRadio(fromRadio);
+        expect(result.portnum, equals(MeshtasticProto.PRIVATE_APP));
+        expect(result.rawPayload, equals(envelope));
+        // Encrypted envelopes are never exposed as `text`.
+        expect(result.text, isNull);
+      },
+    );
+
+    test('normal text message still round-trips with portnum 1', () {
+      const text = 'hello world';
+      final toRadio = MeshtasticProto.encodeTextMessage(
+        text,
+        fromNode: 0x1f8e42c9,
+      );
+      final fromRadio = toFromRadio(toRadio);
+      final result = MeshtasticProto.decodeFromRadio(fromRadio);
+      expect(result.portnum, equals(MeshtasticProto.portTextMessage));
+      expect(result.text, equals(text));
+      expect(result.rawPayload, equals(Uint8List.fromList(text.codeUnits)));
+    });
+
+    test(
+      'encodeTextMessage without rawPayload/portnum is byte-identical to before',
+      () {
+        const text = 'Привет мир';
+        const fromNode = 0x1f8e42c9;
+        final a = MeshtasticProto.encodeTextMessage(
+          text,
+          fromNode: fromNode,
+          id: 42,
+        );
+        final b = MeshtasticProto.encodeTextMessage(
+          text,
+          fromNode: fromNode,
+          id: 42,
+        );
+        expect(a, equals(b));
+      },
+    );
+
     test('decodeNodeInfo does not throw on malformed UTF-8 in node name', () {
       // Build a FromRadio with NodeInfo containing invalid UTF-8 in longName.
       final invalidName = [0xFF, 0xFE]; // invalid UTF-8
@@ -303,7 +370,7 @@ void main() {
       ];
       // NodeInfo: field1=num(varint), field2=user
       final nodeInfo = [
-        0x08, 0x01,                         // num = 1
+        0x08, 0x01, // num = 1
         0x12, user.length, ...user,
       ];
       // FromRadio: field4=NodeInfo (tag = (4<<3)|2 = 34)

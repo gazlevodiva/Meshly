@@ -194,6 +194,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nameLabel => 'Name';
 
   @override
+  String get rescanForSecureChat =>
+      'Rescan this contact\'s QR code to enable secure messaging';
+
+  @override
+  String get undecryptableMessage =>
+      '🔒 Encrypted message — add the contact by QR';
+
+  @override
   String get mePrefix => 'Me';
 
   @override

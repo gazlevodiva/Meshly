@@ -70,7 +70,7 @@ void main() {
         // Force the DB to actually open / run migrations.
         await db.customSelect('SELECT 1').getSingle();
 
-        expect(db.schemaVersion, equals(3));
+        expect(db.schemaVersion, equals(4));
 
         final tableNames =
             (await db
@@ -104,11 +104,20 @@ void main() {
           (row) => row.data['name'] == 'mesh_id',
         );
         expect(meshIdCol.data['pk'], equals(0));
+
+        // v4 contacts schema: public_key column present and nullable.
+        final contactsInfo = await db
+            .customSelect('PRAGMA table_info(contacts)')
+            .get();
+        final pkCol = contactsInfo.firstWhere(
+          (row) => row.data['name'] == 'public_key',
+        );
+        expect(pkCol.data['notnull'], equals(0));
       },
     );
 
     test(
-      'v1 -> v3: blocked_nodes created and messages rebuilt, data preserved',
+      'v1 -> v4: blocked_nodes created and messages rebuilt, data preserved',
       () async {
         // Hand-build a v1 database with the sqlite3 package directly (not
         // via drift, so drift's migration machinery hasn't run yet): no
@@ -219,6 +228,65 @@ void main() {
         final rows = await db.customSelect('SELECT text FROM messages').get();
         expect(rows, hasLength(1));
         expect(rows.first.data['text'], equals('единственное'));
+      },
+    );
+
+    test(
+      'v3 -> v4: public_key column added to contacts, existing rows preserved with null key',
+      () async {
+        // Hand-build a v3 database: shared tables + blocked_nodes + the
+        // *current* (post-rebuild) messages schema, but contacts still
+        // missing the public_key column.
+        final raw = sqlite3.sqlite3.openInMemory();
+        _createSharedTables(raw);
+        raw
+          ..execute('''
+            CREATE TABLE blocked_nodes (
+              node_id TEXT NOT NULL,
+              PRIMARY KEY (node_id)
+            );
+          ''')
+          ..execute('''
+            CREATE TABLE messages (
+              id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+              mesh_id INTEGER NOT NULL,
+              conversation_id TEXT NOT NULL,
+              from_node_id TEXT NOT NULL,
+              text TEXT NOT NULL,
+              time INTEGER NOT NULL,
+              status TEXT NOT NULL,
+              is_me INTEGER NOT NULL
+            );
+          ''');
+
+        final now = DateTime.now().millisecondsSinceEpoch;
+        raw
+          ..execute('PRAGMA user_version = 3;')
+          ..execute(
+            'INSERT INTO contacts (node_id, display_name, avatar_emoji, added_at) '
+            "VALUES ('!ccaaffee', 'Старый контакт', NULL, $now)",
+          );
+
+        final db = AppDatabase.forTesting(NativeDatabase.opened(raw));
+        addTearDown(db.close);
+
+        final contactsInfo = await db
+            .customSelect('PRAGMA table_info(contacts)')
+            .get();
+        final pkCol = contactsInfo.firstWhere(
+          (row) => row.data['name'] == 'public_key',
+        );
+        expect(pkCol.data['notnull'], equals(0));
+
+        final rows = await db
+            .customSelect(
+              'SELECT node_id, display_name, public_key FROM contacts',
+            )
+            .get();
+        expect(rows, hasLength(1));
+        expect(rows.first.data['node_id'], equals('!ccaaffee'));
+        expect(rows.first.data['display_name'], equals('Старый контакт'));
+        expect(rows.first.data['public_key'], isNull);
       },
     );
   });

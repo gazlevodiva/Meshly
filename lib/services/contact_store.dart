@@ -53,7 +53,9 @@ class ContactStore extends ChangeNotifier {
     }
     await _loadAll();
     _ready = true;
-    print('[Store] loaded: ${_contacts.length} contacts, ${_channels.length} channels, ${_conversations.length} conversations');
+    print(
+      '[Store] loaded: ${_contacts.length} contacts, ${_channels.length} channels, ${_conversations.length} conversations',
+    );
   }
 
   // ── Migration from SharedPreferences ──────────────────────
@@ -67,14 +69,17 @@ class ContactStore extends ChangeNotifier {
       final contactsList = jsonDecode(oldContacts) as List;
       for (final j in contactsList) {
         final c = m.Contact.fromJson(j as Map<String, dynamic>);
-        await _db.into(_db.contacts).insertOnConflictUpdate(
-          ContactsCompanion.insert(
-            nodeId: c.nodeId,
-            displayName: c.displayName,
-            avatarEmoji: Value(c.avatarEmoji),
-            addedAt: c.addedAt,
-          ),
-        );
+        await _db
+            .into(_db.contacts)
+            .insertOnConflictUpdate(
+              ContactsCompanion.insert(
+                nodeId: c.nodeId,
+                displayName: c.displayName,
+                avatarEmoji: Value(c.avatarEmoji),
+                publicKey: Value(c.publicKey),
+                addedAt: c.addedAt,
+              ),
+            );
       }
 
       final oldChannels = prefs.getString('channels_v1');
@@ -82,16 +87,18 @@ class ContactStore extends ChangeNotifier {
         final channelsList = jsonDecode(oldChannels) as List;
         for (final j in channelsList) {
           final ch = m.MeshChannel.fromJson(j as Map<String, dynamic>);
-          await _db.into(_db.channels).insertOnConflictUpdate(
-            ChannelsCompanion.insert(
-              id: ch.id,
-              name: ch.name,
-              avatarEmoji: Value(ch.avatarEmoji),
-              psk: ch.psk,
-              slotIndex: ch.slotIndex,
-              createdAt: DateTime.now(),
-            ),
-          );
+          await _db
+              .into(_db.channels)
+              .insertOnConflictUpdate(
+                ChannelsCompanion.insert(
+                  id: ch.id,
+                  name: ch.name,
+                  avatarEmoji: Value(ch.avatarEmoji),
+                  psk: ch.psk,
+                  slotIndex: ch.slotIndex,
+                  createdAt: DateTime.now(),
+                ),
+              );
         }
       }
 
@@ -100,16 +107,18 @@ class ContactStore extends ChangeNotifier {
         final convsList = jsonDecode(oldConvs) as List;
         for (final j in convsList) {
           final conv = m.Conversation.fromJson(j as Map<String, dynamic>);
-          await _db.into(_db.conversations).insertOnConflictUpdate(
-            ConversationsCompanion.insert(
-              id: conv.id,
-              type: conv.type.name,
-              peerId: Value(conv.peerId),
-              channelId: Value(conv.channelId),
-              unreadCount: Value(conv.unreadCount),
-              updatedAt: conv.updatedAt,
-            ),
-          );
+          await _db
+              .into(_db.conversations)
+              .insertOnConflictUpdate(
+                ConversationsCompanion.insert(
+                  id: conv.id,
+                  type: conv.type.name,
+                  peerId: Value(conv.peerId),
+                  channelId: Value(conv.channelId),
+                  unreadCount: Value(conv.unreadCount),
+                  updatedAt: conv.updatedAt,
+                ),
+              );
         }
       }
 
@@ -119,17 +128,19 @@ class ContactStore extends ChangeNotifier {
         for (final entry in msgsMap.entries) {
           for (final j in entry.value as List) {
             final msg = m.Message.fromJson(j as Map<String, dynamic>);
-            await _db.into(_db.messages).insert(
-              MessagesCompanion.insert(
-                meshId: msg.meshId,
-                conversationId: msg.conversationId,
-                fromNodeId: msg.fromNodeId,
-                messageText: msg.text,
-                time: msg.time,
-                status: msg.status.name,
-                isMe: msg.isMe,
-              ),
-            );
+            await _db
+                .into(_db.messages)
+                .insert(
+                  MessagesCompanion.insert(
+                    meshId: msg.meshId,
+                    conversationId: msg.conversationId,
+                    fromNodeId: msg.fromNodeId,
+                    messageText: msg.text,
+                    time: msg.time,
+                    status: msg.status.name,
+                    isMe: msg.isMe,
+                  ),
+                );
           }
         }
       }
@@ -187,21 +198,25 @@ class ContactStore extends ChangeNotifier {
 
   // ── Contacts ──────────────────────────────────────────────
 
-  List<m.Contact> get contacts => _contacts.values.toList()
-    ..sort((a, b) => a.displayName.compareTo(b.displayName));
+  List<m.Contact> get contacts =>
+      _contacts.values.toList()
+        ..sort((a, b) => a.displayName.compareTo(b.displayName));
 
   m.Contact? contactByNodeId(String nodeId) => _contacts[nodeId];
 
   Future<void> saveContact(m.Contact c) async {
     _contacts[c.nodeId] = c;
-    await _db.into(_db.contacts).insertOnConflictUpdate(
-      ContactsCompanion.insert(
-        nodeId: c.nodeId,
-        displayName: c.displayName,
-        avatarEmoji: Value(c.avatarEmoji),
-        addedAt: c.addedAt,
-      ),
-    );
+    await _db
+        .into(_db.contacts)
+        .insertOnConflictUpdate(
+          ContactsCompanion.insert(
+            nodeId: c.nodeId,
+            displayName: c.displayName,
+            avatarEmoji: Value(c.avatarEmoji),
+            publicKey: Value(c.publicKey),
+            addedAt: c.addedAt,
+          ),
+        );
     // Create DM conversation if not exists
     final dmId = 'dm_${c.nodeId}';
     if (!_conversations.containsKey(dmId)) {
@@ -212,12 +227,16 @@ class ContactStore extends ChangeNotifier {
 
   Future<void> deleteContact(String nodeId) async {
     _contacts.remove(nodeId);
-    await (_db.delete(_db.contacts)..where((t) => t.nodeId.equals(nodeId))).go();
+    await (_db.delete(
+      _db.contacts,
+    )..where((t) => t.nodeId.equals(nodeId))).go();
     // Remove the associated DM conversation
     final dmId = 'dm_$nodeId';
     if (_conversations.containsKey(dmId)) {
       _conversations.remove(dmId);
-      await (_db.delete(_db.conversations)..where((t) => t.id.equals(dmId))).go();
+      await (_db.delete(
+        _db.conversations,
+      )..where((t) => t.id.equals(dmId))).go();
     }
     notifyListeners();
   }
@@ -229,29 +248,36 @@ class ContactStore extends ChangeNotifier {
   bool isBlocked(String nodeId) => _blocked.contains(nodeId);
 
   Future<void> blockNode(String nodeId) async {
-    await _db.into(_db.blockedNodes).insertOnConflictUpdate(
-      BlockedNodesCompanion.insert(nodeId: nodeId),
-    );
+    await _db
+        .into(_db.blockedNodes)
+        .insertOnConflictUpdate(
+          BlockedNodesCompanion.insert(nodeId: nodeId),
+        );
     _blocked.add(nodeId);
     // Remove the associated DM conversation (same as deleteContact)
     final dmId = 'dm_$nodeId';
     if (_conversations.containsKey(dmId)) {
       _conversations.remove(dmId);
-      await (_db.delete(_db.conversations)..where((t) => t.id.equals(dmId))).go();
+      await (_db.delete(
+        _db.conversations,
+      )..where((t) => t.id.equals(dmId))).go();
     }
     notifyListeners();
   }
 
   Future<void> unblockNode(String nodeId) async {
-    await (_db.delete(_db.blockedNodes)..where((t) => t.nodeId.equals(nodeId))).go();
+    await (_db.delete(
+      _db.blockedNodes,
+    )..where((t) => t.nodeId.equals(nodeId))).go();
     _blocked.remove(nodeId);
     notifyListeners();
   }
 
   // ── Channels ──────────────────────────────────────────────
 
-  List<m.MeshChannel> get channels => _channels.values.toList()
-    ..sort((a, b) => a.slotIndex.compareTo(b.slotIndex));
+  List<m.MeshChannel> get channels =>
+      _channels.values.toList()
+        ..sort((a, b) => a.slotIndex.compareTo(b.slotIndex));
 
   m.MeshChannel? channelById(String id) => _channels[id];
 
@@ -269,16 +295,18 @@ class ContactStore extends ChangeNotifier {
       psk: psk ?? _generatePsk(),
     );
     _channels[ch.id] = ch;
-    await _db.into(_db.channels).insertOnConflictUpdate(
-      ChannelsCompanion.insert(
-        id: ch.id,
-        name: ch.name,
-        avatarEmoji: Value(ch.avatarEmoji),
-        psk: ch.psk,
-        slotIndex: ch.slotIndex,
-        createdAt: DateTime.now(),
-      ),
-    );
+    await _db
+        .into(_db.channels)
+        .insertOnConflictUpdate(
+          ChannelsCompanion.insert(
+            id: ch.id,
+            name: ch.name,
+            avatarEmoji: Value(ch.avatarEmoji),
+            psk: ch.psk,
+            slotIndex: ch.slotIndex,
+            createdAt: DateTime.now(),
+          ),
+        );
     await saveConversation(m.Conversation.channel(ch.id));
     notifyListeners();
     return ch;
@@ -286,16 +314,18 @@ class ContactStore extends ChangeNotifier {
 
   Future<void> saveChannel(m.MeshChannel ch) async {
     _channels[ch.id] = ch;
-    await _db.into(_db.channels).insertOnConflictUpdate(
-      ChannelsCompanion.insert(
-        id: ch.id,
-        name: ch.name,
-        avatarEmoji: Value(ch.avatarEmoji),
-        psk: ch.psk,
-        slotIndex: ch.slotIndex,
-        createdAt: DateTime.now(),
-      ),
-    );
+    await _db
+        .into(_db.channels)
+        .insertOnConflictUpdate(
+          ChannelsCompanion.insert(
+            id: ch.id,
+            name: ch.name,
+            avatarEmoji: Value(ch.avatarEmoji),
+            psk: ch.psk,
+            slotIndex: ch.slotIndex,
+            createdAt: DateTime.now(),
+          ),
+        );
   }
 
   Future<void> deleteChannel(String id) async {
@@ -306,8 +336,9 @@ class ContactStore extends ChangeNotifier {
 
   // ── Conversations ─────────────────────────────────────────
 
-  List<m.Conversation> get conversations => _conversations.values.toList()
-    ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  List<m.Conversation> get conversations =>
+      _conversations.values.toList()
+        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
   m.Conversation? conversationById(String id) => _conversations[id];
 
@@ -324,16 +355,18 @@ class ContactStore extends ChangeNotifier {
 
   Future<void> saveConversation(m.Conversation conv) async {
     _conversations[conv.id] = conv;
-    await _db.into(_db.conversations).insertOnConflictUpdate(
-      ConversationsCompanion.insert(
-        id: conv.id,
-        type: conv.type.name,
-        peerId: Value(conv.peerId),
-        channelId: Value(conv.channelId),
-        unreadCount: Value(conv.unreadCount),
-        updatedAt: conv.updatedAt,
-      ),
-    );
+    await _db
+        .into(_db.conversations)
+        .insertOnConflictUpdate(
+          ConversationsCompanion.insert(
+            id: conv.id,
+            type: conv.type.name,
+            peerId: Value(conv.peerId),
+            channelId: Value(conv.channelId),
+            unreadCount: Value(conv.unreadCount),
+            updatedAt: conv.updatedAt,
+          ),
+        );
   }
 
   // ── Messages ──────────────────────────────────────────────
@@ -353,33 +386,37 @@ class ContactStore extends ChangeNotifier {
     await _db.transaction(() async {
       // Plain insert: meshId is not unique (id-less packets share meshId 0),
       // so an upsert would overwrite unrelated older messages.
-      await _db.into(_db.messages).insert(
-        MessagesCompanion.insert(
-          meshId: msg.meshId,
-          conversationId: msg.conversationId,
-          fromNodeId: msg.fromNodeId,
-          messageText: msg.text,
-          time: msg.time,
-          status: msg.status.name,
-          isMe: msg.isMe,
-        ),
-      );
+      await _db
+          .into(_db.messages)
+          .insert(
+            MessagesCompanion.insert(
+              meshId: msg.meshId,
+              conversationId: msg.conversationId,
+              fromNodeId: msg.fromNodeId,
+              messageText: msg.text,
+              time: msg.time,
+              status: msg.status.name,
+              isMe: msg.isMe,
+            ),
+          );
 
       if (conv != null) {
         if (!msg.isMe) conv.unreadCount++;
         conv
           ..lastMessage = msg
           ..updatedAt = msg.time;
-        await _db.into(_db.conversations).insertOnConflictUpdate(
-          ConversationsCompanion.insert(
-            id: conv.id,
-            type: conv.type.name,
-            peerId: Value(conv.peerId),
-            channelId: Value(conv.channelId),
-            unreadCount: Value(conv.unreadCount),
-            updatedAt: conv.updatedAt,
-          ),
-        );
+        await _db
+            .into(_db.conversations)
+            .insertOnConflictUpdate(
+              ConversationsCompanion.insert(
+                id: conv.id,
+                type: conv.type.name,
+                peerId: Value(conv.peerId),
+                channelId: Value(conv.channelId),
+                unreadCount: Value(conv.unreadCount),
+                updatedAt: conv.updatedAt,
+              ),
+            );
       }
     });
 
@@ -395,8 +432,8 @@ class ContactStore extends ChangeNotifier {
         if (msg.isMe && msg.meshId == meshId) {
           msg.status = status;
           await (_db.update(_db.messages)
-            ..where((t) => t.meshId.equals(meshId) & t.isMe.equals(true)))
-            .write(MessagesCompanion(status: Value(status.name)));
+                ..where((t) => t.meshId.equals(meshId) & t.isMe.equals(true)))
+              .write(MessagesCompanion(status: Value(status.name)));
           notifyListeners();
           return;
         }
@@ -417,7 +454,9 @@ class ContactStore extends ChangeNotifier {
   String displayNameFor(String nodeId) {
     final c = _contacts[nodeId];
     if (c != null) return c.displayLabel;
-    return nodeId.length > 5 ? '...${nodeId.substring(nodeId.length - 5)}' : nodeId;
+    return nodeId.length > 5
+        ? '...${nodeId.substring(nodeId.length - 5)}'
+        : nodeId;
   }
 
   // ── Row → Model converters ────────────────────────────────
@@ -426,6 +465,7 @@ class ContactStore extends ChangeNotifier {
     nodeId: row.nodeId,
     displayName: row.displayName,
     avatarEmoji: row.avatarEmoji,
+    publicKey: row.publicKey,
     addedAt: row.addedAt,
   );
 

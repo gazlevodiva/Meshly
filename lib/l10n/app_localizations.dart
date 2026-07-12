@@ -446,6 +446,18 @@ abstract class AppLocalizations {
   /// **'Имя'**
   String get nameLabel;
 
+  /// Snackbar shown when a DM can't be sent because the peer's public key is unknown
+  ///
+  /// In ru, this message translates to:
+  /// **'Пересканируйте QR-код этого контакта, чтобы включить защищённую переписку'**
+  String get rescanForSecureChat;
+
+  /// Placeholder shown instead of an incoming DM's text when it couldn't be decrypted
+  ///
+  /// In ru, this message translates to:
+  /// **'🔒 Зашифрованное сообщение — добавьте контакт по QR'**
+  String get undecryptableMessage;
+
   /// Prefix in the conversation list preview for the user's own last message, rendered as 'Я: <text>'
   ///
   /// In ru, this message translates to:

@@ -18,6 +18,10 @@ import 'package:meshly/widgets/tab_header.dart' show TabGradientBackground;
 /// Meshtastic text payload limit, bytes of UTF-8.
 const int _maxPayloadBytes = 200;
 
+/// Extra bytes consumed by the E2E encryption envelope (X25519 + XChaCha20-
+/// Poly1305) on outgoing DMs. Channel messages stay plaintext.
+const int kDmEncryptionOverhead = 41;
+
 /// Show the remaining-bytes counter once this few bytes are left.
 const int _counterThreshold = 40;
 
@@ -146,10 +150,17 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _send() async {
     final text = _controller.text.trim();
     if (text.isEmpty || utf8.encode(text).length > _maxPayloadBytes) return;
-    _controller.clear();
-    await widget.meshService.sendText(text, widget.conversation);
-    setState(() {});
-    _scrollToBottom();
+    final result = await widget.meshService.sendText(text, widget.conversation);
+    if (!mounted) return;
+    if (result == SendResult.sent) {
+      _controller.clear();
+      setState(() {});
+      _scrollToBottom();
+    } else if (result == SendResult.needsKey) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.rescanForSecureChat)),
+      );
+    }
   }
 
   /// Tapping a failed outgoing message offers to resend it
@@ -173,8 +184,17 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
     if (confirmed == true && mounted) {
-      await widget.meshService.sendText(msg.text, widget.conversation);
-      if (mounted) setState(() {});
+      final result = await widget.meshService.sendText(
+        msg.text,
+        widget.conversation,
+      );
+      if (!mounted) return;
+      if (result == SendResult.needsKey) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.rescanForSecureChat)),
+        );
+      }
+      setState(() {});
       _scrollToBottom();
     }
   }
@@ -282,7 +302,11 @@ class _ChatScreenState extends State<ChatScreen> {
                       left: 0,
                       right: 0,
                       bottom: 0,
-                      child: _InputBar(controller: _controller, onSend: _send),
+                      child: _InputBar(
+                        controller: _controller,
+                        onSend: _send,
+                        isDm: conv.isDm,
+                      ),
                     ),
                   ],
                 ),
@@ -495,6 +519,7 @@ class _MessageBubble extends StatelessWidget {
     );
 
     final showSenderName = inChannel && !isMe && showSender;
+    final isUndecryptable = msg.text == kUndecryptableSentinel;
 
     Widget bubble = Container(
       constraints: BoxConstraints(
@@ -530,10 +555,19 @@ class _MessageBubble extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.end,
             spacing: AppSpacing.s8,
             children: [
-              Text(
-                msg.text,
-                style: TextStyle(color: isMe ? appColors.onAccent : null),
-              ),
+              if (isUndecryptable)
+                Text(
+                  context.l10n.undecryptableMessage,
+                  style: AppTextStyles.secondary(context).copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: isMe ? appColors.onAccent : null,
+                  ),
+                )
+              else
+                Text(
+                  msg.text,
+                  style: TextStyle(color: isMe ? appColors.onAccent : null),
+                ),
               meta,
             ],
           ),
@@ -613,10 +647,18 @@ class _StatusIcon extends StatelessWidget {
 /// Rounded pill input + circular primary send button, with a remaining-bytes
 /// counter that appears near the payload limit and blocks sending over it.
 class _InputBar extends StatelessWidget {
-  const _InputBar({required this.controller, required this.onSend});
+  const _InputBar({
+    required this.controller,
+    required this.onSend,
+    required this.isDm,
+  });
 
   final TextEditingController controller;
   final VoidCallback onSend;
+
+  /// Whether this conversation is a DM, whose outgoing messages carry the
+  /// E2E encryption envelope and so have a smaller effective text budget.
+  final bool isDm;
 
   @override
   Widget build(BuildContext context) {
@@ -632,7 +674,9 @@ class _InputBar extends StatelessWidget {
         child: ValueListenableBuilder<TextEditingValue>(
           valueListenable: controller,
           builder: (context, value, _) {
-            final remaining = _maxPayloadBytes - utf8.encode(value.text).length;
+            final budget =
+                _maxPayloadBytes - (isDm ? kDmEncryptionOverhead : 0);
+            final remaining = budget - utf8.encode(value.text).length;
             final overLimit = remaining < 0;
             return Column(
               mainAxisSize: MainAxisSize.min,
