@@ -26,6 +26,19 @@
     "description": "Tagline under the Meshly logo on the scan screen"
   },
   "bluetoothPermissionNeeded": "Нужен доступ к Bluetooth",
+  "bluetoothOffTitle": "Bluetooth выключен",
+  "@bluetoothOffTitle": {
+    "description": "Heading on the scan screen when the phone's Bluetooth adapter is off"
+  },
+  "bluetoothOffHint": "Включите Bluetooth, чтобы найти устройство поблизости",
+  "enableBluetooth": "Включить Bluetooth",
+  "@enableBluetooth": {
+    "description": "Button (Android) that opens the system dialog to turn Bluetooth on"
+  },
+  "openSettings": "Открыть настройки",
+  "@openSettings": {
+    "description": "Button (iOS) that opens system settings so the user can enable Bluetooth"
+  },
   "connectionErrorTitle": "Ошибка подключения",
   "checkConnection": "Проверьте подключение",
   "@checkConnection": {

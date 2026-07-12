@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -32,8 +33,14 @@ class _ScanScreenState extends State<ScanScreen> {
   String? _connectingName;
   String? _lastDeviceName;
 
-  List<ScanResult> get _results => _resultsMap.values.where(_isRelevant).toList()
-    ..sort((a, b) => b.rssi.compareTo(a.rssi));
+  // Реальное состояние Bluetooth-адаптера. Когда он выключен, показываем
+  // отдельный экран с кнопкой включения вместо бесполезного скана в пустоту.
+  BluetoothAdapterState _adapterState = BluetoothAdapterState.unknown;
+  StreamSubscription<BluetoothAdapterState>? _adapterSub;
+
+  List<ScanResult> get _results =>
+      _resultsMap.values.where(_isRelevant).toList()
+        ..sort((a, b) => b.rssi.compareTo(a.rssi));
 
   bool _isRelevant(ScanResult r) {
     if (r.device.platformName.isEmpty) return false;
@@ -50,7 +57,54 @@ class _ScanScreenState extends State<ScanScreen> {
   @override
   void initState() {
     super.initState();
-    unawaited(_tryAutoConnect());
+    _adapterState = FlutterBluePlus.adapterStateNow;
+    // onError глушит UnsupportedError из flutter_blue_plus без платформы
+    // (widget-тесты): остаёмся на `unknown`, адаптер не мониторим.
+    _adapterSub = FlutterBluePlus.adapterState.listen(
+      _onAdapterState,
+      onError: (Object _) {},
+    );
+    // Не запускаем автоподключение при заведомо выключенном BT — сначала
+    // пользователь включит адаптер (см. _onAdapterState).
+    if (_adapterState != BluetoothAdapterState.off) {
+      unawaited(_tryAutoConnect());
+    }
+  }
+
+  @override
+  void dispose() {
+    unawaited(_adapterSub?.cancel());
+    super.dispose();
+  }
+
+  void _onAdapterState(BluetoothAdapterState s) {
+    if (!mounted) return;
+    final wasOff = _adapterState == BluetoothAdapterState.off;
+    setState(() => _adapterState = s);
+    // BT только что включили с экрана «Bluetooth выключен» — возобновляем
+    // автоподключение к последнему устройству.
+    if (wasOff &&
+        s == BluetoothAdapterState.on &&
+        _state == _ScreenState.idle) {
+      unawaited(_tryAutoConnect());
+    }
+  }
+
+  // Включить Bluetooth. Android умеет показать системный диалог включения;
+  // iOS программно включать BT не даёт — ведём в системные настройки.
+  Future<void> _enableBluetooth() async {
+    if (Platform.isAndroid) {
+      await Permission.bluetoothConnect.request();
+      try {
+        await FlutterBluePlus.turnOn();
+      } on Exception {
+        // Пользователь отклонил или включить не удалось — экран остаётся
+        // на состоянии «выключен» (адаптер не перешёл в on), слушатель
+        // _onAdapterState синхронизирует UI при любом изменении.
+      }
+    } else {
+      await openAppSettings();
+    }
   }
 
   Future<void> _tryAutoConnect() async {
@@ -132,14 +186,16 @@ class _ScanScreenState extends State<ScanScreen> {
       _resultsMap.clear();
     });
 
-    unawaited(widget.meshService.scan().listen((results) {
-      if (!mounted) return;
-      setState(() {
-        for (final r in results) {
-          _resultsMap[r.device.remoteId.str] = r;
-        }
-      });
-    }).asFuture());
+    unawaited(
+      widget.meshService.scan().listen((results) {
+        if (!mounted) return;
+        setState(() {
+          for (final r in results) {
+            _resultsMap[r.device.remoteId.str] = r;
+          }
+        });
+      }).asFuture(),
+    );
 
     await Future<void>.delayed(const Duration(seconds: 10));
     await widget.meshService.stopScan();
@@ -175,30 +231,34 @@ class _ScanScreenState extends State<ScanScreen> {
         if (widget.isReconnect) {
           Navigator.pop(context);
         } else {
-          unawaited(Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => MainScreen(meshService: widget.meshService),
+          unawaited(
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => MainScreen(meshService: widget.meshService),
+              ),
             ),
-          ));
+          );
         }
       }
     } on Exception catch (e) {
       if (mounted) {
         setState(() => _state = _ScreenState.idle);
-        unawaited(showDialog(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: Text(dialogContext.l10n.connectionErrorTitle),
-            content: Text(e.toString().replaceFirst('Exception: ', '')),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: Text(dialogContext.l10n.ok),
-              ),
-            ],
+        unawaited(
+          showDialog(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: Text(dialogContext.l10n.connectionErrorTitle),
+              content: Text(e.toString().replaceFirst('Exception: ', '')),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text(dialogContext.l10n.ok),
+                ),
+              ],
+            ),
           ),
-        ));
+        );
       }
     }
   }
@@ -224,14 +284,20 @@ class _ScanScreenState extends State<ScanScreen> {
       builder: (sheetContext) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
-              AppSpacing.s24, AppSpacing.s12, AppSpacing.s24, AppSpacing.s24),
+            AppSpacing.s24,
+            AppSpacing.s12,
+            AppSpacing.s24,
+            AppSpacing.s24,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SheetDragHandle(),
-              Text(sheetContext.l10n.checkConnection,
-                  style: AppTextStyles.title),
+              Text(
+                sheetContext.l10n.checkConnection,
+                style: AppTextStyles.title,
+              ),
               const SizedBox(height: AppSpacing.s16),
               _HelpTip(
                 icon: Icons.power_settings_new,
@@ -273,14 +339,14 @@ class _ScanScreenState extends State<ScanScreen> {
   Widget _buildHero() {
     final primary = Theme.of(context).colorScheme.primary;
     Widget ring(double size, double alpha, Widget child) => Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: primary.withValues(alpha: alpha),
-          ),
-          child: Center(child: child),
-        );
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: primary.withValues(alpha: alpha),
+      ),
+      child: Center(child: child),
+    );
 
     return Center(
       child: ring(
@@ -296,7 +362,11 @@ class _ScanScreenState extends State<ScanScreen> {
               shape: BoxShape.circle,
               color: Theme.of(context).colorScheme.primaryContainer,
             ),
-            child: Icon(Icons.bluetooth, size: AppIconSizes.hero, color: primary),
+            child: Icon(
+              Icons.bluetooth,
+              size: AppIconSizes.hero,
+              color: primary,
+            ),
           ),
         ),
       ),
@@ -405,7 +475,10 @@ class _ScanScreenState extends State<ScanScreen> {
             padding: const EdgeInsets.all(AppSpacing.s12),
             child: Row(
               children: [
-                _LeadingTile(icon: Icons.router_outlined, color: scheme.primary),
+                _LeadingTile(
+                  icon: Icons.router_outlined,
+                  color: scheme.primary,
+                ),
                 const SizedBox(width: AppSpacing.s12),
                 Expanded(
                   child: Text(
@@ -427,8 +500,10 @@ class _ScanScreenState extends State<ScanScreen> {
   Widget _buildFooter() {
     return Column(
       children: [
-        Text(context.l10n.deviceNotListed,
-            style: AppTextStyles.subtitle(context)),
+        Text(
+          context.l10n.deviceNotListed,
+          style: AppTextStyles.subtitle(context),
+        ),
         TextButton(
           onPressed: _showHelpSheet,
           child: Text(context.l10n.checkConnection),
@@ -463,8 +538,9 @@ class _ScanScreenState extends State<ScanScreen> {
           const SizedBox(height: AppSpacing.s24),
           Text(
             context.l10n.availableDevices,
-            style: AppTextStyles.sectionHeader
-                .copyWith(color: context.appColors.textSecondary),
+            style: AppTextStyles.sectionHeader.copyWith(
+              color: context.appColors.textSecondary,
+            ),
           ),
           const SizedBox(height: AppSpacing.s12),
           if (results.isEmpty)
@@ -502,6 +578,48 @@ class _ScanScreenState extends State<ScanScreen> {
     );
   }
 
+  Widget _buildBluetoothOff() {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildHero(),
+            const SizedBox(height: AppSpacing.s20),
+            _buildTitle(),
+            const SizedBox(height: AppSpacing.s32),
+            Text(
+              context.l10n.bluetoothOffTitle,
+              style: AppTextStyles.title,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.s8),
+            Text(
+              context.l10n.bluetoothOffHint,
+              style: AppTextStyles.hint(context),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.s24),
+            SizedBox(
+              width: double.infinity,
+              height: AppSizes.ctaHeight,
+              child: FilledButton.icon(
+                onPressed: _enableBluetooth,
+                icon: const Icon(Icons.bluetooth),
+                label: Text(
+                  Platform.isAndroid
+                      ? context.l10n.enableBluetooth
+                      : context.l10n.openSettings,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildConnectingBody({required String label, Widget? trailing}) {
     return Center(
       child: SingleChildScrollView(
@@ -534,15 +652,20 @@ class _ScanScreenState extends State<ScanScreen> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     Widget body;
-    switch (_state) {
-      case _ScreenState.idle:
-        body = _buildMain(scanning: false);
-      case _ScreenState.autoConnecting:
-        body = _buildAutoConnecting();
-      case _ScreenState.scanning:
-        body = _buildMain(scanning: true);
-      case _ScreenState.connecting:
-        body = _buildConnecting();
+    if (_adapterState == BluetoothAdapterState.off) {
+      // Выключенный BT перекрывает любое состояние скана/подключения.
+      body = _buildBluetoothOff();
+    } else {
+      switch (_state) {
+        case _ScreenState.idle:
+          body = _buildMain(scanning: false);
+        case _ScreenState.autoConnecting:
+          body = _buildAutoConnecting();
+        case _ScreenState.scanning:
+          body = _buildMain(scanning: true);
+        case _ScreenState.connecting:
+          body = _buildConnecting();
+      }
     }
 
     return Scaffold(
@@ -596,15 +719,15 @@ class _SignalBars extends StatelessWidget {
     final active = rssi > -70
         ? 4
         : rssi > -78
-            ? 3
-            : rssi > -85
-                ? 2
-                : 1;
+        ? 3
+        : rssi > -85
+        ? 2
+        : 1;
     final color = active == 4
         ? colors.online
         : active == 1
-            ? colors.danger
-            : colors.warning;
+        ? colors.danger
+        : colors.warning;
     final inactive = Theme.of(context).colorScheme.outlineVariant;
 
     return Row(
@@ -640,9 +763,11 @@ class _HelpTip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.s6),
       child: Row(
         children: [
-          Icon(icon,
-              size: AppIconSizes.signal,
-              color: Theme.of(context).colorScheme.primary),
+          Icon(
+            icon,
+            size: AppIconSizes.signal,
+            color: Theme.of(context).colorScheme.primary,
+          ),
           const SizedBox(width: AppSpacing.s12),
           Expanded(child: Text(text)),
         ],

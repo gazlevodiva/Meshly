@@ -158,6 +158,30 @@ abstract class AppLocalizations {
   /// **'Нужен доступ к Bluetooth'**
   String get bluetoothPermissionNeeded;
 
+  /// Heading on the scan screen when the phone's Bluetooth adapter is off
+  ///
+  /// In ru, this message translates to:
+  /// **'Bluetooth выключен'**
+  String get bluetoothOffTitle;
+
+  /// No description provided for @bluetoothOffHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Включите Bluetooth, чтобы найти устройство поблизости'**
+  String get bluetoothOffHint;
+
+  /// Button (Android) that opens the system dialog to turn Bluetooth on
+  ///
+  /// In ru, this message translates to:
+  /// **'Включить Bluetooth'**
+  String get enableBluetooth;
+
+  /// Button (iOS) that opens system settings so the user can enable Bluetooth
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть настройки'**
+  String get openSettings;
+
   /// No description provided for @connectionErrorTitle.
   ///
   /// In ru, this message translates to:

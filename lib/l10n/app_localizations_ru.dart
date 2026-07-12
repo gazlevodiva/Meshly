@@ -39,6 +39,19 @@ class AppLocalizationsRu extends AppLocalizations {
   String get bluetoothPermissionNeeded => 'Нужен доступ к Bluetooth';
 
   @override
+  String get bluetoothOffTitle => 'Bluetooth выключен';
+
+  @override
+  String get bluetoothOffHint =>
+      'Включите Bluetooth, чтобы найти устройство поблизости';
+
+  @override
+  String get enableBluetooth => 'Включить Bluetooth';
+
+  @override
+  String get openSettings => 'Открыть настройки';
+
+  @override
   String get connectionErrorTitle => 'Ошибка подключения';
 
   @override

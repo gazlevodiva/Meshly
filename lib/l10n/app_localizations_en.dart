@@ -39,6 +39,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bluetoothPermissionNeeded => 'Bluetooth access is required';
 
   @override
+  String get bluetoothOffTitle => 'Bluetooth is off';
+
+  @override
+  String get bluetoothOffHint => 'Turn on Bluetooth to find a nearby device';
+
+  @override
+  String get enableBluetooth => 'Turn on Bluetooth';
+
+  @override
+  String get openSettings => 'Open Settings';
+
+  @override
   String get connectionErrorTitle => 'Connection error';
 
   @override

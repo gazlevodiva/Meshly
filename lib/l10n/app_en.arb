@@ -14,6 +14,19 @@
 
   "appTagline": "People you trust",
   "bluetoothPermissionNeeded": "Bluetooth access is required",
+  "bluetoothOffTitle": "Bluetooth is off",
+  "@bluetoothOffTitle": {
+    "description": "Heading on the scan screen when the phone's Bluetooth adapter is off"
+  },
+  "bluetoothOffHint": "Turn on Bluetooth to find a nearby device",
+  "enableBluetooth": "Turn on Bluetooth",
+  "@enableBluetooth": {
+    "description": "Button (Android) that opens the system dialog to turn Bluetooth on"
+  },
+  "openSettings": "Open Settings",
+  "@openSettings": {
+    "description": "Button (iOS) that opens system settings so the user can enable Bluetooth"
+  },
   "connectionErrorTitle": "Connection error",
   "checkConnection": "Check the connection",
   "helpTipPoweredOn": "The device is turned on and charged",
