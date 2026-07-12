@@ -190,7 +190,14 @@ class MeshService {
         print('[Mesh] sendText: channel ${conv.channelId} not found, aborting');
         return SendResult.noChannel;
       }
+      // Канал: собственный Meshly-AEAD (ключ из PSK канала), portnum
+      // PRIVATE_APP — как в DM, чтобы официальное приложение не видело текст.
       channelSlot = ch.slotIndex;
+      portnum = MeshtasticProto.PRIVATE_APP;
+      rawPayload = await CryptoService.instance.encryptForChannel(
+        psk: ch.psk,
+        plaintext: text,
+      );
     } else {
       return SendResult.noChannel;
     }
@@ -319,7 +326,9 @@ class MeshService {
     // Разбор текста в зависимости от порта:
     // - DM: только PRIVATE_APP расшифровывается; TEXT_MESSAGE_APP-плейнтекст
     //   от не-Meshly ноды или неудачная расшифровка → сентинел-заглушка.
-    // - Канал: как раньше, plaintext TEXT_MESSAGE_APP.
+    // - Канал: только собственный Meshly-AEAD (PRIVATE_APP + PSK канала).
+    //   Чужой plaintext (TEXT_MESSAGE_APP) и любую неудачную расшифровку
+    //   молча дропаем — общий/официальный канал в Meshly не показываем.
     String? text;
     var notify = true;
     if (decoded.isDm) {
@@ -338,8 +347,18 @@ class MeshService {
         notify = false;
       }
     } else {
-      if (decoded.text == null || decoded.text!.isEmpty) return;
-      text = decoded.text!.trim();
+      // Broadcast/канал: принимаем только зашифрованный Meshly-конверт.
+      if (portnum != MeshtasticProto.PRIVATE_APP ||
+          decoded.rawPayload == null) {
+        return;
+      }
+      final psk = store.channelById(conv.channelId!)?.psk;
+      if (psk == null) return;
+      text = await CryptoService.instance.decryptForChannel(
+        psk: psk,
+        envelope: decoded.rawPayload!,
+      );
+      if (text == null) return;
     }
 
     final msg = Message(

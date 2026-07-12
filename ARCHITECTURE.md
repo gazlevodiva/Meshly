@@ -51,42 +51,61 @@ channel settings, acks). This is the most delicate part of the codebase:
 ToRadio, FromRadio, FromNum) and the connection lifecycle; it's the only
 place that should touch `flutter_blue_plus` directly.
 
-## End-to-end DM encryption
+## Meshly encryption (DMs and channels)
 
-Direct messages between two Meshly installs are end-to-end encrypted;
-channel messages are unaffected and still rely on the Meshtastic channel
-PSK.
+Both direct messages and group channels between Meshly installs use Meshly's
+own AEAD and travel over `PRIVATE_APP`, so neither is visible to the stock
+Meshtastic app. DMs and channels share one symmetric core
+(`_encryptSymmetric`/`_decryptSymmetric`) and one envelope format; only the
+key derivation differs (ECDH shared secret for DMs, HKDF-of-PSK for channels).
 
 - **`lib/services/crypto_service.dart`** (`CryptoService`) owns the
   device's X25519 identity keypair. The private key is generated on first
   run and stored only via `flutter_secure_storage` (Keychain on iOS,
   Keystore on Android) — it never touches the drift database. The pure
-  crypto functions (`generateKeyPair`/`encryptFor`/`decryptFrom`) are
-  key-bytes-in/bytes-out so they can be unit-tested without touching secure
+  crypto functions (`generateKeyPair`/`encryptFor`/`decryptFrom`,
+  `deriveChannelKey`/`encryptForChannel`/`decryptForChannel`) are
+  bytes-in/bytes-out so they can be unit-tested without touching secure
   storage.
-- **Envelope**: static ECDH (`X25519(myPrivate, peerPublic)`) derives a
-  shared secret; XChaCha20-Poly1305 AEAD with a fresh random 24-byte nonce
+- **Envelope**: XChaCha20-Poly1305 AEAD with a fresh random 24-byte nonce
   per message encrypts and authenticates the plaintext. Wire format is
   `[version:1][nonce:24][ciphertext+MAC]`, roughly 41 bytes of overhead on
-  top of the plaintext. There is no ratchet — no forward secrecy — a
-  deliberate tradeoff for an unreliable, unordered LoRa transport with no
-  session handshake.
+  top of the plaintext (constant `kEnvelopeOverhead` in `chat_screen.dart`
+  reserves it in the input byte budget for both DMs and channels). There is
+  no ratchet — no forward secrecy — a deliberate tradeoff for an unreliable,
+  unordered LoRa transport with no session handshake.
+- **DM key**: static ECDH (`X25519(myPrivate, peerPublic)`) derives the
+  shared secret fed into the AEAD core.
+- **Channel key**: `HKDF-SHA256(secretKey: channel PSK,
+  info: "meshly-channel-v1", outputLength: 32)` (`deriveChannelKey`). The
+  PSK is the existing `MeshChannel.psk` — the channel QR format and DB schema
+  are unchanged, so no re-scanning is needed. The fixed `info` string is a
+  domain separation from the firmware's own PSK usage, so the Meshly channel
+  key never coincides with the firmware channel key. This is a *group* secret:
+  every member shares one key, so any member can decrypt and can forge a
+  message as any other member (no in-group sender authentication), there is no
+  forward secrecy, and revoking a member requires rotating the PSK. Meshly
+  drops any inbound plaintext (`TEXT_MESSAGE_APP`) broadcast, so the default
+  public channel and non-Meshly senders are never shown.
 - **Key distribution**: a contact's X25519 public key is bundled into the
   QR payload alongside their node ID (see `lib/services/qr_service.dart`),
   so a key is only known once you've scanned that contact's QR in person
   (or received theirs). `ContactStore`/drift persists the peer's public key
   per contact (`app_database.dart`).
-- **Wire framing**: encrypted DM envelopes are sent as Meshtastic packets
-  with `portnum = MeshtasticProto.PRIVATE_APP` (256) instead of the normal
-  `TEXT_MESSAGE_APP`. This is intentional — the stock Meshtastic app and
-  other firmware clients don't recognize `PRIVATE_APP` and will ignore
-  these packets, so encrypted DMs no longer interoperate with non-Meshly
-  clients. `MeshService.sendText` returns `SendResult.needsKey` instead of
-  sending in the clear when the peer's public key isn't known yet; an
-  incoming DM that fails to decrypt (missing key, corruption, or a
-  plaintext DM from a non-Meshly sender) is stored with the
-  `kUndecryptableSentinel` text placeholder rather than being dropped or
-  shown garbled.
+- **Wire framing**: both DM and channel envelopes are sent as Meshtastic
+  packets with `portnum = MeshtasticProto.PRIVATE_APP` (256) instead of the
+  normal `TEXT_MESSAGE_APP` (DMs unicast to the peer, channels broadcast on
+  the channel's slot). This is intentional — the stock Meshtastic app and
+  other firmware clients don't recognize `PRIVATE_APP` and will ignore these
+  packets, so Meshly traffic no longer interoperates with non-Meshly clients.
+  `MeshService.sendText` returns `SendResult.needsKey` instead of sending in
+  the clear when a DM peer's public key isn't known yet. On receive
+  (`_onBytesReceived`): an incoming DM that fails to decrypt (missing key,
+  corruption, or a plaintext DM from a non-Meshly sender) is stored with the
+  `kUndecryptableSentinel` placeholder; an incoming channel packet is only
+  accepted if it is `PRIVATE_APP` and decrypts under the channel PSK —
+  anything else (plaintext broadcast, wrong/unknown channel, auth failure) is
+  silently dropped without notifying.
 
 ## Reactive store pattern
 

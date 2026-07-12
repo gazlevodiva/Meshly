@@ -119,8 +119,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the data flow (BLE → protobuf → s
 
 Be honest with yourself about what this protects. For how to report a vulnerability, see [SECURITY.md](SECURITY.md).
 
-- **Channels** are AES-256 encrypted by Meshtastic, with the pre-shared key (PSK) exchanged via QR code.
-- **Direct messages between Meshly users are end-to-end encrypted** (X25519 + XChaCha20-Poly1305, keys exchanged via QR, private key in the OS keychain/keystore). Metadata (who talks to whom, timing) is still visible on the mesh, there's no forward secrecy, and decrypted text is stored locally — see [SECURITY.md](SECURITY.md) for the full picture. DMs no longer interoperate with the stock Meshtastic app.
+- **Channels are encrypted with Meshly's own AEAD** (XChaCha20-Poly1305; the key is `HKDF-SHA256` of the channel PSK, exchanged via QR as before) and sent over a `PRIVATE_APP` portnum, so channel messages are invisible to the stock Meshtastic app even on the same slot/PSK. It's a *group* secret, though: everyone shares one key, so any member can read — and forge — messages, there's no forward secrecy, and removing a member means rotating the PSK. Meshly also ignores plaintext channel traffic, so the default public channel doesn't show up.
+- **Direct messages between Meshly users are end-to-end encrypted** (X25519 + XChaCha20-Poly1305, keys exchanged via QR, private key in the OS keychain/keystore). Metadata (who talks to whom, timing) is still visible on the mesh, there's no forward secrecy, and decrypted text is stored locally — see [SECURITY.md](SECURITY.md) for the full picture. Neither DMs nor channels interoperate with the stock Meshtastic app anymore.
 - **Channel PSKs** are stored unencrypted in the local SQLite database on the phone.
 - **Notifications**: incoming message text appears in local push notifications on the lock screen.
 

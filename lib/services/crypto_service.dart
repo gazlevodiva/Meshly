@@ -5,7 +5,9 @@ import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// End-to-end encryption for direct messages.
+/// Encryption for Meshly messages — end-to-end for direct messages, and a
+/// group AEAD for channels (see the channel section below). Both share one
+/// symmetric core and envelope; only key derivation differs.
 ///
 /// Identity: an X25519 keypair generated on first run. The private key lives
 /// only in the OS keychain/keystore (`flutter_secure_storage`); the public
@@ -153,10 +155,88 @@ class CryptoService {
       privateKey: myPrivateKey,
       remotePublicKey: peerPublicKey,
     );
+    return _encryptSymmetric(key: sharedSecret, plaintext: plaintext);
+  }
+
+  /// Decrypts an [envelope] produced by [encryptFor] using [myPrivateKey]
+  /// and the sender's [senderPublicKey]. Returns null (never throws) on
+  /// version mismatch, malformed envelope, or authentication failure.
+  Future<String?> decryptFrom({
+    required List<int> myPrivateKey,
+    required List<int> senderPublicKey,
+    required Uint8List envelope,
+  }) async {
+    final SecretKey sharedSecret;
+    try {
+      sharedSecret = await _sharedSecretKey(
+        privateKey: myPrivateKey,
+        remotePublicKey: senderPublicKey,
+      );
+    } on Exception {
+      return null;
+    }
+    return _decryptSymmetric(key: sharedSecret, envelope: envelope);
+  }
+
+  // ---------------------------------------------------------------------
+  // Channel encryption (Meshly-AEAD "level 2").
+  //
+  // Group channels reuse the same AEAD core as DMs, but the symmetric key is
+  // derived from the channel PSK (already stored / shared via the channel QR)
+  // rather than an ECDH shared secret. HKDF-SHA256 with a fixed info string
+  // gives domain separation from the raw Meshtastic firmware PSK, so the
+  // Meshly key never coincides with the key the firmware would use.
+  //
+  // Same envelope layout (`[0x01][nonce:24][ct+mac]`) and cipher as DMs.
+  // Limitations: one shared key for the whole group — any member can forge a
+  // message as any other (no in-group sender authentication), no forward
+  // secrecy, and no member revocation without rotating the PSK.
+  // ---------------------------------------------------------------------
+
+  /// Derives the symmetric channel key from a channel [psk] via HKDF-SHA256.
+  /// Deterministic: the same PSK always yields the same key.
+  Future<SecretKey> deriveChannelKey(List<int> psk) async {
+    final hkdf = Hkdf(hmac: Hmac.sha256(), outputLength: 32);
+    return hkdf.deriveKey(
+      secretKey: SecretKey(psk),
+      info: utf8.encode('meshly-channel-v1'),
+    );
+  }
+
+  /// Encrypts [plaintext] for the channel whose pre-shared key is [psk].
+  /// Returns the envelope `[version:1][nonce:24][ciphertext+MAC]`.
+  Future<Uint8List> encryptForChannel({
+    required List<int> psk,
+    required String plaintext,
+  }) async {
+    final key = await deriveChannelKey(psk);
+    return _encryptSymmetric(key: key, plaintext: plaintext);
+  }
+
+  /// Decrypts a channel [envelope] using the channel's [psk]. Returns null
+  /// (never throws) on version mismatch, malformed envelope, or auth failure.
+  Future<String?> decryptForChannel({
+    required List<int> psk,
+    required Uint8List envelope,
+  }) async {
+    final key = await deriveChannelKey(psk);
+    return _decryptSymmetric(key: key, envelope: envelope);
+  }
+
+  // ---------------------------------------------------------------------
+  // Symmetric AEAD core — shared by DM (ECDH key) and channel (HKDF key).
+  // ---------------------------------------------------------------------
+
+  /// Encrypts [plaintext] under a symmetric [key] with a fresh random nonce.
+  /// Returns the envelope `[version:1][nonce:24][ciphertext+MAC]`.
+  Future<Uint8List> _encryptSymmetric({
+    required SecretKey key,
+    required String plaintext,
+  }) async {
     final nonce = _randomNonce();
     final secretBox = await _cipher.encrypt(
       utf8.encode(plaintext),
-      secretKey: sharedSecret,
+      secretKey: key,
       nonce: nonce,
     );
 
@@ -168,12 +248,10 @@ class CryptoService {
     return envelope.toBytes();
   }
 
-  /// Decrypts an [envelope] produced by [encryptFor] using [myPrivateKey]
-  /// and the sender's [senderPublicKey]. Returns null (never throws) on
-  /// version mismatch, malformed envelope, or authentication failure.
-  Future<String?> decryptFrom({
-    required List<int> myPrivateKey,
-    required List<int> senderPublicKey,
+  /// Decrypts an [envelope] under a symmetric [key]. Returns null (never
+  /// throws) on version mismatch, short/malformed envelope, or auth failure.
+  Future<String?> _decryptSymmetric({
+    required SecretKey key,
     required Uint8List envelope,
   }) async {
     const macLength = 16;
@@ -191,10 +269,6 @@ class CryptoService {
     final cipherText = rest.sublist(0, rest.length - macLength);
 
     try {
-      final sharedSecret = await _sharedSecretKey(
-        privateKey: myPrivateKey,
-        remotePublicKey: senderPublicKey,
-      );
       final secretBox = SecretBox(
         cipherText,
         nonce: nonce,
@@ -202,7 +276,7 @@ class CryptoService {
       );
       final clearTextBytes = await _cipher.decrypt(
         secretBox,
-        secretKey: sharedSecret,
+        secretKey: key,
       );
       return utf8.decode(clearTextBytes);
     } on Exception {

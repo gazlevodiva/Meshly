@@ -18,9 +18,10 @@ import 'package:meshly/widgets/tab_header.dart' show TabGradientBackground;
 /// Meshtastic text payload limit, bytes of UTF-8.
 const int _maxPayloadBytes = 200;
 
-/// Extra bytes consumed by the E2E encryption envelope (X25519 + XChaCha20-
-/// Poly1305) on outgoing DMs. Channel messages stay plaintext.
-const int kDmEncryptionOverhead = 41;
+/// Extra bytes consumed by the Meshly AEAD envelope (version + 24-byte nonce +
+/// 16-byte MAC, XChaCha20-Poly1305) on every outgoing message. Both DMs and
+/// channels are encrypted, so the same overhead applies to both.
+const int kEnvelopeOverhead = 41;
 
 /// Show the remaining-bytes counter once this few bytes are left.
 const int _counterThreshold = 40;
@@ -305,7 +306,6 @@ class _ChatScreenState extends State<ChatScreen> {
                       child: _InputBar(
                         controller: _controller,
                         onSend: _send,
-                        isDm: conv.isDm,
                       ),
                     ),
                   ],
@@ -650,15 +650,10 @@ class _InputBar extends StatelessWidget {
   const _InputBar({
     required this.controller,
     required this.onSend,
-    required this.isDm,
   });
 
   final TextEditingController controller;
   final VoidCallback onSend;
-
-  /// Whether this conversation is a DM, whose outgoing messages carry the
-  /// E2E encryption envelope and so have a smaller effective text budget.
-  final bool isDm;
 
   @override
   Widget build(BuildContext context) {
@@ -674,8 +669,7 @@ class _InputBar extends StatelessWidget {
         child: ValueListenableBuilder<TextEditingValue>(
           valueListenable: controller,
           builder: (context, value, _) {
-            final budget =
-                _maxPayloadBytes - (isDm ? kDmEncryptionOverhead : 0);
+            const budget = _maxPayloadBytes - kEnvelopeOverhead;
             final remaining = budget - utf8.encode(value.text).length;
             final overLimit = remaining < 0;
             return Column(
