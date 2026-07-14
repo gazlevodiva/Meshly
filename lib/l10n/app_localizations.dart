@@ -284,6 +284,18 @@ abstract class AppLocalizations {
   /// **'Другое устройство'**
   String get otherDevice;
 
+  /// Heading of the pairing hint card shown while connecting for the first time
+  ///
+  /// In ru, this message translates to:
+  /// **'Запрос на сопряжение'**
+  String get pairingHintTitle;
+
+  /// Explains that the BLE pairing code is shown on the device screen and the system prompt may arrive as a notification
+  ///
+  /// In ru, this message translates to:
+  /// **'Введите код с экрана устройства. Если окно не появилось — проверьте шторку уведомлений.'**
+  String get pairingHintBody;
+
   /// No description provided for @onboardingTitle1.
   ///
   /// In ru, this message translates to:

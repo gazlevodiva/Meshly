@@ -44,6 +44,14 @@
   "deviceNotListed": "Device not in the list?",
   "connectingTo": "Connecting to {name}...",
   "otherDevice": "Another device",
+  "pairingHintTitle": "Pairing request",
+  "@pairingHintTitle": {
+    "description": "Heading of the pairing hint card shown while connecting for the first time"
+  },
+  "pairingHintBody": "Enter the code shown on your device's screen. If no dialog appears, check your notification shade.",
+  "@pairingHintBody": {
+    "description": "Explains that the BLE pairing code is shown on the device screen and the system prompt may arrive as a notification"
+  },
 
   "onboardingTitle1": "Communicate without internet\nor cellular service",
   "onboardingText1": "Messages travel directly between Meshtastic devices over radio. No plans, no cell towers — it works even where there is no coverage.",

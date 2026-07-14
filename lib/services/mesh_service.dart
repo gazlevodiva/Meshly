@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -82,6 +83,21 @@ class MeshService {
     deviceName.value = device.platformName.isNotEmpty
         ? device.platformName
         : device.remoteId.str;
+
+    // Характеристики Meshtastic зашифрованы: без сопряжения (bond) подписка
+    // на них зависает (setNotifyValue timeout). На Android явно инициируем
+    // сопряжение — это показывает системный запрос PIN (как в официальном
+    // приложении). iOS сопрягается сам при обращении к защищённой
+    // характеристике, там createBond недоступен.
+    if (Platform.isAndroid) {
+      final bond = await device.bondState.first.timeout(
+        const Duration(seconds: 2),
+        onTimeout: () => BluetoothBondState.none,
+      );
+      if (bond != BluetoothBondState.bonded) {
+        await device.createBond();
+      }
+    }
 
     final services = await device.discoverServices();
     final meshSvc = _findService(services, _meshServiceUuid);

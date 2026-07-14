@@ -106,6 +106,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get otherDevice => 'Другое устройство';
 
   @override
+  String get pairingHintTitle => 'Запрос на сопряжение';
+
+  @override
+  String get pairingHintBody =>
+      'Введите код с экрана устройства. Если окно не появилось — проверьте шторку уведомлений.';
+
+  @override
   String get onboardingTitle1 => 'Общайтесь без интернета\nи сотовой связи';
 
   @override

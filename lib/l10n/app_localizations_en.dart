@@ -105,6 +105,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get otherDevice => 'Another device';
 
   @override
+  String get pairingHintTitle => 'Pairing request';
+
+  @override
+  String get pairingHintBody =>
+      'Enter the code shown on your device\'s screen. If no dialog appears, check your notification shade.';
+
+  @override
   String get onboardingTitle1 =>
       'Communicate without internet\nor cellular service';
 

@@ -74,6 +74,14 @@
   "@otherDevice": {
     "description": "Button to cancel auto-connect and pick another device"
   },
+  "pairingHintTitle": "Запрос на сопряжение",
+  "@pairingHintTitle": {
+    "description": "Heading of the pairing hint card shown while connecting for the first time"
+  },
+  "pairingHintBody": "Введите код с экрана устройства. Если окно не появилось — проверьте шторку уведомлений.",
+  "@pairingHintBody": {
+    "description": "Explains that the BLE pairing code is shown on the device screen and the system prompt may arrive as a notification"
+  },
 
   "onboardingTitle1": "Общайтесь без интернета\nи сотовой связи",
   "onboardingText1": "Сообщения идут напрямую между устройствами Meshtastic по радио. Никаких тарифов и вышек — связь работает даже там, где нет сети.",

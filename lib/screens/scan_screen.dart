@@ -575,6 +575,46 @@ class _ScanScreenState extends State<ScanScreen> {
   Widget _buildConnecting() {
     return _buildConnectingBody(
       label: context.l10n.connectingTo(_connectingName ?? ''),
+      // Ручное подключение из списка — как правило первое сопряжение с
+      // устройством, поэтому напоминаем про системный запрос кода.
+      showPairingHint: true,
+    );
+  }
+
+  // Подсказка про сопряжение: поле ввода кода рисует ОС (заменить своим
+  // нельзя), но пользователь может пропустить системный запрос — он приходит
+  // и как уведомление. Объясняем, где взять код и куда смотреть.
+  Widget _buildPairingHint() {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s14),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(AppRadius.cardLarge),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _LeadingTile(icon: Icons.pin, color: scheme.primary),
+          const SizedBox(width: AppSpacing.s12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.l10n.pairingHintTitle,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: AppSpacing.s2),
+                Text(
+                  context.l10n.pairingHintBody,
+                  style: AppTextStyles.subtitle(context),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -620,7 +660,11 @@ class _ScanScreenState extends State<ScanScreen> {
     );
   }
 
-  Widget _buildConnectingBody({required String label, Widget? trailing}) {
+  Widget _buildConnectingBody({
+    required String label,
+    Widget? trailing,
+    bool showPairingHint = false,
+  }) {
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s32),
@@ -638,6 +682,10 @@ class _ScanScreenState extends State<ScanScreen> {
               style: AppTextStyles.hint(context),
               textAlign: TextAlign.center,
             ),
+            if (showPairingHint) ...[
+              const SizedBox(height: AppSpacing.s24),
+              _buildPairingHint(),
+            ],
             if (trailing != null) ...[
               const SizedBox(height: AppSpacing.s16),
               trailing,
