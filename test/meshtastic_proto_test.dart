@@ -381,5 +381,52 @@ void main() {
         returnsNormally,
       );
     });
+
+    // ── Fuzz / hostile input: parser must never throw ────────────
+    // A malformed packet in the air used to crash the receive pipeline:
+    // an oversized length-varint made sublist() throw RangeError (an Error,
+    // not an Exception, so `on Exception` wrappers didn't catch it).
+    group('malformed input never throws', () {
+      // FromRadio field2 = MeshPacket; inside, an inner length claims far
+      // more bytes than the buffer holds.
+      final oversizedLength = Uint8List.fromList([
+        0x12, 0x7F, // field2 (MeshPacket), length = 127
+        0x22, 0x7F, // field4 (Data), length = 127 — but only a few bytes follow
+        0x01, 0x02, 0x03,
+      ]);
+
+      final truncated = Uint8List.fromList([0x12]); // tag with no length/body
+      final empty = Uint8List(0);
+
+      final randomish = Uint8List.fromList(
+        List<int>.generate(64, (i) => (i * 37 + 13) & 0xFF),
+      );
+
+      final allContinuation = Uint8List.fromList(
+        List<int>.filled(20, 0x80), // varint continuation bytes forever
+      );
+
+      final cases = <String, Uint8List>{
+        'oversized length': oversizedLength,
+        'truncated tag': truncated,
+        'empty': empty,
+        'pseudo-random': randomish,
+        'endless varint': allContinuation,
+      };
+
+      for (final entry in cases.entries) {
+        test('no decoder throws on ${entry.key}', () {
+          final bytes = entry.value;
+          expect(() => MeshtasticProto.decodeFromRadio(bytes), returnsNormally);
+          expect(() => MeshtasticProto.extractSender(bytes), returnsNormally);
+          expect(
+            () => MeshtasticProto.decodeRoutingAck(bytes),
+            returnsNormally,
+          );
+          expect(() => MeshtasticProto.decodeMyNodeNum(bytes), returnsNormally);
+          expect(() => MeshtasticProto.decodeNodeInfo(bytes), returnsNormally);
+        });
+      }
+    });
   });
 }

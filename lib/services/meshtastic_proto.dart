@@ -332,6 +332,10 @@ class MeshtasticProto {
         final l = _decVarint(data, pos);
         pos = l.$2;
         final end = pos + l.$1;
+        // Length taken from untrusted bytes: reject if it overruns the
+        // buffer so sublist() cannot throw RangeError (an Error, which the
+        // `on Exception` wrappers would NOT catch).
+        if (end > data.length) return null;
         if (f == field) return Uint8List.fromList(data.sublist(pos, end));
         pos = end;
       } else if (wt == 5) {
@@ -363,7 +367,11 @@ class MeshtasticProto {
         pos = v.$2;
       } else if (wt == 2) {
         final l = _decVarint(data, pos);
-        pos = l.$2 + l.$1;
+        final end = l.$2 + l.$1;
+        // Malformed/oversized length from untrusted bytes: stop scanning
+        // instead of walking pos past the buffer.
+        if (end > data.length) break;
+        pos = end;
       } else if (wt == 5) {
         if (pos + 4 > data.length) break;
         pos += 4;
@@ -400,7 +408,11 @@ class MeshtasticProto {
         pos = v.$2;
       } else if (wt == 2) {
         final l = _decVarint(data, pos);
-        pos = l.$2 + l.$1;
+        final end = l.$2 + l.$1;
+        // Malformed/oversized length from untrusted bytes: stop scanning
+        // instead of walking pos past the buffer.
+        if (end > data.length) break;
+        pos = end;
       } else if (wt == 1) {
         if (pos + 8 > data.length) break;
         pos += 8;
@@ -420,6 +432,9 @@ class MeshtasticProto {
       result |= (b & 0x7F) << shift;
       if ((b & 0x80) == 0) break;
       shift += 7;
+      // A varint is at most 10 bytes (70 bits). Cap the shift so a stream
+      // of continuation bytes can't spin unboundedly on crafted input.
+      if (shift > 63) break;
     }
     return (result, currentPos);
   }
