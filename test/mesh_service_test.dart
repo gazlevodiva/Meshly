@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:meshly/models/contact.dart';
 import 'package:meshly/models/conversation.dart';
+import 'package:meshly/models/message.dart';
 import 'package:meshly/services/app_database.dart' hide Contact, Conversation;
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
@@ -88,6 +89,39 @@ void main() {
           final service = MeshService();
           final result = await service.sendText('hello', conv);
           expect(result, equals(SendResult.needsKey));
+        },
+      );
+    });
+
+    // ── Offline send: message must be kept, not silently lost ──────
+    // With no radio (_toRadio == null) sendText used to return sent
+    // without persisting anything. Now it stores the message as failed so
+    // the user sees it in the thread and can retry.
+    group('sendText while disconnected keeps the message', () {
+      final store = ContactStore.instance;
+
+      setUp(() async {
+        store.resetForTesting(AppDatabase.forTesting(NativeDatabase.memory()));
+        await store.init();
+      });
+
+      test(
+        'channel send with no radio persists a failed message and clears input',
+        () async {
+          final ch = await store.createChannel(name: 'Hikers', slotIndex: 1);
+          final conv = Conversation.channel(ch.id);
+
+          final service = MeshService();
+          final result = await service.sendText('are we there yet', conv);
+
+          // Returned sent so the UI clears the input field...
+          expect(result, equals(SendResult.sent));
+          // ...but the message is saved as failed, not lost.
+          final msgs = store.messagesFor(conv.id);
+          expect(msgs, hasLength(1));
+          expect(msgs.single.text, equals('are we there yet'));
+          expect(msgs.single.isMe, isTrue);
+          expect(msgs.single.status, equals(MessageStatus.failed));
         },
       );
     });

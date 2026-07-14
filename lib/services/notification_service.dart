@@ -1,6 +1,4 @@
-// Prints are used for notification debug logging.
-// ignore_for_file: avoid_print
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class NotificationService {
@@ -58,6 +56,6 @@ class NotificationService {
       ),
       payload: conversationId,
     );
-    print('[Notification] shown: $title — $body');
+    debugPrint('[Notification] shown for conversation $conversationId');
   }
 }

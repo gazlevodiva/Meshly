@@ -11,9 +11,6 @@ import 'package:meshly/services/meshtastic_proto.dart';
 import 'package:meshly/services/notification_service.dart';
 import 'package:meshly/services/notification_settings.dart';
 
-// Prints are used for BLE debug logging in MeshService.
-// ignore_for_file: avoid_print
-
 const _meshServiceUuid = '6ba1b218-15a8-461f-9fa8-5dcae273eafd';
 const _toRadioCharUuid = 'f75c76d2-129e-4dad-a1dd-7866124401e7';
 const _fromRadioCharUuid = '2c55e69e-4993-11ed-b878-0242ac120002';
@@ -141,7 +138,7 @@ class MeshService {
     // (вышел из зоны, разрядился) — отражаем это в UI.
     _connStateSub = device.connectionState.listen((state) {
       if (state == BluetoothConnectionState.disconnected) {
-        print('[BLE] device disconnected');
+        debugPrint('[BLE] device disconnected');
         _cleanupConnection();
       }
     });
@@ -187,7 +184,7 @@ class MeshService {
       // DM — только шифрованные: без публичного ключа контакта не отправляем.
       final peerKey = store.contactByNodeId(conv.peerId!)?.publicKey;
       if (peerKey == null) {
-        print(
+        debugPrint(
           '[Mesh] sendText: no public key for ${conv.peerId}, needs QR rescan',
         );
         return SendResult.needsKey;
@@ -203,7 +200,9 @@ class MeshService {
       // Канал: broadcast, нужный слот
       final ch = store.channelById(conv.channelId!);
       if (ch == null) {
-        print('[Mesh] sendText: channel ${conv.channelId} not found, aborting');
+        debugPrint(
+          '[Mesh] sendText: channel ${conv.channelId} not found, aborting',
+        );
         return SendResult.noChannel;
       }
       // Канал: собственный Meshly-AEAD (ключ из PSK канала), portnum
@@ -218,12 +217,30 @@ class MeshService {
       return SendResult.noChannel;
     }
 
-    if (_toRadio == null) return SendResult.sent;
-
     // Генерируем packet id заранее и передаём его в encodeTextMessage,
     // чтобы радио отправило пакет с НАШИМ id — тогда ROUTING ACK (request_id)
     // совпадёт с meshId сохранённого сообщения и статус обновится на acked.
     final msgId = DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF;
+
+    // Нет подключения к радио: не теряем текст пользователя. Сохраняем
+    // сообщение со статусом failed (видно в треде как неотправленное,
+    // ретрай по тапу уже реализован в chat_screen) и сообщаем UI, что
+    // ввод можно очистить (SendResult.sent).
+    if (_toRadio == null) {
+      final failedMsg = Message(
+        meshId: msgId,
+        fromNodeId: myNodeId ?? '!00000000',
+        conversationId: conv.id,
+        text: text,
+        time: DateTime.now(),
+        isMe: true,
+        status: MessageStatus.failed,
+      );
+      await store.addMessage(failedMsg);
+      _incomingController.add(failedMsg.copyWith());
+      return SendResult.sent;
+    }
+
     final encoded = MeshtasticProto.encodeTextMessage(
       text,
       to: toNode,
@@ -262,7 +279,7 @@ class MeshService {
         if (bytes.isEmpty) break;
         await _onBytesReceived(bytes);
       } on Exception catch (e) {
-        print('[BLE] drain error: $e');
+        debugPrint('[BLE] drain error: $e');
         break;
       }
     }
@@ -287,13 +304,15 @@ class MeshService {
     // NodeInfo — только логируем, имя контакта пользователь задаёт сам
     final nodeInfo = MeshtasticProto.decodeNodeInfo(bytes);
     if (nodeInfo != null) {
-      print('[Mesh] node ${nodeInfo.nodeId} = "${nodeInfo.longName}"');
+      debugPrint('[Mesh] node ${nodeInfo.nodeId} info received');
     }
 
     // ROUTING ACK (portnum=5) → обновляем статус сообщения
     final ack = MeshtasticProto.decodeRoutingAck(bytes);
     if (ack != null) {
-      print('[Mesh] routing ack meshId=${ack.meshId} error=${ack.errorCode}');
+      debugPrint(
+        '[Mesh] routing ack meshId=${ack.meshId} error=${ack.errorCode}',
+      );
       final status = ack.errorCode == 0
           ? MessageStatus.acked
           : MessageStatus.failed;
@@ -333,7 +352,7 @@ class MeshService {
     }
 
     if (conv == null) {
-      print(
+      debugPrint(
         '[Mesh] no conversation for fromNode=$fromNodeId slot=$channelSlot — ignoring',
       );
       return;
@@ -388,7 +407,9 @@ class MeshService {
 
     await store.addMessage(msg);
     _incomingController.add(msg.copyWith());
-    print('[Mesh] message in ${conv.id} from $fromNodeId: "${msg.text}"');
+    debugPrint(
+      '[Mesh] message in ${conv.id} from $fromNodeId (${msg.text.length} chars)',
+    );
 
     // Локальное уведомление для входящих сообщений
     if (!notify) return;
