@@ -413,7 +413,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get encryptionLabel => 'Шифрование';
 
   @override
-  String get encryptionValue => 'AES-256, уникальный ключ';
+  String get encryptionValue =>
+      'Сквозное шифрование, свой ключ у каждого канала';
 
   @override
   String get pskLabel => 'Ключ (PSK)';

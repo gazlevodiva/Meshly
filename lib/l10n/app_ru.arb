@@ -309,7 +309,7 @@
   },
   "shareQrToInvite": "Поделитесь QR-кодом чтобы пригласить участника",
   "encryptionLabel": "Шифрование",
-  "encryptionValue": "AES-256, уникальный ключ",
+  "encryptionValue": "Сквозное шифрование, свой ключ у каждого канала",
   "pskLabel": "Ключ (PSK)",
   "deleteChannelAction": "Удалить канал",
   "deleteChannelQuestion": "Удалить канал?",

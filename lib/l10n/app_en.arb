@@ -154,7 +154,7 @@
   "slotN": "Slot {slot}",
   "shareQrToInvite": "Share this QR code to invite a member",
   "encryptionLabel": "Encryption",
-  "encryptionValue": "AES-256, unique key",
+  "encryptionValue": "End-to-end encrypted, a unique key per channel",
   "pskLabel": "Key (PSK)",
   "deleteChannelAction": "Delete channel",
   "deleteChannelQuestion": "Delete channel?",

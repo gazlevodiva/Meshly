@@ -181,9 +181,22 @@ lib/
 These are accepted trade-offs, not bugs — see `README.md` → *Security &
 Privacy* for the user-facing version:
 
-- **DM privacy**: direct messages currently travel over the primary channel
-  (slot 0) using Meshtastic's default, well-known PSK. Anyone running
-  Meshtastic nearby can decrypt them. Don't treat DMs as private yet.
+- **DM/channel content is encrypted, metadata is not.** Both DMs and channel
+  messages are encrypted by Meshly's own AEAD layer (see *Meshly encryption*
+  above and `SECURITY.md`) and never travel in the clear over the air. What
+  is *not* protected is metadata: source/destination node IDs, timing, packet
+  size, and which slot a channel packet rides on are all visible to anyone
+  listening on the mesh.
+- **No forward secrecy.** Both DMs (static X25519 ECDH) and channels
+  (HKDF-of-PSK) use static long-term keys, not a ratchet — a compromised key
+  can retroactively decrypt past captured ciphertexts.
+- **In-channel forgery.** A channel key is a single group secret, so any
+  member can decrypt every message and forge a message that appears to come
+  from any other member — there is no per-sender authentication within a
+  channel.
+- **Plaintext local storage.** Decrypted message history and channel PSKs are
+  stored unencrypted in the local SQLite database, so device compromise still
+  exposes past conversations and channel keys.
 - **Channel ACKs**: a delivery ack in a group channel is only ever observed
   from the local radio's own transmission — there is no second "read by
   peer" checkmark for channels the way there is for DMs.

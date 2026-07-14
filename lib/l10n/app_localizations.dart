@@ -851,7 +851,7 @@ abstract class AppLocalizations {
   /// No description provided for @encryptionValue.
   ///
   /// In ru, this message translates to:
-  /// **'AES-256, уникальный ключ'**
+  /// **'Сквозное шифрование, свой ключ у каждого канала'**
   String get encryptionValue;
 
   /// No description provided for @pskLabel.

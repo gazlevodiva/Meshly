@@ -412,7 +412,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get encryptionLabel => 'Encryption';
 
   @override
-  String get encryptionValue => 'AES-256, unique key';
+  String get encryptionValue =>
+      'End-to-end encrypted, a unique key per channel';
 
   @override
   String get pskLabel => 'Key (PSK)';
