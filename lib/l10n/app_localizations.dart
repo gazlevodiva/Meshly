@@ -188,6 +188,12 @@ abstract class AppLocalizations {
   /// **'Ошибка подключения'**
   String get connectionErrorTitle;
 
+  /// Connection error dialog body shown when the tapped BLE device turns out not to be a Meshtastic radio (no Meshtastic service/characteristics)
+  ///
+  /// In ru, this message translates to:
+  /// **'Похоже, это не Meshtastic-устройство. Выберите другое из списка.'**
+  String get notMeshtasticDevice;
+
   /// Both the help bottom-sheet title and the footer link that opens it
   ///
   /// In ru, this message translates to:
@@ -271,6 +277,18 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Устройство не в списке?'**
   String get deviceNotListed;
+
+  /// Scan screen footer toggle: drop the Meshtastic filter and list every BLE device (escape hatch for uncommon/renamed boards)
+  ///
+  /// In ru, this message translates to:
+  /// **'Показать все устройства'**
+  String get showAllDevices;
+
+  /// Scan screen footer toggle: re-enable the Meshtastic-only device filter
+  ///
+  /// In ru, this message translates to:
+  /// **'Только Meshtastic'**
+  String get showMeshtasticOnly;
 
   /// Shown while connecting to a BLE device
   ///

@@ -55,6 +55,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get connectionErrorTitle => 'Ошибка подключения';
 
   @override
+  String get notMeshtasticDevice =>
+      'Похоже, это не Meshtastic-устройство. Выберите другое из списка.';
+
+  @override
   String get checkConnection => 'Проверьте подключение';
 
   @override
@@ -96,6 +100,12 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get deviceNotListed => 'Устройство не в списке?';
+
+  @override
+  String get showAllDevices => 'Показать все устройства';
+
+  @override
+  String get showMeshtasticOnly => 'Только Meshtastic';
 
   @override
   String connectingTo(String name) {

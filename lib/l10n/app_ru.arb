@@ -40,6 +40,10 @@
     "description": "Button (iOS) that opens system settings so the user can enable Bluetooth"
   },
   "connectionErrorTitle": "Ошибка подключения",
+  "notMeshtasticDevice": "Похоже, это не Meshtastic-устройство. Выберите другое из списка.",
+  "@notMeshtasticDevice": {
+    "description": "Connection error dialog body shown when the tapped BLE device turns out not to be a Meshtastic radio (no Meshtastic service/characteristics)"
+  },
   "checkConnection": "Проверьте подключение",
   "@checkConnection": {
     "description": "Both the help bottom-sheet title and the footer link that opens it"
@@ -60,6 +64,14 @@
   "availableDevices": "Доступные устройства",
   "searchingMeshtastic": "Ищем Meshtastic-устройства...",
   "deviceNotListed": "Устройство не в списке?",
+  "showAllDevices": "Показать все устройства",
+  "@showAllDevices": {
+    "description": "Scan screen footer toggle: drop the Meshtastic filter and list every BLE device (escape hatch for uncommon/renamed boards)"
+  },
+  "showMeshtasticOnly": "Только Meshtastic",
+  "@showMeshtasticOnly": {
+    "description": "Scan screen footer toggle: re-enable the Meshtastic-only device filter"
+  },
   "connectingTo": "Подключение к {name}...",
   "@connectingTo": {
     "description": "Shown while connecting to a BLE device",

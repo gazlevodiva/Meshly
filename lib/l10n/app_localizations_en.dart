@@ -54,6 +54,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get connectionErrorTitle => 'Connection error';
 
   @override
+  String get notMeshtasticDevice =>
+      'This doesn\'t look like a Meshtastic device. Pick another one from the list.';
+
+  @override
   String get checkConnection => 'Check the connection';
 
   @override
@@ -95,6 +99,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deviceNotListed => 'Device not in the list?';
+
+  @override
+  String get showAllDevices => 'Show all devices';
+
+  @override
+  String get showMeshtasticOnly => 'Meshtastic only';
 
   @override
   String connectingTo(String name) {

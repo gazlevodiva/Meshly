@@ -11,6 +11,49 @@ import 'package:meshly/widgets/sheet_drag_handle.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Известные паттерны в именах Meshtastic-девайсов (популярные борды и
+/// вендоры). Список щедрый намеренно: лучше показать лишний девайс, чем
+/// отсечь реальный Meshtastic-узел, у которого нетипичное имя.
+const _meshtasticNamePatterns = <String>[
+  'meshtastic',
+  'heltec',
+  't-beam',
+  'tbeam',
+  'rak',
+  'lilygo',
+  'station',
+  'tracker',
+  'sensor',
+  'm5stack',
+  'm5',
+  'nano',
+  'wismesh',
+  'seeed',
+  'xiao',
+];
+
+/// Чистая, тестируемая проверка: похоже ли BLE-устройство на Meshtastic.
+///
+/// Позитивный сигнал — ЛЮБОЙ из:
+///  - в advertised service UUID есть UUID Meshtastic-сервиса
+///    ([kMeshtasticServiceUuid]), сравнение без учёта регистра;
+///  - имя (lowercase) содержит один из [_meshtasticNamePatterns].
+///
+/// Пустое имя без совпадения по service UUID отбрасывается. Catch-all по
+/// RSSI намеренно убран — раньше он пропускал наушники/ТВ/часы.
+bool isLikelyMeshtasticDevice({
+  required String name,
+  required List<String> serviceUuids,
+}) {
+  final target = kMeshtasticServiceUuid.toLowerCase();
+  for (final u in serviceUuids) {
+    if (u.toLowerCase().contains(target)) return true;
+  }
+  if (name.isEmpty) return false;
+  final lower = name.toLowerCase();
+  return _meshtasticNamePatterns.any(lower.contains);
+}
+
 class ScanScreen extends StatefulWidget {
   const ScanScreen({
     required this.meshService,
@@ -45,20 +88,25 @@ class _ScanScreenState extends State<ScanScreen> {
   BluetoothAdapterState _adapterState = BluetoothAdapterState.unknown;
   StreamSubscription<BluetoothAdapterState>? _adapterSub;
 
+  // Аварийный люк: по умолчанию список фильтруется до Meshtastic-девайсов,
+  // но пользователь может показать ВСЕ устройства — на случай борда с
+  // нестандартным/переименованным именем, не рекламирующего service UUID.
+  bool _showAllDevices = false;
+
   List<ScanResult> get _results =>
       _resultsMap.values.where(_isRelevant).toList()
         ..sort((a, b) => b.rssi.compareTo(a.rssi));
 
   bool _isRelevant(ScanResult r) {
-    if (r.device.platformName.isEmpty) return false;
-    final name = r.device.platformName.toLowerCase();
-    if (name.contains('meshtastic') ||
-        name.contains('heltec') ||
-        name.contains('t-beam') ||
-        name.contains('rak')) {
-      return true;
-    }
-    return r.rssi > -90;
+    // В режиме «показать все» отсекаем только безымянные устройства
+    // (по ним всё равно нельзя понять, что это).
+    if (_showAllDevices) return r.device.platformName.isNotEmpty;
+    return isLikelyMeshtasticDevice(
+      name: r.device.platformName,
+      serviceUuids: r.advertisementData.serviceUuids
+          .map((g) => g.toString())
+          .toList(),
+    );
   }
 
   @override
@@ -251,6 +299,10 @@ class _ScanScreenState extends State<ScanScreen> {
         }
       }
     } on Exception catch (e) {
+      // Сырая ошибка (напр. список найденных сервисов при попытке
+      // подключиться к не-Meshtastic девайсу) — только в лог для разработчика.
+      // Пользователю показываем человечную локализованную подсказку.
+      debugPrint('[Scan] connect failed: $e');
       if (mounted) {
         setState(() => _state = _ScreenState.idle);
         unawaited(
@@ -258,7 +310,7 @@ class _ScanScreenState extends State<ScanScreen> {
             context: context,
             builder: (dialogContext) => AlertDialog(
               title: Text(dialogContext.l10n.connectionErrorTitle),
-              content: Text(e.toString().replaceFirst('Exception: ', '')),
+              content: Text(dialogContext.l10n.notMeshtasticDevice),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
@@ -516,6 +568,16 @@ class _ScanScreenState extends State<ScanScreen> {
         TextButton(
           onPressed: _showHelpSheet,
           child: Text(context.l10n.checkConnection),
+        ),
+        // Аварийный люк: показать все BLE-устройства, если нужный девайс
+        // не прошёл фильтр Meshtastic.
+        TextButton(
+          onPressed: () => setState(() => _showAllDevices = !_showAllDevices),
+          child: Text(
+            _showAllDevices
+                ? context.l10n.showMeshtasticOnly
+                : context.l10n.showAllDevices,
+          ),
         ),
       ],
     );

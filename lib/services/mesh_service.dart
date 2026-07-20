@@ -11,7 +11,11 @@ import 'package:meshly/services/meshtastic_proto.dart';
 import 'package:meshly/services/notification_service.dart';
 import 'package:meshly/services/notification_settings.dart';
 
-const _meshServiceUuid = '6ba1b218-15a8-461f-9fa8-5dcae273eafd';
+/// UUID BLE-сервиса Meshtastic. Публичный: экран сканирования использует
+/// его, чтобы отличать Meshtastic-девайсы от прочих BLE-устройств по
+/// advertised service UUID.
+const String kMeshtasticServiceUuid = '6ba1b218-15a8-461f-9fa8-5dcae273eafd';
+const String _meshServiceUuid = kMeshtasticServiceUuid;
 const _toRadioCharUuid = 'f75c76d2-129e-4dad-a1dd-7866124401e7';
 const _fromRadioCharUuid = '2c55e69e-4993-11ed-b878-0242ac120002';
 const _fromNumCharUuid = 'ed9da18c-a800-4f66-a670-aa7547e34453';
