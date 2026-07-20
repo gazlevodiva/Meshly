@@ -158,6 +158,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusNoConnection => 'No connection';
 
   @override
+  String get statusReconnecting => 'Reconnecting…';
+
+  @override
   String get emptyChatsTitle => 'No chats yet';
 
   @override

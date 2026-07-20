@@ -107,6 +107,10 @@
     "description": "Status pill: connected to a Meshtastic device"
   },
   "statusNoConnection": "Нет подключения",
+  "statusReconnecting": "Переподключение…",
+  "@statusReconnecting": {
+    "description": "Status pill: auto-reconnecting after a BLE drop"
+  },
   "emptyChatsTitle": "Пока нет чатов",
   "emptyChatsSubtitle": "Добавьте контакт или создайте канал",
 

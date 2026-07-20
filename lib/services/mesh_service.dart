@@ -29,6 +29,10 @@ const kUndecryptableSentinel = ' meshly:undecryptable';
 /// plaintext.
 enum SendResult { sent, needsKey, noChannel }
 
+/// Наблюдаемое состояние BLE-подключения к радио. Используется UI-пилюлей
+/// статуса и логикой авто-реконнекта.
+enum MeshConnectionStatus { disconnected, connecting, connected, reconnecting }
+
 class MeshService {
   BluetoothDevice? _device;
   BluetoothCharacteristic? _toRadio;
@@ -36,7 +40,13 @@ class MeshService {
   BluetoothCharacteristic? _fromNum;
   Timer? _pollTimer;
   StreamSubscription<BluetoothConnectionState>? _connStateSub;
+  StreamSubscription<List<int>>? _fromNumSub;
   bool _disposed = false;
+
+  // Авто-реконнект: намеренный disconnect() не должен триггерить петлю,
+  // а параллельные петли реконнекта запрещены.
+  bool _intentionalDisconnect = false;
+  bool _reconnecting = false;
 
   int? _myNodeNum;
   final Map<String, DateTime> _lastHeard = {};
@@ -59,6 +69,12 @@ class MeshService {
   // созданные ПОСЛЕ connect()) сразу видят текущее значение.
   final ValueNotifier<String?> deviceName = ValueNotifier(null);
 
+  // Наблюдаемый статус подключения. deviceName сохраняем для обратной
+  // совместимости UI; оба обновляются согласованно.
+  final ValueNotifier<MeshConnectionStatus> connectionStatus = ValueNotifier(
+    MeshConnectionStatus.disconnected,
+  );
+
   String? get myNodeId => _myNodeNum != null
       ? '!${_myNodeNum!.toRadixString(16).padLeft(8, '0')}'
       : null;
@@ -75,6 +91,12 @@ class MeshService {
   Future<void> stopScan() => FlutterBluePlus.stopScan();
 
   Future<void> connect(BluetoothDevice device) async {
+    _intentionalDisconnect = false;
+    // Если это попытка из петли реконнекта — сохраняем reconnecting, чтобы
+    // пилюля статуса не мигала между connecting/reconnecting.
+    if (connectionStatus.value != MeshConnectionStatus.reconnecting) {
+      connectionStatus.value = MeshConnectionStatus.connecting;
+    }
     await device.connect(license: License.nonprofit);
     _device = device;
     deviceName.value = device.platformName.isNotEmpty
@@ -122,9 +144,7 @@ class MeshService {
 
     if (_fromNum != null) {
       await _fromNum!.setNotifyValue(true);
-      unawaited(
-        _fromNum!.onValueReceived.listen((_) => _drainFromRadio()).asFuture(),
-      );
+      _fromNumSub = _fromNum!.onValueReceived.listen((_) => _drainFromRadio());
     }
 
     await _toRadio!.write(MeshtasticProto.encodeWantConfig());
@@ -134,14 +154,48 @@ class MeshService {
       (_) => _drainFromRadio(),
     );
 
+    // Подключение состоялось — характеристики найдены, подписки живут.
+    connectionStatus.value = MeshConnectionStatus.connected;
+
     // Следим за реальным BLE-состоянием: если девайс отвалился
-    // (вышел из зоны, разрядился) — отражаем это в UI.
+    // (вышел из зоны, разрядился) — отражаем это в UI и запускаем
+    // авто-реконнект (если разрыв не был намеренным).
     _connStateSub = device.connectionState.listen((state) {
       if (state == BluetoothConnectionState.disconnected) {
         debugPrint('[BLE] device disconnected');
+        final d = _device;
         _cleanupConnection();
+        if (!_disposed && !_intentionalDisconnect && d != null) {
+          unawaited(_reconnectLoop(d));
+        }
       }
     });
+  }
+
+  // Бесконечная петля переподключения с экспоненциальным backoff
+  // (2/4/8/16с, дальше cap 30с). Прерывается намеренным disconnect() или
+  // dispose(). Гвард _reconnecting не даёт запустить две петли параллельно.
+  Future<void> _reconnectLoop(BluetoothDevice device) async {
+    if (_reconnecting) return;
+    _reconnecting = true;
+    connectionStatus.value = MeshConnectionStatus.reconnecting;
+    var attempt = 0;
+    try {
+      while (true) {
+        final seconds = attempt < 4 ? (1 << (attempt + 1)) : 30;
+        attempt++;
+        await Future<void>.delayed(Duration(seconds: seconds));
+        if (_disposed || _intentionalDisconnect) break;
+        try {
+          await connect(device);
+          return; // connect() сам выставил connected
+        } on Exception catch (e) {
+          debugPrint('[BLE] reconnect attempt failed: $e');
+        }
+      }
+    } finally {
+      _reconnecting = false;
+    }
   }
 
   // Отправить сырые байты в ToRadio (для AdminMessage и др.)
@@ -151,8 +205,12 @@ class MeshService {
   }
 
   Future<void> disconnect() async {
+    // Намеренный разрыв: флаг гасит петлю реконнекта (и прерывает её
+    // ожидание backoff), слушатель connectionState её не перезапустит.
+    _intentionalDisconnect = true;
     final device = _device;
     _cleanupConnection();
+    if (!_disposed) connectionStatus.value = MeshConnectionStatus.disconnected;
     await device?.disconnect();
   }
 
@@ -163,6 +221,8 @@ class MeshService {
   void _cleanupConnection() {
     unawaited(_connStateSub?.cancel());
     _connStateSub = null;
+    unawaited(_fromNumSub?.cancel());
+    _fromNumSub = null;
     _pollTimer?.cancel();
     _pollTimer = null;
     _device = null;
@@ -467,10 +527,15 @@ class MeshService {
 
   void dispose() {
     _disposed = true;
+    _intentionalDisconnect = true;
+    connectionStatus.value = MeshConnectionStatus.disconnected;
     unawaited(_connStateSub?.cancel());
     _connStateSub = null;
+    unawaited(_fromNumSub?.cancel());
+    _fromNumSub = null;
     _pollTimer?.cancel();
     unawaited(_incomingController.close());
     deviceName.dispose();
+    connectionStatus.dispose();
   }
 }

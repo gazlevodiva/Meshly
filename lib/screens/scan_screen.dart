@@ -15,11 +15,18 @@ class ScanScreen extends StatefulWidget {
   const ScanScreen({
     required this.meshService,
     this.isReconnect = false,
+    this.autoConnect = true,
     super.key,
   });
 
   final MeshService meshService;
   final bool isReconnect;
+
+  // Пытаться ли автоматически подключиться к последнему устройству при
+  // открытии экрана. Отключаем при переходе после НАМЕРЕННОГО disconnect,
+  // иначе экран тут же переподключится к тому же девайсу (last_device_id
+  // сохраняется для следующего запуска, но сейчас реконнект не нужен).
+  final bool autoConnect;
 
   @override
   State<ScanScreen> createState() => _ScanScreenState();
@@ -65,8 +72,9 @@ class _ScanScreenState extends State<ScanScreen> {
       onError: (Object _) {},
     );
     // Не запускаем автоподключение при заведомо выключенном BT — сначала
-    // пользователь включит адаптер (см. _onAdapterState).
-    if (_adapterState != BluetoothAdapterState.off) {
+    // пользователь включит адаптер (см. _onAdapterState). И не запускаем,
+    // если экран открыт после намеренного disconnect (autoConnect=false).
+    if (widget.autoConnect && _adapterState != BluetoothAdapterState.off) {
       unawaited(_tryAutoConnect());
     }
   }
@@ -82,8 +90,9 @@ class _ScanScreenState extends State<ScanScreen> {
     final wasOff = _adapterState == BluetoothAdapterState.off;
     setState(() => _adapterState = s);
     // BT только что включили с экрана «Bluetooth выключен» — возобновляем
-    // автоподключение к последнему устройству.
-    if (wasOff &&
+    // автоподключение к последнему устройству (если оно вообще разрешено).
+    if (widget.autoConnect &&
+        wasOff &&
         s == BluetoothAdapterState.on &&
         _state == _ScreenState.idle) {
       unawaited(_tryAutoConnect());

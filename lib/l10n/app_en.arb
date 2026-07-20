@@ -68,6 +68,7 @@
   "myContact": "My contact",
   "statusConnected": "Connected",
   "statusNoConnection": "No connection",
+  "statusReconnecting": "Reconnecting…",
   "emptyChatsTitle": "No chats yet",
   "emptyChatsSubtitle": "Add a contact or create a channel",
 

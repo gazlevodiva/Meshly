@@ -158,6 +158,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get statusNoConnection => 'Нет подключения';
 
   @override
+  String get statusReconnecting => 'Переподключение…';
+
+  @override
   String get emptyChatsTitle => 'Пока нет чатов';
 
   @override

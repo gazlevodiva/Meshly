@@ -38,7 +38,9 @@ class _HomeScreenState extends State<HomeScreen> {
     // but HomeScreen itself reacts to ContactStore notifications.
     NotificationService.instance.onNotificationTap = (convId) {
       if (!mounted) return;
-      final conv = _store.conversations.where((c) => c.id == convId).firstOrNull;
+      final conv = _store.conversations
+          .where((c) => c.id == convId)
+          .firstOrNull;
       if (conv != null) _openChat(conv);
     };
   }
@@ -86,28 +88,32 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openScan() {
-    unawaited(Navigator.push<void>(
-      context,
-      MaterialPageRoute<void>(
-        builder: (_) => ScanScreen(
-          meshService: widget.meshService,
-          isReconnect: true,
+    unawaited(
+      Navigator.push<void>(
+        context,
+        MaterialPageRoute<void>(
+          builder: (_) => ScanScreen(
+            meshService: widget.meshService,
+            isReconnect: true,
+          ),
         ),
       ),
-    ));
+    );
   }
 
   void _openChat(Conversation conv) {
     unawaited(_store.markRead(conv.id));
-    unawaited(Navigator.push<void>(
-      context,
-      MaterialPageRoute<void>(
-        builder: (_) => ChatScreen(
-          meshService: widget.meshService,
-          conversation: conv,
+    unawaited(
+      Navigator.push<void>(
+        context,
+        MaterialPageRoute<void>(
+          builder: (_) => ChatScreen(
+            meshService: widget.meshService,
+            conversation: conv,
+          ),
         ),
       ),
-    ));
+    );
     // No setState needed — ContactStore.notifyListeners() triggers rebuild.
   }
 
@@ -120,8 +126,12 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(AppSpacing.s20,
-                    AppSpacing.s12, AppSpacing.s20, AppSpacing.s12),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.s20,
+                  AppSpacing.s12,
+                  AppSpacing.s20,
+                  AppSpacing.s12,
+                ),
                 child: _searching
                     ? TabSearchRow(
                         controller: _searchController,
@@ -152,9 +162,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     final convs = query.isEmpty
                         ? _conversations
                         : _conversations
-                            .where((c) =>
-                                _titleFor(c).toLowerCase().contains(query))
-                            .toList();
+                              .where(
+                                (c) =>
+                                    _titleFor(c).toLowerCase().contains(query),
+                              )
+                              .toList();
                     if (convs.isEmpty) {
                       return query.isNotEmpty
                           ? Center(
@@ -164,14 +176,16 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             )
                           : _EmptyState(
-                              onAddContact: () => _showAddOptions(context));
+                              onAddContact: () => _showAddOptions(context),
+                            );
                     }
                     return ListView.separated(
                       padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.s16,
-                          AppSpacing.s4,
-                          AppSpacing.s16,
-                          AppSpacing.listBottomPadding),
+                        AppSpacing.s16,
+                        AppSpacing.s4,
+                        AppSpacing.s16,
+                        AppSpacing.listBottomPadding,
+                      ),
                       itemCount: convs.length,
                       separatorBuilder: (_, _) =>
                           const SizedBox(height: AppSpacing.s10),
@@ -182,7 +196,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           conv: conv,
                           title: _titleFor(conv),
                           emoji: _emojiFor(conv),
-                          isOnline: peerId != null &&
+                          isOnline:
+                              peerId != null &&
                               widget.meshService.isOnline(peerId),
                           lastHeard: peerId != null
                               ? widget.meshService.lastHeardFor(peerId)
@@ -202,56 +217,65 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showAddOptions(BuildContext context) {
-    unawaited(showModalBottomSheet(
-      context: context,
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.person_add),
-              title: Text(context.l10n.addContact),
-              onTap: () {
-                Navigator.pop(context);
-                unawaited(Navigator.push<void>(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (_) => const AddContactScreen(),
-                  ),
-                ));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.group_add),
-              title: Text(context.l10n.createChannel),
-              onTap: () {
-                Navigator.pop(context);
-                unawaited(Navigator.push<void>(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (_) =>
-                        NewChannelScreen(meshService: widget.meshService),
-                  ),
-                ));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.qr_code),
-              title: Text(context.l10n.myContact),
-              onTap: () {
-                Navigator.pop(context);
-                unawaited(Navigator.push<void>(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (_) => MyCardScreen(meshService: widget.meshService),
-                  ),
-                ));
-              },
-            ),
-          ],
+    unawaited(
+      showModalBottomSheet(
+        context: context,
+        builder: (_) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.person_add),
+                title: Text(context.l10n.addContact),
+                onTap: () {
+                  Navigator.pop(context);
+                  unawaited(
+                    Navigator.push<void>(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (_) => const AddContactScreen(),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.group_add),
+                title: Text(context.l10n.createChannel),
+                onTap: () {
+                  Navigator.pop(context);
+                  unawaited(
+                    Navigator.push<void>(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (_) =>
+                            NewChannelScreen(meshService: widget.meshService),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.qr_code),
+                title: Text(context.l10n.myContact),
+                onTap: () {
+                  Navigator.pop(context);
+                  unawaited(
+                    Navigator.push<void>(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (_) =>
+                            MyCardScreen(meshService: widget.meshService),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
-    ));
+    );
   }
 }
 
@@ -267,19 +291,40 @@ class _StatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(AppRadius.pill);
-    return ValueListenableBuilder<String?>(
-      valueListenable: meshService.deviceName,
-      builder: (context, deviceName, _) {
-        final connected = deviceName != null;
+    return ValueListenableBuilder<MeshConnectionStatus>(
+      valueListenable: meshService.connectionStatus,
+      builder: (context, status, _) {
+        final connected = status == MeshConnectionStatus.connected;
+        final reconnecting = status == MeshConnectionStatus.reconnecting;
         final scheme = Theme.of(context).colorScheme;
+
+        // Фон и цвета зависят от статуса: подключено — нейтральный контейнер,
+        // переподключение — тот же нейтральный (акцент несёт точка/текст),
+        // нет связи — errorContainer.
+        final background = connected || reconnecting
+            ? scheme.surfaceContainer
+            : scheme.errorContainer;
+        final dotColor = connected
+            ? context.appColors.online
+            : reconnecting
+            ? context.appColors.warning
+            : context.appColors.danger;
+        final textColor = connected || reconnecting
+            ? scheme.onSurface
+            : scheme.onErrorContainer;
+        final label = connected
+            ? context.l10n.statusConnected
+            : reconnecting
+            ? context.l10n.statusReconnecting
+            : context.l10n.statusNoConnection;
+
         return Row(
           children: [
             Material(
-              color: connected
-                  ? scheme.surfaceContainer
-                  : scheme.errorContainer,
+              color: background,
               borderRadius: radius,
               child: InkWell(
+                // Ручной реконнект доступен, пока не подключены.
                 onTap: connected ? null : onReconnect,
                 borderRadius: radius,
                 child: Padding(
@@ -290,25 +335,29 @@ class _StatusPill extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        width: AppSizes.statusDotSmall,
-                        height: AppSizes.statusDotSmall,
-                        decoration: BoxDecoration(
-                          color: connected
-                              ? context.appColors.online
-                              : context.appColors.danger,
-                          shape: BoxShape.circle,
+                      if (reconnecting)
+                        SizedBox(
+                          width: AppSizes.statusDotSmall,
+                          height: AppSizes.statusDotSmall,
+                          child: CircularProgressIndicator(
+                            strokeWidth: AppSizes.spinnerStroke,
+                            color: context.appColors.warning,
+                          ),
+                        )
+                      else
+                        Container(
+                          width: AppSizes.statusDotSmall,
+                          height: AppSizes.statusDotSmall,
+                          decoration: BoxDecoration(
+                            color: dotColor,
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                      ),
                       const SizedBox(width: AppSpacing.s6),
                       Text(
-                        connected
-                            ? context.l10n.statusConnected
-                            : context.l10n.statusNoConnection,
+                        label,
                         style: AppTextStyles.statusPill.copyWith(
-                          color: connected
-                              ? scheme.onSurface
-                              : scheme.onErrorContainer,
+                          color: textColor,
                         ),
                       ),
                     ],
@@ -320,7 +369,7 @@ class _StatusPill extends StatelessWidget {
               const SizedBox(width: AppSpacing.s10),
               Expanded(
                 child: Text(
-                  deviceName,
+                  meshService.deviceName.value ?? '',
                   style: AppTextStyles.caption(context),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

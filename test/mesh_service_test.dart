@@ -57,6 +57,38 @@ void main() {
       expect(service.deviceName.value, isNull);
     });
 
+    // ── Auto-reconnect: connectionStatus observable ─────────────
+    test('fresh instance starts disconnected', () {
+      final service = MeshService();
+      expect(
+        service.connectionStatus.value,
+        equals(MeshConnectionStatus.disconnected),
+      );
+    });
+
+    test(
+      'disconnect() on a non-connected instance leaves status disconnected '
+      'and does not throw',
+      () async {
+        final service = MeshService();
+        await expectLater(service.disconnect(), completes);
+        expect(
+          service.connectionStatus.value,
+          equals(MeshConnectionStatus.disconnected),
+        );
+        expect(service.isConnected, isFalse);
+      },
+    );
+
+    test('dispose leaves status disconnected and does not throw', () {
+      final service = MeshService();
+      expect(service.dispose, returnsNormally);
+      expect(
+        service.connectionStatus.value,
+        equals(MeshConnectionStatus.disconnected),
+      );
+    });
+
     // ── Phase 3: sendText DM-without-key guard ──────────────
     // No BLE radio needed: sendText checks the peer's publicKey before it
     // ever touches _toRadio, so this works against a disconnected instance.

@@ -380,6 +380,12 @@ abstract class AppLocalizations {
   /// **'Нет подключения'**
   String get statusNoConnection;
 
+  /// Status pill: auto-reconnecting after a BLE drop
+  ///
+  /// In ru, this message translates to:
+  /// **'Переподключение…'**
+  String get statusReconnecting;
+
   /// No description provided for @emptyChatsTitle.
   ///
   /// In ru, this message translates to:
