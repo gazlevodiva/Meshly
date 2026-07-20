@@ -3,7 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:meshly/l10n/app_localizations.dart';
 import 'package:meshly/models/conversation.dart';
 import 'package:meshly/screens/chat_screen.dart';
-import 'package:meshly/services/mesh_service.dart';
+import 'package:meshly/services/mesh_service.dart'
+    show MeshConnectionStatus, MeshService;
 
 void main() {
   Future<MeshService> pumpChat(WidgetTester tester) async {
@@ -65,4 +66,27 @@ void main() {
       mesh.dispose();
     },
   );
+
+  testWidgets('shows the no-connection banner and hides it once connected', (
+    tester,
+  ) async {
+    // Fresh MeshService defaults to disconnected → banner visible.
+    final mesh = await pumpChat(tester);
+    expect(find.text('Нет подключения'), findsOneWidget);
+
+    // Reconnecting swaps the label.
+    mesh.connectionStatus.value = MeshConnectionStatus.reconnecting;
+    await tester.pump();
+    expect(find.text('Нет подключения'), findsNothing);
+    expect(find.text('Переподключение…'), findsOneWidget);
+
+    // Connected collapses the banner entirely.
+    mesh.connectionStatus.value = MeshConnectionStatus.connected;
+    await tester.pump();
+    expect(find.text('Нет подключения'), findsNothing);
+    expect(find.text('Переподключение…'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox());
+    mesh.dispose();
+  });
 }

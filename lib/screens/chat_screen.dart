@@ -243,6 +243,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     ],
                   ),
                 ),
+              _ConnectionBanner(meshService: widget.meshService),
               Expanded(
                 // The input bar floats over the list: messages scroll
                 // behind it, so the list gets extra bottom padding.
@@ -427,6 +428,76 @@ class _ChatScreenState extends State<ChatScreen> {
           ?action,
         ],
       ),
+    );
+  }
+}
+
+/// Full-width slim banner pinned to the top of the message list while the
+/// radio link is down, so the user sees they are writing "into the void".
+/// Collapses to zero height when connected. Reuses the same tokens/colors as
+/// the home-screen status pill (warning while reconnecting, error otherwise).
+class _ConnectionBanner extends StatelessWidget {
+  const _ConnectionBanner({required this.meshService});
+
+  final MeshService meshService;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<MeshConnectionStatus>(
+      valueListenable: meshService.connectionStatus,
+      builder: (context, status, _) {
+        if (status == MeshConnectionStatus.connected) {
+          return const SizedBox.shrink();
+        }
+        final scheme = Theme.of(context).colorScheme;
+        final reconnecting = status == MeshConnectionStatus.reconnecting;
+        final background = reconnecting
+            ? scheme.surfaceContainer
+            : scheme.errorContainer;
+        final textColor = reconnecting
+            ? scheme.onSurface
+            : scheme.onErrorContainer;
+        final label = reconnecting
+            ? context.l10n.statusReconnecting
+            : context.l10n.statusNoConnection;
+
+        return Container(
+          width: double.infinity,
+          color: background,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.s16,
+            vertical: AppSpacing.s8,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (reconnecting)
+                SizedBox(
+                  width: AppSizes.statusDotSmall,
+                  height: AppSizes.statusDotSmall,
+                  child: CircularProgressIndicator(
+                    strokeWidth: AppSizes.spinnerStroke,
+                    color: context.appColors.warning,
+                  ),
+                )
+              else
+                Container(
+                  width: AppSizes.statusDotSmall,
+                  height: AppSizes.statusDotSmall,
+                  decoration: BoxDecoration(
+                    color: context.appColors.danger,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              const SizedBox(width: AppSpacing.s8),
+              Text(
+                label,
+                style: AppTextStyles.statusPill.copyWith(color: textColor),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
