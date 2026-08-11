@@ -11,6 +11,18 @@ import 'package:meshly/models/mesh_channel.dart';
 class QrService {
   static const _scheme = 'mesh';
 
+  /// X25519 public keys are exactly this long. A QR claiming any other length
+  /// is malformed or hostile: the crypto library answers a wrong-sized key
+  /// with an [ArgumentError] — an [Error], not an [Exception] — which sails
+  /// straight through the `on Exception` handlers on the radio and send
+  /// paths and takes the whole loop down. Rejected here, at the only place
+  /// key bytes enter the app.
+  static const int _publicKeyLength = 32;
+
+  /// Channel PSK sizes accepted by the AEAD key derivation (AES-128/AES-256
+  /// sized secrets). Same reasoning as [_publicKeyLength].
+  static const Set<int> _pskLengths = {16, 32};
+
   // ── Encode ────────────────────────────────────────────────
 
   static String encodeContact(Contact c, {String? myNodeId}) {
@@ -50,13 +62,25 @@ class QrService {
           : null;
       if (nodeId == null || !nodeId.startsWith('!')) return null;
       final pkStr = uri.queryParameters['pk'];
+      Uint8List? publicKey;
+      if (pkStr != null) {
+        publicKey = base64Url.decode(pkStr);
+        // A QR that carries a key at all must carry a usable one: silently
+        // dropping just the key would store the contact as "no key yet" and
+        // hide a corrupted/hostile code behind a confusing UX.
+        if (publicKey.length != _publicKeyLength) return null;
+      }
       return ContactQrData(
         nodeId: nodeId,
         displayName: uri.queryParameters['name'] ?? nodeId,
         avatarEmoji: uri.queryParameters['emoji'],
-        publicKey: pkStr != null ? base64Url.decode(pkStr) : null,
+        publicKey: publicKey,
       );
-    } on Exception catch (_) {
+      // Also catches Error: base64Url.decode raises FormatException, but the
+      // length guard above is the only thing standing between a QR and the
+      // crypto library's ArgumentError, so nothing here may escape.
+      // ignore: avoid_catches_without_on_clauses
+    } catch (_) {
       return null;
     }
   }
@@ -71,13 +95,17 @@ class QrService {
       if (name == null || pskStr == null || slotStr == null) return null;
       final slotIndex = int.tryParse(slotStr);
       if (slotIndex == null || slotIndex < 1 || slotIndex > 7) return null;
+      final psk = base64Url.decode(pskStr);
+      if (!_pskLengths.contains(psk.length)) return null;
       return ChannelQrData(
         name: name,
-        psk: base64Url.decode(pskStr),
+        psk: psk,
         slotIndex: slotIndex,
         avatarEmoji: uri.queryParameters['emoji'],
       );
-    } on Exception catch (_) {
+      // See decodeContact: nothing from a QR may escape, Error included.
+      // ignore: avoid_catches_without_on_clauses
+    } catch (_) {
       return null;
     }
   }

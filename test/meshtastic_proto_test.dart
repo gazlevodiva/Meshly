@@ -1,6 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:meshly/services/crypto_service.dart'
+    show isKeyMismatchNotice, keyMismatchNoticePayload;
 import 'package:meshly/services/meshtastic_proto.dart';
 
 void main() {
@@ -322,6 +324,28 @@ void main() {
         expect(result.portnum, equals(MeshtasticProto.PRIVATE_APP));
         expect(result.rawPayload, equals(envelope));
         // Encrypted envelopes are never exposed as `text`.
+        expect(result.text, isNull);
+      },
+    );
+
+    // ── Key-mismatch service packet ────────────────────────
+    test(
+      'key mismatch notice round-trips as a 1-byte PRIVATE_APP payload',
+      () {
+        final toRadio = MeshtasticProto.encodeTextMessage(
+          '',
+          fromNode: 0x1f8e42c9,
+          to: 0x22222222,
+          portnum: MeshtasticProto.PRIVATE_APP,
+          rawPayload: keyMismatchNoticePayload(),
+        );
+        final result = MeshtasticProto.decodeFromRadio(toFromRadio(toRadio));
+
+        expect(result.portnum, equals(MeshtasticProto.PRIVATE_APP));
+        expect(result.rawPayload, hasLength(1));
+        expect(isKeyMismatchNotice(result.rawPayload), isTrue);
+        expect(result.isDm, isTrue);
+        // No text is ever exposed for it.
         expect(result.text, isNull);
       },
     );

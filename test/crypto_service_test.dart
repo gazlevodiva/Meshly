@@ -326,4 +326,286 @@ void main() {
       );
     });
   });
+
+  // ── Key-mismatch service packet [0x02] ──────────────────────
+  group('key mismatch notice', () {
+    test('payload is exactly one byte 0x02 — no key material', () {
+      final payload = keyMismatchNoticePayload();
+      expect(payload, hasLength(1));
+      expect(payload.single, equals(kKeyMismatchNoticeVersion));
+      expect(kKeyMismatchNoticeVersion, isNot(equals(kMessageEnvelopeVersion)));
+    });
+
+    test('isKeyMismatchNotice recognizes it and nothing else', () async {
+      expect(isKeyMismatchNotice(keyMismatchNoticePayload()), isTrue);
+      expect(isKeyMismatchNotice(null), isFalse);
+      expect(isKeyMismatchNotice(<int>[]), isFalse);
+      // A regular message envelope starts with 0x01 and is far longer.
+      expect(isKeyMismatchNotice(const [kMessageEnvelopeVersion]), isFalse);
+      expect(isKeyMismatchNotice(const [0x02, 0x02]), isFalse);
+
+      final (alicePriv, _) = await keyPair();
+      final (_, bobPub) = await keyPair();
+      final envelope = await crypto.encryptFor(
+        myPrivateKey: alicePriv,
+        peerPublicKey: bobPub,
+        plaintext: 'обычное сообщение',
+      );
+      expect(isKeyMismatchNotice(envelope), isFalse);
+    });
+
+    test('the notice never decrypts as a message (DM or channel)', () async {
+      final (alicePriv, alicePub) = await keyPair();
+      final (bobPriv, _) = await keyPair();
+      final notice = keyMismatchNoticePayload();
+
+      expect(
+        await crypto.decryptFrom(
+          myPrivateKey: bobPriv,
+          senderPublicKey: alicePub,
+          envelope: notice,
+        ),
+        isNull,
+      );
+      expect(
+        await crypto.decryptForChannel(
+          psk: List<int>.filled(32, 7),
+          envelope: notice,
+        ),
+        isNull,
+      );
+      // Even a version-0x02 payload padded to a plausible envelope length
+      // stays unreadable: the version byte is checked, not just the size.
+      final padded = Uint8List.fromList([
+        kKeyMismatchNoticeVersion,
+        ...List<int>.filled(40, 0),
+      ]);
+      expect(
+        await crypto.decryptFrom(
+          myPrivateKey: alicePriv,
+          senderPublicKey: alicePub,
+          envelope: padded,
+        ),
+        isNull,
+      );
+    });
+  });
+
+  group('key verify handshake (0x03 ping / 0x04 ack)', () {
+    tearDown(crypto.resetForTesting);
+
+    // Builds a ping/ack as [me] addressed to [peerPub].
+    Future<Uint8List> buildAs(
+      (Uint8List, Uint8List) me,
+      Uint8List peerPub, {
+      required bool ping,
+    }) async {
+      crypto.setIdentityForTesting(me.$1, me.$2);
+      return ping
+          ? crypto.buildKeyVerifyPing(peerPub)
+          : crypto.buildKeyVerifyAck(peerPub);
+    }
+
+    Future<bool> verifyAs(
+      (Uint8List, Uint8List) me,
+      Uint8List senderPub,
+      Uint8List payload,
+    ) {
+      crypto.setIdentityForTesting(me.$1, me.$2);
+      return crypto.verifyControlPacket(
+        senderPublicKey: senderPub,
+        payload: payload,
+      );
+    }
+
+    test(
+      'ping and ack carry their version byte over a real envelope',
+      () async {
+        final alice = await keyPair();
+        final bob = await keyPair();
+
+        final ping = await buildAs(alice, bob.$2, ping: true);
+        final ack = await buildAs(alice, bob.$2, ping: false);
+
+        expect(ping.first, equals(kKeyVerifyPingVersion));
+        expect(ack.first, equals(kKeyVerifyAckVersion));
+        // [version][0x01][nonce:24][ct+mac] — the payload underneath is a
+        // regular envelope, so it starts with the message version byte.
+        expect(ping[1], equals(kMessageEnvelopeVersion));
+        expect(ack[1], equals(kMessageEnvelopeVersion));
+        expect(ping.length, greaterThan(1 + 1 + 24 + 16));
+      },
+    );
+
+    test('recognisers tell ping, ack and the notice apart', () async {
+      final alice = await keyPair();
+      final bob = await keyPair();
+      final ping = await buildAs(alice, bob.$2, ping: true);
+      final ack = await buildAs(alice, bob.$2, ping: false);
+
+      expect(isKeyVerifyPing(ping), isTrue);
+      expect(isKeyVerifyAck(ping), isFalse);
+      expect(isKeyVerifyAck(ack), isTrue);
+      expect(isKeyVerifyPing(ack), isFalse);
+
+      // Neither is the [0x02] notice, and the notice is neither of them.
+      expect(isKeyMismatchNotice(ping), isFalse);
+      expect(isKeyMismatchNotice(ack), isFalse);
+      expect(isKeyVerifyPing(keyMismatchNoticePayload()), isFalse);
+      expect(isKeyVerifyAck(keyMismatchNoticePayload()), isFalse);
+
+      // Nothing else passes: null, empty, a bare version byte, a message.
+      expect(isKeyVerifyPing(null), isFalse);
+      expect(isKeyVerifyPing(<int>[]), isFalse);
+      expect(isKeyVerifyPing(const [kKeyVerifyPingVersion]), isFalse);
+      expect(isKeyVerifyAck(const [kKeyVerifyAckVersion]), isFalse);
+      expect(isKeyVerifyPing(const [kMessageEnvelopeVersion, 0x00]), isFalse);
+    });
+
+    test('verifyControlPacket: true for the matching keypair', () async {
+      final alice = await keyPair();
+      final bob = await keyPair();
+
+      final ping = await buildAs(alice, bob.$2, ping: true);
+      expect(await verifyAs(bob, alice.$2, ping), isTrue);
+
+      final ack = await buildAs(bob, alice.$2, ping: false);
+      expect(await verifyAs(alice, bob.$2, ack), isTrue);
+    });
+
+    test('verifyControlPacket: false for a stranger key', () async {
+      final alice = await keyPair();
+      final bob = await keyPair();
+      final mallory = await keyPair();
+
+      final ping = await buildAs(alice, bob.$2, ping: true);
+      // Right recipient, wrong claimed sender.
+      expect(await verifyAs(bob, mallory.$2, ping), isFalse);
+      // Right sender, wrong recipient (peer reinstalled → new identity).
+      expect(await verifyAs(mallory, alice.$2, ping), isFalse);
+    });
+
+    test('verifyControlPacket: false for corrupted or stunted bytes', () async {
+      final alice = await keyPair();
+      final bob = await keyPair();
+      final ping = await buildAs(alice, bob.$2, ping: true);
+
+      final flipped = Uint8List.fromList(ping)
+        ..[ping.length - 1] ^= 0xFF; // break the MAC
+      expect(await verifyAs(bob, alice.$2, flipped), isFalse);
+
+      // Truncated, empty, bare version byte, and the [0x02] notice.
+      expect(
+        await verifyAs(bob, alice.$2, Uint8List.sublistView(ping, 0, 10)),
+        isFalse,
+      );
+      expect(await verifyAs(bob, alice.$2, Uint8List(0)), isFalse);
+      expect(
+        await verifyAs(
+          bob,
+          alice.$2,
+          Uint8List.fromList([kKeyVerifyPingVersion]),
+        ),
+        isFalse,
+      );
+      expect(
+        await verifyAs(bob, alice.$2, keyMismatchNoticePayload()),
+        isFalse,
+      );
+
+      // A regular message is not a control packet even if it authenticates.
+      crypto.setIdentityForTesting(alice.$1, alice.$2);
+      final message = await crypto.encryptToContact(
+        peerPublicKey: bob.$2,
+        plaintext: 'привет',
+      );
+      expect(await verifyAs(bob, alice.$2, message), isFalse);
+    });
+
+    test('ping and ack carry DIFFERENT plaintexts', () async {
+      final alice = await keyPair();
+      final bob = await keyPair();
+      final ping = await buildAs(alice, bob.$2, ping: true);
+      final ack = await buildAs(alice, bob.$2, ping: false);
+
+      crypto.setIdentityForTesting(bob.$1, bob.$2);
+      Future<String?> open(Uint8List p) => crypto.decryptFromContact(
+        senderPublicKey: alice.$2,
+        envelope: Uint8List.sublistView(p, 1),
+      );
+
+      expect(await open(ping), equals(kKeyVerifyPingPlaintext));
+      expect(await open(ack), equals(kKeyVerifyAckPlaintext));
+      expect(kKeyVerifyPingPlaintext, isNot(equals(kKeyVerifyAckPlaintext)));
+    });
+
+    // Regression: verifyControlPacket used to accept anything that merely
+    // decrypted, so any ciphertext ever produced by the contact — an old
+    // message, an ack recorded off the air — counted as fresh proof once
+    // someone prepended 0x03.
+    test('an arbitrary ciphertext under a 0x03 byte proves nothing', () async {
+      final alice = await keyPair();
+      final bob = await keyPair();
+
+      crypto.setIdentityForTesting(alice.$1, alice.$2);
+      final message = await crypto.encryptToContact(
+        peerPublicKey: bob.$2,
+        plaintext: 'привет, это обычное сообщение',
+      );
+      final forged = Uint8List.fromList([kKeyVerifyPingVersion, ...message]);
+
+      // It decrypts perfectly — and is still refused.
+      crypto.setIdentityForTesting(bob.$1, bob.$2);
+      expect(
+        await crypto.decryptFromContact(
+          senderPublicKey: alice.$2,
+          envelope: Uint8List.sublistView(forged, 1),
+        ),
+        isNotNull,
+      );
+      expect(await verifyAs(bob, alice.$2, forged), isFalse);
+    });
+
+    test('swapping the 0x03/0x04 byte does not pass', () async {
+      final alice = await keyPair();
+      final bob = await keyPair();
+      final ping = await buildAs(alice, bob.$2, ping: true);
+      final ack = await buildAs(alice, bob.$2, ping: false);
+
+      final pingAsAck = Uint8List.fromList(ping)..[0] = kKeyVerifyAckVersion;
+      final ackAsPing = Uint8List.fromList(ack)..[0] = kKeyVerifyPingVersion;
+
+      expect(await verifyAs(bob, alice.$2, pingAsAck), isFalse);
+      expect(await verifyAs(bob, alice.$2, ackAsPing), isFalse);
+      // The untouched originals still pass, so the check above is not
+      // rejecting them for some unrelated reason.
+      expect(await verifyAs(bob, alice.$2, ping), isTrue);
+      expect(await verifyAs(bob, alice.$2, ack), isTrue);
+    });
+
+    test('ping/ack never decrypt as a regular message', () async {
+      final alice = await keyPair();
+      final bob = await keyPair();
+      final ping = await buildAs(alice, bob.$2, ping: true);
+      final ack = await buildAs(alice, bob.$2, ping: false);
+
+      for (final payload in [ping, ack]) {
+        expect(
+          await crypto.decryptFrom(
+            myPrivateKey: bob.$1,
+            senderPublicKey: alice.$2,
+            envelope: payload,
+          ),
+          isNull,
+        );
+        expect(
+          await crypto.decryptForChannel(
+            psk: List<int>.filled(32, 7),
+            envelope: payload,
+          ),
+          isNull,
+        );
+      }
+    });
+  });
 }

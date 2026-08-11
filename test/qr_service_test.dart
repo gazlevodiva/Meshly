@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -195,6 +196,76 @@ void main() {
       );
       final url7 = QrService.encodeChannel(channel7);
       expect(QrService.decodeChannel(url7)?.slotIndex, equals(7));
+    });
+
+    // ── Key material length (crash guard) ─────────────────────
+    //
+    // A wrong-sized X25519 key makes the crypto library throw an
+    // ArgumentError — an Error, not an Exception — which the `on Exception`
+    // handlers on the radio and send paths let through, killing the drain
+    // loop. The QR decoder is the only choke point where key bytes enter, so
+    // the length check lives here.
+    String contactUrl(String pkBase64) =>
+        'mesh://contact/!1f8e42c9?name=Eve&pk=$pkBase64';
+
+    test('decodeContact rejects a public key shorter than 32 bytes', () {
+      final short = base64Url.encode(Uint8List(16));
+      expect(QrService.decodeContact(contactUrl(short)), isNull);
+    });
+
+    test('decodeContact rejects a public key longer than 32 bytes', () {
+      final long = base64Url.encode(Uint8List(64));
+      expect(QrService.decodeContact(contactUrl(long)), isNull);
+    });
+
+    test('decodeContact rejects an empty pk param', () {
+      expect(QrService.decodeContact(contactUrl('')), isNull);
+    });
+
+    test('decodeContact rejects a pk that is not valid base64url', () {
+      expect(
+        QrService.decodeContact(contactUrl('!!!not-base64!!!')),
+        isNull,
+      );
+    });
+
+    test('decodeContact still accepts an exactly 32-byte key', () {
+      final pk = Uint8List.fromList(List<int>.generate(32, (i) => i));
+      final decoded = QrService.decodeContact(
+        contactUrl(base64Url.encode(pk)),
+      );
+      expect(decoded, isNotNull);
+      expect(decoded!.publicKey, equals(pk));
+    });
+
+    String channelUrl(String pskBase64) =>
+        'mesh://channel/ch?psk=$pskBase64&slot=2';
+
+    test('decodeChannel rejects a PSK of an unsupported length', () {
+      expect(
+        QrService.decodeChannel(channelUrl(base64Url.encode(Uint8List(7)))),
+        isNull,
+      );
+      expect(
+        QrService.decodeChannel(channelUrl(base64Url.encode(Uint8List(64)))),
+        isNull,
+      );
+      expect(QrService.decodeChannel(channelUrl('')), isNull);
+    });
+
+    test('decodeChannel accepts 16- and 32-byte PSKs', () {
+      expect(
+        QrService.decodeChannel(
+          channelUrl(base64Url.encode(Uint8List(16))),
+        )?.psk,
+        hasLength(16),
+      );
+      expect(
+        QrService.decodeChannel(
+          channelUrl(base64Url.encode(Uint8List(32))),
+        )?.psk,
+        hasLength(32),
+      );
     });
   });
 }

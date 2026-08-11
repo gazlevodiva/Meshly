@@ -103,8 +103,13 @@ class MeshtasticProto {
     ]);
 
     final toRadio = _buf([_msg(1, packet)]);
+    // PRIVACY: never log the message itself. `text` is the user's plaintext
+    // (the ciphertext travels separately in [rawPayload]) and debugPrint keeps
+    // writing to the system log in release builds.
     debugPrint(
-      '[Proto] encodeTextMessage to=0x${dest.toRadixString(16)} text="$text" bytes=${toRadio.length}: $toRadio',
+      '[Proto] encodeTextMessage to=0x${dest.toRadixString(16)} '
+      'portnum=$portnum payload=${payloadBytes.length}B '
+      'bytes=${toRadio.length}',
     );
     return toRadio;
   }
@@ -157,16 +162,22 @@ class MeshtasticProto {
   }
 
   // Decode FromRadio → extract text message fields
-  // Returns: text, from nodeId, channel slot, meshId, isDm (unicast),
-  // portnum (Data.portnum), rawPayload (Data.payload bytes, any portnum).
+  // Returns: text, from nodeId, to (MeshPacket.to, raw node num), channel
+  // slot, meshId, isDm (unicast), portnum (Data.portnum), rawPayload
+  // (Data.payload bytes, any portnum).
   //
   // `text` is only populated for TEXT_MESSAGE_APP (portnum=1) payloads,
   // decoded as UTF-8 for backward compatibility with existing callers.
   // `portnum`/`rawPayload` are populated for ANY recognized Data portnum
   // (including PRIVATE_APP) so callers can branch on portnum themselves.
+  //
+  // `isDm` only says "this is a unicast", NOT "addressed to us" — the radio
+  // also hands up unicasts between two other nodes it overheard. Callers that
+  // care must compare `to` with their own node num themselves.
   static ({
     String? text,
     String? from,
+    int? to,
     int? channel,
     int? meshId,
     bool isDm,
@@ -177,6 +188,7 @@ class MeshtasticProto {
     const empty = (
       text: null,
       from: null,
+      to: null,
       channel: null,
       meshId: null,
       isDm: false,
@@ -218,10 +230,12 @@ class MeshtasticProto {
       final text = portnum == _portTextMessage
           ? utf8.decode(payload, allowMalformed: true)
           : null;
-      if (text != null) debugPrint('[Proto] received text="$text"');
+      // PRIVACY: the decoded text is never logged — see [encodeTextMessage].
+      if (text != null) debugPrint('[Proto] received text ${payload.length}B');
       return (
         text: text,
         from: fromStr,
+        to: toNode != null ? toNode & 0xFFFFFFFF : null,
         channel: channel,
         meshId: meshId,
         isDm: isDm,

@@ -21,15 +21,95 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 ///
 /// Envelope layout: `[version:1 = 0x01][nonce:24][ciphertext+MAC]`.
 ///
+/// Version bytes 0x02..0x04 are reserved for service packets — the "key
+/// mismatch" notice ([kKeyMismatchNoticeVersion]) and the verify handshake
+/// ([kKeyVerifyPingVersion] / [kKeyVerifyAckVersion]) — and never carry a
+/// user message.
+///
 /// The crypto primitives below (`encryptFor`/`decryptFrom`/`generateKeyPair`)
 /// are pure functions of key bytes so they can be unit-tested without
 /// touching secure storage. `CryptoService` layers the identity (secure
 /// storage-backed) on top.
+/// Envelope version byte of a regular (encrypted) Meshly payload — DM or
+/// channel. Anything else on PRIVATE_APP is not a message.
+const int kMessageEnvelopeVersion = 0x01;
+
+/// Envelope version byte of the "I cannot decrypt you" service packet.
+///
+/// The whole payload is exactly this single byte: no ciphertext, no nonce and
+/// — deliberately — no key material. Handing a public key out over the air
+/// would let a MITM substitute its own; trust is only ever established by
+/// scanning a QR in person. The notice merely tells the peer that our copy of
+/// their identity key can no longer read them, so their UI can prompt for a
+/// re-scan.
+const int kKeyMismatchNoticeVersion = 0x02;
+
+/// The full wire payload of the key-mismatch notice: `[0x02]`.
+Uint8List keyMismatchNoticePayload() =>
+    Uint8List.fromList(const [kKeyMismatchNoticeVersion]);
+
+/// True when [payload] is exactly the key-mismatch notice. Checked *before*
+/// any decryption attempt — the notice is not an encrypted envelope and
+/// would otherwise be misread as an unreadable message.
+bool isKeyMismatchNotice(List<int>? payload) =>
+    payload != null &&
+    payload.length == 1 &&
+    payload[0] == kKeyMismatchNoticeVersion;
+
+/// Version byte of the encrypted "I have scanned you — check the link" ping,
+/// sent right after a contact QR is scanned.
+///
+/// Layout: `[0x03][regular AEAD envelope]`, i.e. the version byte followed by
+/// exactly what [CryptoService.encryptToContact] produces. The plaintext
+/// inside is the fixed [kKeyVerifyPingPlaintext] — it carries no information,
+/// but it *is* checked on receipt, so the packet proves itself: an attacker
+/// cannot replay an arbitrary recorded ciphertext (or flip the version byte)
+/// and have it counted as proof. No key material is transmitted: trust still
+/// comes from scanning a QR in person.
+const int kKeyVerifyPingVersion = 0x03;
+
+/// Version byte of the encrypted answer to a verify ping. Same layout as
+/// [kKeyVerifyPingVersion]. An ack is never answered — that is what keeps
+/// two devices from ping-ponging forever.
+const int kKeyVerifyAckVersion = 0x04;
+
+/// Fixed plaintext carried inside a verify ping.
+///
+/// Ping and ack carry *different* plaintexts on purpose: the receiver checks
+/// the decrypted text against the constant belonging to the version byte on
+/// the wire, so a recorded ping cannot be re-emitted as an ack (or vice
+/// versa), and no unrelated ciphertext from the same contact can masquerade
+/// as either.
+const String kKeyVerifyPingPlaintext = 'meshly:verify:ping';
+
+/// Fixed plaintext carried inside a verify ack. See [kKeyVerifyPingPlaintext].
+const String kKeyVerifyAckPlaintext = 'meshly:verify:ack';
+
+/// The plaintext a verify packet with version byte [version] must carry, or
+/// null if [version] is not a verify packet at all.
+String? keyVerifyPlaintextFor(int version) => switch (version) {
+  kKeyVerifyPingVersion => kKeyVerifyPingPlaintext,
+  kKeyVerifyAckVersion => kKeyVerifyAckPlaintext,
+  _ => null,
+};
+
+/// True when [payload] is a verify ping. Recognised by the version byte
+/// *before* any decryption, so verify packets never reach the message path.
+bool isKeyVerifyPing(List<int>? payload) =>
+    _hasControlEnvelope(payload, kKeyVerifyPingVersion);
+
+/// True when [payload] is a verify ack. See [isKeyVerifyPing].
+bool isKeyVerifyAck(List<int>? payload) =>
+    _hasControlEnvelope(payload, kKeyVerifyAckVersion);
+
+bool _hasControlEnvelope(List<int>? payload, int version) =>
+    payload != null && payload.length > 1 && payload[0] == version;
+
 class CryptoService {
   CryptoService._();
   static final instance = CryptoService._();
 
-  static const _envelopeVersion = 0x01;
+  static const int _envelopeVersion = kMessageEnvelopeVersion;
   static const _nonceLength = 24;
 
   static const _storageKeyPrivate = 'meshly_identity_priv_v1';
@@ -119,12 +199,69 @@ class CryptoService {
     );
   }
 
+  // ---------------------------------------------------------------------
+  // Verify handshake — post-scan proof that both sides hold current keys.
+  // ---------------------------------------------------------------------
+
+  /// Builds the verify ping for [peerPublicKey]: `[0x03][AEAD envelope]`.
+  Future<Uint8List> buildKeyVerifyPing(List<int> peerPublicKey) =>
+      _buildControlPacket(kKeyVerifyPingVersion, peerPublicKey);
+
+  /// Builds the verify ack for [peerPublicKey]: `[0x04][AEAD envelope]`.
+  Future<Uint8List> buildKeyVerifyAck(List<int> peerPublicKey) =>
+      _buildControlPacket(kKeyVerifyAckVersion, peerPublicKey);
+
+  /// Checks a verify packet ([kKeyVerifyPingVersion] or
+  /// [kKeyVerifyAckVersion]) from [senderPublicKey]: strips the version byte,
+  /// authenticates the envelope underneath, and — crucially — checks that the
+  /// plaintext is the constant belonging to *this* version byte. True means
+  /// both sides hold each other's current keys (ECDH is symmetric); false
+  /// means the packet proves nothing. Never throws.
+  ///
+  /// The content check is what makes the packet self-describing: without it
+  /// any ciphertext ever produced by the contact (an old message, an old ack)
+  /// would count as fresh proof once someone prepended the right byte.
+  Future<bool> verifyControlPacket({
+    required List<int> senderPublicKey,
+    required Uint8List payload,
+  }) async {
+    if (payload.length < 2) return false;
+    final expected = keyVerifyPlaintextFor(payload[0]);
+    if (expected == null) return false;
+    final plaintext = await decryptFromContact(
+      senderPublicKey: senderPublicKey,
+      envelope: Uint8List.sublistView(payload, 1),
+    );
+    return plaintext == expected;
+  }
+
+  Future<Uint8List> _buildControlPacket(
+    int version,
+    List<int> peerPublicKey,
+  ) async {
+    final envelope = await encryptToContact(
+      peerPublicKey: peerPublicKey,
+      plaintext: keyVerifyPlaintextFor(version)!,
+    );
+    return (BytesBuilder()
+          ..addByte(version)
+          ..add(envelope))
+        .toBytes();
+  }
+
   /// Resets cached identity state. Intended for tests; does not touch
   /// secure storage on its own (call together with clearing storage if a
   /// full reset is needed).
   void resetForTesting() {
     _cachedPrivateKey = null;
     _cachedPublicKey = null;
+  }
+
+  /// Injects an identity directly, bypassing secure storage (which has no
+  /// plugin in unit tests). Tests only.
+  void setIdentityForTesting(Uint8List privateKey, Uint8List publicKey) {
+    _cachedPrivateKey = privateKey;
+    _cachedPublicKey = publicKey;
   }
 
   // ---------------------------------------------------------------------
