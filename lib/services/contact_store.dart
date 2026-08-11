@@ -116,6 +116,9 @@ class ContactStore extends ChangeNotifier {
                   peerId: Value(conv.peerId),
                   channelId: Value(conv.channelId),
                   unreadCount: Value(conv.unreadCount),
+                  iCanReadPeer: Value(conv.iCanReadPeer),
+                  peerCanReadUs: Value(conv.peerCanReadUs),
+                  writeAnyway: Value(conv.writeAnyway),
                   updatedAt: conv.updatedAt,
                 ),
               );
@@ -204,7 +207,19 @@ class ContactStore extends ChangeNotifier {
 
   m.Contact? contactByNodeId(String nodeId) => _contacts[nodeId];
 
+  /// Upserts a contact. A *missing* public key never overwrites a stored one:
+  /// only a real key replaces a real key.
+  ///
+  /// The manual-entry tab builds a [m.Contact] with no key at all, so a plain
+  /// upsert used to wipe the key of an existing contact whose node ID was
+  /// retyped — the chat stayed flagged healthy while every send silently
+  /// failed with "needs key". Losing an identity key must take an explicit
+  /// delete, never a save.
   Future<void> saveContact(m.Contact c) async {
+    final keptKey = c.publicKey ?? _contacts[c.nodeId]?.publicKey;
+    // Mutating the argument on purpose: callers (and the cache) must see the
+    // same contact the database now holds.
+    c.publicKey = keptKey;
     _contacts[c.nodeId] = c;
     await _db
         .into(_db.contacts)
@@ -213,7 +228,7 @@ class ContactStore extends ChangeNotifier {
             nodeId: c.nodeId,
             displayName: c.displayName,
             avatarEmoji: Value(c.avatarEmoji),
-            publicKey: Value(c.publicKey),
+            publicKey: Value(keptKey),
             addedAt: c.addedAt,
           ),
         );
@@ -270,6 +285,15 @@ class ContactStore extends ChangeNotifier {
       _db.blockedNodes,
     )..where((t) => t.nodeId.equals(nodeId))).go();
     _blocked.remove(nodeId);
+    // [blockNode] drops the DM conversation but keeps the contact, so unblock
+    // has to put the conversation back. The receive path refuses to create
+    // conversations by itself (a forged `from` must not conjure a chat), so
+    // without this the contact would stay in the list, open nothing on tap,
+    // and every future DM from them would be dropped in silence.
+    final dmId = 'dm_$nodeId';
+    if (_contacts.containsKey(nodeId) && !_conversations.containsKey(dmId)) {
+      await saveConversation(m.Conversation.dm(nodeId));
+    }
     notifyListeners();
   }
 
@@ -364,9 +388,125 @@ class ContactStore extends ChangeNotifier {
             peerId: Value(conv.peerId),
             channelId: Value(conv.channelId),
             unreadCount: Value(conv.unreadCount),
+            iCanReadPeer: Value(conv.iCanReadPeer),
+            peerCanReadUs: Value(conv.peerCanReadUs),
+            writeAnyway: Value(conv.writeAnyway),
             updatedAt: conv.updatedAt,
           ),
         );
+  }
+
+  // ── Secure chat health (peer reinstalled → key mismatch) ──
+  //
+  // Exactly two stored facts, one plain assignment per event. Nothing here
+  // compares keys or timestamps: every caller already knows which of the two
+  // directions its event proves (or hints at). See Conversation.secureOk.
+
+  /// "We hold the peer's current key" — set from a decryption result (proof)
+  /// or from scanning their QR (optimistic).
+  Future<void> setICanReadPeer(String conversationId, {required bool value}) =>
+      _setSecureFlags(conversationId, iCanReadPeer: value);
+
+  /// "The peer holds our current key" — set from a decryption result (proof)
+  /// or from an unauthenticated hint (their verify ping, their `[0x02]`).
+  Future<void> setPeerCanReadUs(String conversationId, {required bool value}) =>
+      _setSecureFlags(conversationId, peerCanReadUs: value);
+
+  /// Both directions proven at once. Anything of theirs that decrypts says
+  /// this: ECDH is symmetric, so a readable packet proves our copy of their
+  /// key is right *and* that they encrypted to our current key.
+  ///
+  /// Retiring the "write anyway" override is not this method's job any more:
+  /// [_setSecureFlags] clears it on *any* transition into a healthy state, so
+  /// a caller that only flips the half it can prove gets the same guarantee.
+  Future<void> markSecureVerified(String conversationId) =>
+      _setSecureFlags(conversationId, iCanReadPeer: true, peerCanReadUs: true);
+
+  /// The user chose to keep writing into a chat flagged broken. Sticky for the
+  /// conversation — see [m.Conversation.writeAnyway].
+  Future<void> setWriteAnyway(String conversationId, {required bool value}) =>
+      _setSecureFlags(conversationId, writeAnyway: value);
+
+  // Null means "leave this direction alone". Returns early when nothing
+  // changes — pure write-saving, not semantics: assignment is idempotent.
+  //
+  // Enforces the one invariant of the override: "writeAnyway ⇒ the chat is
+  // broken right now". Whatever route lands both directions on true — a
+  // decrypted packet, a QR scan that only sets one half, [markSecureVerified]
+  // — retires the override in the same write. Without that, the override
+  // outlived the breakage it was granted for and silently swallowed the *next*
+  // one: sending stayed unblocked and the user never chose that.
+  Future<void> _setSecureFlags(
+    String conversationId, {
+    bool? iCanReadPeer,
+    bool? peerCanReadUs,
+    bool? writeAnyway,
+  }) async {
+    final conv = _conversations[conversationId];
+    if (conv == null) return;
+    final nextMine = iCanReadPeer ?? conv.iCanReadPeer;
+    final nextTheirs = peerCanReadUs ?? conv.peerCanReadUs;
+    // A healthy chat has nothing to override.
+    final nextForce =
+        !(nextMine && nextTheirs) && (writeAnyway ?? conv.writeAnyway);
+    if (nextMine == conv.iCanReadPeer &&
+        nextTheirs == conv.peerCanReadUs &&
+        nextForce == conv.writeAnyway) {
+      return;
+    }
+    // Persist first: on a failed write roll the cache back and stay quiet, so
+    // memory and disk never disagree about whether sending is blocked.
+    final prevMine = conv.iCanReadPeer;
+    final prevTheirs = conv.peerCanReadUs;
+    final prevForce = conv.writeAnyway;
+    conv
+      ..iCanReadPeer = nextMine
+      ..peerCanReadUs = nextTheirs
+      ..writeAnyway = nextForce;
+    try {
+      await saveConversation(conv);
+    } on Object catch (e) {
+      conv
+        ..iCanReadPeer = prevMine
+        ..peerCanReadUs = prevTheirs
+        ..writeAnyway = prevForce;
+      debugPrint('[Store] secure flags save failed for $conversationId: $e');
+      return;
+    }
+    notifyListeners();
+  }
+
+  /// Drops every stored undecryptable-placeholder message of a conversation.
+  /// They are unreadable forever (the private key that could open them is
+  /// gone), so there is nothing to recover. Returns how many were removed.
+  Future<int> deleteUndecryptableMessages(String conversationId) async {
+    final removed =
+        await (_db.delete(_db.messages)..where(
+              (t) =>
+                  t.conversationId.equals(conversationId) &
+                  t.messageText.equals(m.kUndecryptableSentinel),
+            ))
+            .go();
+    if (removed == 0) return 0;
+
+    final list = _messages[conversationId];
+    list?.removeWhere((msg) => msg.text == m.kUndecryptableSentinel);
+
+    final conv = _conversations[conversationId];
+    if (conv != null) {
+      if (conv.lastMessage?.text == m.kUndecryptableSentinel) {
+        conv.lastMessage = (list != null && list.isNotEmpty) ? list.last : null;
+      }
+      // Otherwise the badge would keep counting messages that no longer
+      // exist. Approximate (we don't know which of them were unread) but
+      // never negative.
+      if (conv.unreadCount > 0) {
+        conv.unreadCount = (conv.unreadCount - removed).clamp(0, 1 << 30);
+        await saveConversation(conv);
+      }
+    }
+    notifyListeners();
+    return removed;
   }
 
   // ── Messages ──────────────────────────────────────────────
@@ -414,6 +554,9 @@ class ContactStore extends ChangeNotifier {
                 peerId: Value(conv.peerId),
                 channelId: Value(conv.channelId),
                 unreadCount: Value(conv.unreadCount),
+                iCanReadPeer: Value(conv.iCanReadPeer),
+                peerCanReadUs: Value(conv.peerCanReadUs),
+                writeAnyway: Value(conv.writeAnyway),
                 updatedAt: conv.updatedAt,
               ),
             );
@@ -483,6 +626,9 @@ class ContactStore extends ChangeNotifier {
     peerId: row.peerId,
     channelId: row.channelId,
     unreadCount: row.unreadCount,
+    iCanReadPeer: row.iCanReadPeer,
+    peerCanReadUs: row.peerCanReadUs,
+    writeAnyway: row.writeAnyway,
     updatedAt: row.updatedAt,
   );
 

@@ -858,6 +858,51 @@ class $ConversationsTable extends Conversations
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _iCanReadPeerMeta = const VerificationMeta(
+    'iCanReadPeer',
+  );
+  @override
+  late final GeneratedColumn<bool> iCanReadPeer = GeneratedColumn<bool>(
+    'i_can_read_peer',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("i_can_read_peer" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _peerCanReadUsMeta = const VerificationMeta(
+    'peerCanReadUs',
+  );
+  @override
+  late final GeneratedColumn<bool> peerCanReadUs = GeneratedColumn<bool>(
+    'peer_can_read_us',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("peer_can_read_us" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _writeAnywayMeta = const VerificationMeta(
+    'writeAnyway',
+  );
+  @override
+  late final GeneratedColumn<bool> writeAnyway = GeneratedColumn<bool>(
+    'write_anyway',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("write_anyway" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -876,6 +921,9 @@ class $ConversationsTable extends Conversations
     peerId,
     channelId,
     unreadCount,
+    iCanReadPeer,
+    peerCanReadUs,
+    writeAnyway,
     updatedAt,
   ];
   @override
@@ -924,6 +972,33 @@ class $ConversationsTable extends Conversations
         ),
       );
     }
+    if (data.containsKey('i_can_read_peer')) {
+      context.handle(
+        _iCanReadPeerMeta,
+        iCanReadPeer.isAcceptableOrUnknown(
+          data['i_can_read_peer']!,
+          _iCanReadPeerMeta,
+        ),
+      );
+    }
+    if (data.containsKey('peer_can_read_us')) {
+      context.handle(
+        _peerCanReadUsMeta,
+        peerCanReadUs.isAcceptableOrUnknown(
+          data['peer_can_read_us']!,
+          _peerCanReadUsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('write_anyway')) {
+      context.handle(
+        _writeAnywayMeta,
+        writeAnyway.isAcceptableOrUnknown(
+          data['write_anyway']!,
+          _writeAnywayMeta,
+        ),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -961,6 +1036,18 @@ class $ConversationsTable extends Conversations
         DriftSqlType.int,
         data['${effectivePrefix}unread_count'],
       )!,
+      iCanReadPeer: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}i_can_read_peer'],
+      )!,
+      peerCanReadUs: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}peer_can_read_us'],
+      )!,
+      writeAnyway: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}write_anyway'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
@@ -980,6 +1067,9 @@ class Conversation extends DataClass implements Insertable<Conversation> {
   final String? peerId;
   final String? channelId;
   final int unreadCount;
+  final bool iCanReadPeer;
+  final bool peerCanReadUs;
+  final bool writeAnyway;
   final DateTime updatedAt;
   const Conversation({
     required this.id,
@@ -987,6 +1077,9 @@ class Conversation extends DataClass implements Insertable<Conversation> {
     this.peerId,
     this.channelId,
     required this.unreadCount,
+    required this.iCanReadPeer,
+    required this.peerCanReadUs,
+    required this.writeAnyway,
     required this.updatedAt,
   });
   @override
@@ -1001,6 +1094,9 @@ class Conversation extends DataClass implements Insertable<Conversation> {
       map['channel_id'] = Variable<String>(channelId);
     }
     map['unread_count'] = Variable<int>(unreadCount);
+    map['i_can_read_peer'] = Variable<bool>(iCanReadPeer);
+    map['peer_can_read_us'] = Variable<bool>(peerCanReadUs);
+    map['write_anyway'] = Variable<bool>(writeAnyway);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
   }
@@ -1016,6 +1112,9 @@ class Conversation extends DataClass implements Insertable<Conversation> {
           ? const Value.absent()
           : Value(channelId),
       unreadCount: Value(unreadCount),
+      iCanReadPeer: Value(iCanReadPeer),
+      peerCanReadUs: Value(peerCanReadUs),
+      writeAnyway: Value(writeAnyway),
       updatedAt: Value(updatedAt),
     );
   }
@@ -1031,6 +1130,9 @@ class Conversation extends DataClass implements Insertable<Conversation> {
       peerId: serializer.fromJson<String?>(json['peerId']),
       channelId: serializer.fromJson<String?>(json['channelId']),
       unreadCount: serializer.fromJson<int>(json['unreadCount']),
+      iCanReadPeer: serializer.fromJson<bool>(json['iCanReadPeer']),
+      peerCanReadUs: serializer.fromJson<bool>(json['peerCanReadUs']),
+      writeAnyway: serializer.fromJson<bool>(json['writeAnyway']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
   }
@@ -1043,6 +1145,9 @@ class Conversation extends DataClass implements Insertable<Conversation> {
       'peerId': serializer.toJson<String?>(peerId),
       'channelId': serializer.toJson<String?>(channelId),
       'unreadCount': serializer.toJson<int>(unreadCount),
+      'iCanReadPeer': serializer.toJson<bool>(iCanReadPeer),
+      'peerCanReadUs': serializer.toJson<bool>(peerCanReadUs),
+      'writeAnyway': serializer.toJson<bool>(writeAnyway),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
   }
@@ -1053,6 +1158,9 @@ class Conversation extends DataClass implements Insertable<Conversation> {
     Value<String?> peerId = const Value.absent(),
     Value<String?> channelId = const Value.absent(),
     int? unreadCount,
+    bool? iCanReadPeer,
+    bool? peerCanReadUs,
+    bool? writeAnyway,
     DateTime? updatedAt,
   }) => Conversation(
     id: id ?? this.id,
@@ -1060,6 +1168,9 @@ class Conversation extends DataClass implements Insertable<Conversation> {
     peerId: peerId.present ? peerId.value : this.peerId,
     channelId: channelId.present ? channelId.value : this.channelId,
     unreadCount: unreadCount ?? this.unreadCount,
+    iCanReadPeer: iCanReadPeer ?? this.iCanReadPeer,
+    peerCanReadUs: peerCanReadUs ?? this.peerCanReadUs,
+    writeAnyway: writeAnyway ?? this.writeAnyway,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   Conversation copyWithCompanion(ConversationsCompanion data) {
@@ -1071,6 +1182,15 @@ class Conversation extends DataClass implements Insertable<Conversation> {
       unreadCount: data.unreadCount.present
           ? data.unreadCount.value
           : this.unreadCount,
+      iCanReadPeer: data.iCanReadPeer.present
+          ? data.iCanReadPeer.value
+          : this.iCanReadPeer,
+      peerCanReadUs: data.peerCanReadUs.present
+          ? data.peerCanReadUs.value
+          : this.peerCanReadUs,
+      writeAnyway: data.writeAnyway.present
+          ? data.writeAnyway.value
+          : this.writeAnyway,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -1083,14 +1203,26 @@ class Conversation extends DataClass implements Insertable<Conversation> {
           ..write('peerId: $peerId, ')
           ..write('channelId: $channelId, ')
           ..write('unreadCount: $unreadCount, ')
+          ..write('iCanReadPeer: $iCanReadPeer, ')
+          ..write('peerCanReadUs: $peerCanReadUs, ')
+          ..write('writeAnyway: $writeAnyway, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, type, peerId, channelId, unreadCount, updatedAt);
+  int get hashCode => Object.hash(
+    id,
+    type,
+    peerId,
+    channelId,
+    unreadCount,
+    iCanReadPeer,
+    peerCanReadUs,
+    writeAnyway,
+    updatedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1100,6 +1232,9 @@ class Conversation extends DataClass implements Insertable<Conversation> {
           other.peerId == this.peerId &&
           other.channelId == this.channelId &&
           other.unreadCount == this.unreadCount &&
+          other.iCanReadPeer == this.iCanReadPeer &&
+          other.peerCanReadUs == this.peerCanReadUs &&
+          other.writeAnyway == this.writeAnyway &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -1109,6 +1244,9 @@ class ConversationsCompanion extends UpdateCompanion<Conversation> {
   final Value<String?> peerId;
   final Value<String?> channelId;
   final Value<int> unreadCount;
+  final Value<bool> iCanReadPeer;
+  final Value<bool> peerCanReadUs;
+  final Value<bool> writeAnyway;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
   const ConversationsCompanion({
@@ -1117,6 +1255,9 @@ class ConversationsCompanion extends UpdateCompanion<Conversation> {
     this.peerId = const Value.absent(),
     this.channelId = const Value.absent(),
     this.unreadCount = const Value.absent(),
+    this.iCanReadPeer = const Value.absent(),
+    this.peerCanReadUs = const Value.absent(),
+    this.writeAnyway = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1126,6 +1267,9 @@ class ConversationsCompanion extends UpdateCompanion<Conversation> {
     this.peerId = const Value.absent(),
     this.channelId = const Value.absent(),
     this.unreadCount = const Value.absent(),
+    this.iCanReadPeer = const Value.absent(),
+    this.peerCanReadUs = const Value.absent(),
+    this.writeAnyway = const Value.absent(),
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -1137,6 +1281,9 @@ class ConversationsCompanion extends UpdateCompanion<Conversation> {
     Expression<String>? peerId,
     Expression<String>? channelId,
     Expression<int>? unreadCount,
+    Expression<bool>? iCanReadPeer,
+    Expression<bool>? peerCanReadUs,
+    Expression<bool>? writeAnyway,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
   }) {
@@ -1146,6 +1293,9 @@ class ConversationsCompanion extends UpdateCompanion<Conversation> {
       if (peerId != null) 'peer_id': peerId,
       if (channelId != null) 'channel_id': channelId,
       if (unreadCount != null) 'unread_count': unreadCount,
+      if (iCanReadPeer != null) 'i_can_read_peer': iCanReadPeer,
+      if (peerCanReadUs != null) 'peer_can_read_us': peerCanReadUs,
+      if (writeAnyway != null) 'write_anyway': writeAnyway,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1157,6 +1307,9 @@ class ConversationsCompanion extends UpdateCompanion<Conversation> {
     Value<String?>? peerId,
     Value<String?>? channelId,
     Value<int>? unreadCount,
+    Value<bool>? iCanReadPeer,
+    Value<bool>? peerCanReadUs,
+    Value<bool>? writeAnyway,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
   }) {
@@ -1166,6 +1319,9 @@ class ConversationsCompanion extends UpdateCompanion<Conversation> {
       peerId: peerId ?? this.peerId,
       channelId: channelId ?? this.channelId,
       unreadCount: unreadCount ?? this.unreadCount,
+      iCanReadPeer: iCanReadPeer ?? this.iCanReadPeer,
+      peerCanReadUs: peerCanReadUs ?? this.peerCanReadUs,
+      writeAnyway: writeAnyway ?? this.writeAnyway,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -1189,6 +1345,15 @@ class ConversationsCompanion extends UpdateCompanion<Conversation> {
     if (unreadCount.present) {
       map['unread_count'] = Variable<int>(unreadCount.value);
     }
+    if (iCanReadPeer.present) {
+      map['i_can_read_peer'] = Variable<bool>(iCanReadPeer.value);
+    }
+    if (peerCanReadUs.present) {
+      map['peer_can_read_us'] = Variable<bool>(peerCanReadUs.value);
+    }
+    if (writeAnyway.present) {
+      map['write_anyway'] = Variable<bool>(writeAnyway.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -1206,6 +1371,9 @@ class ConversationsCompanion extends UpdateCompanion<Conversation> {
           ..write('peerId: $peerId, ')
           ..write('channelId: $channelId, ')
           ..write('unreadCount: $unreadCount, ')
+          ..write('iCanReadPeer: $iCanReadPeer, ')
+          ..write('peerCanReadUs: $peerCanReadUs, ')
+          ..write('writeAnyway: $writeAnyway, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -2322,6 +2490,9 @@ typedef $$ConversationsTableCreateCompanionBuilder =
       Value<String?> peerId,
       Value<String?> channelId,
       Value<int> unreadCount,
+      Value<bool> iCanReadPeer,
+      Value<bool> peerCanReadUs,
+      Value<bool> writeAnyway,
       required DateTime updatedAt,
       Value<int> rowid,
     });
@@ -2332,6 +2503,9 @@ typedef $$ConversationsTableUpdateCompanionBuilder =
       Value<String?> peerId,
       Value<String?> channelId,
       Value<int> unreadCount,
+      Value<bool> iCanReadPeer,
+      Value<bool> peerCanReadUs,
+      Value<bool> writeAnyway,
       Value<DateTime> updatedAt,
       Value<int> rowid,
     });
@@ -2367,6 +2541,21 @@ class $$ConversationsTableFilterComposer
 
   ColumnFilters<int> get unreadCount => $composableBuilder(
     column: $table.unreadCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get iCanReadPeer => $composableBuilder(
+    column: $table.iCanReadPeer,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get peerCanReadUs => $composableBuilder(
+    column: $table.peerCanReadUs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get writeAnyway => $composableBuilder(
+    column: $table.writeAnyway,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2410,6 +2599,21 @@ class $$ConversationsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get iCanReadPeer => $composableBuilder(
+    column: $table.iCanReadPeer,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get peerCanReadUs => $composableBuilder(
+    column: $table.peerCanReadUs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get writeAnyway => $composableBuilder(
+    column: $table.writeAnyway,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -2439,6 +2643,21 @@ class $$ConversationsTableAnnotationComposer
 
   GeneratedColumn<int> get unreadCount => $composableBuilder(
     column: $table.unreadCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get iCanReadPeer => $composableBuilder(
+    column: $table.iCanReadPeer,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get peerCanReadUs => $composableBuilder(
+    column: $table.peerCanReadUs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get writeAnyway => $composableBuilder(
+    column: $table.writeAnyway,
     builder: (column) => column,
   );
 
@@ -2482,6 +2701,9 @@ class $$ConversationsTableTableManager
                 Value<String?> peerId = const Value.absent(),
                 Value<String?> channelId = const Value.absent(),
                 Value<int> unreadCount = const Value.absent(),
+                Value<bool> iCanReadPeer = const Value.absent(),
+                Value<bool> peerCanReadUs = const Value.absent(),
+                Value<bool> writeAnyway = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ConversationsCompanion(
@@ -2490,6 +2712,9 @@ class $$ConversationsTableTableManager
                 peerId: peerId,
                 channelId: channelId,
                 unreadCount: unreadCount,
+                iCanReadPeer: iCanReadPeer,
+                peerCanReadUs: peerCanReadUs,
+                writeAnyway: writeAnyway,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),
@@ -2500,6 +2725,9 @@ class $$ConversationsTableTableManager
                 Value<String?> peerId = const Value.absent(),
                 Value<String?> channelId = const Value.absent(),
                 Value<int> unreadCount = const Value.absent(),
+                Value<bool> iCanReadPeer = const Value.absent(),
+                Value<bool> peerCanReadUs = const Value.absent(),
+                Value<bool> writeAnyway = const Value.absent(),
                 required DateTime updatedAt,
                 Value<int> rowid = const Value.absent(),
               }) => ConversationsCompanion.insert(
@@ -2508,6 +2736,9 @@ class $$ConversationsTableTableManager
                 peerId: peerId,
                 channelId: channelId,
                 unreadCount: unreadCount,
+                iCanReadPeer: iCanReadPeer,
+                peerCanReadUs: peerCanReadUs,
+                writeAnyway: writeAnyway,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),

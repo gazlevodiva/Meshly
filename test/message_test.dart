@@ -1,7 +1,53 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:meshly/models/conversation.dart';
 import 'package:meshly/models/message.dart';
 
 void main() {
+  group('Conversation secure-chat state', () {
+    test('a new conversation is healthy in both directions', () {
+      final conv = Conversation.dm('!aabbccdd');
+      expect(conv.iCanReadPeer, isTrue);
+      expect(conv.peerCanReadUs, isTrue);
+      expect(conv.secureOk, isTrue);
+    });
+
+    test('secureOk needs BOTH directions', () {
+      final conv = Conversation.dm('!aabbccdd')..iCanReadPeer = false;
+      expect(conv.secureOk, isFalse);
+      conv
+        ..iCanReadPeer = true
+        ..peerCanReadUs = false;
+      expect(conv.secureOk, isFalse);
+      conv
+        ..iCanReadPeer = true
+        ..peerCanReadUs = true;
+      expect(conv.secureOk, isTrue);
+    });
+
+    test('both flags survive a JSON round-trip', () {
+      final conv = Conversation.dm('!aabbccdd')
+        ..iCanReadPeer = false
+        ..peerCanReadUs = true;
+      final back = Conversation.fromJson(conv.toJson());
+      expect(back.iCanReadPeer, isFalse);
+      expect(back.peerCanReadUs, isTrue);
+      expect(back.secureOk, isFalse);
+    });
+
+    test('legacy JSON without the flags decodes as healthy', () {
+      // Conversations written by pre-v9 builds carry neither key; a healthy
+      // default is right because the very first failure re-flips them.
+      final back = Conversation.fromJson({
+        'id': 'dm_!aabbccdd',
+        'type': 'dm',
+        'peerId': '!aabbccdd',
+        'unreadCount': 0,
+        'updatedAt': DateTime(2024).toIso8601String(),
+      });
+      expect(back.secureOk, isTrue);
+    });
+  });
+
   group('Message.copyWith', () {
     final original = Message(
       meshId: 1,

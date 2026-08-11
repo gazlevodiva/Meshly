@@ -38,6 +38,16 @@ class Conversations extends Table {
   TextColumn get peerId => text().nullable()();
   TextColumn get channelId => text().nullable()();
   IntColumn get unreadCount => integer().withDefault(const Constant(0))();
+  // The two facts that describe a secure chat's health; everything else
+  // (card, chat-list hint, send block) derives from them.
+  // See Conversation.iCanReadPeer / Conversation.peerCanReadUs.
+  BoolColumn get iCanReadPeer => boolean().withDefault(const Constant(true))();
+  BoolColumn get peerCanReadUs => boolean().withDefault(const Constant(true))();
+  // The user chose "write anyway" in a chat flagged broken. Persisted per
+  // conversation: the breakage signal is unauthenticated, so a repeated forged
+  // packet must not be able to re-block a chat the user already unblocked.
+  // Cleared again when the chat is genuinely proven healthy.
+  BoolColumn get writeAnyway => boolean().withDefault(const Constant(false))();
   DateTimeColumn get updatedAt => dateTime()();
 
   @override
@@ -73,7 +83,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -99,6 +109,64 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 4) {
         await m.addColumn(contacts, contacts.publicKey);
+      }
+      // Versions 5..8 only ever existed on dev builds (never released) and
+      // their steps were deleted, so `from` can jump straight from 4 to 9.
+      // Each of them added one column that is gone again in v9: v5
+      // contacts.key_updated_at, v6 conversations.secure_broken_at, v7
+      // .broken_with_key, v8 .peer_scanned_at. No step is needed to add
+      // them — v9 rebuilds both tables and simply doesn't carry them over —
+      // but anything reading an old column below MUST guard on `from`,
+      // since a v4 (or v5) database doesn't have it yet. Test devices are
+      // still on these versions; app_database_migration_test.dart covers
+      // every path v1..v8 -> v9.
+      if (from < 9) {
+        // Four ad-hoc flags collapse into two facts: can I read them, can they
+        // read me. Both default to true (healthy) — the first failure flips
+        // them. Messages are untouched: only these two tables are rebuilt.
+        await m.alterTable(
+          // TableMigration is drift's only way to drop a column; marked
+          // experimental upstream but stable in practice and covered by tests.
+          // ignore: experimental_member_use
+          TableMigration(
+            conversations,
+            columnTransformer: {
+              // Old "something is broken" mark was ambiguous about the
+              // direction; map it to the conservative half — we cannot read
+              // them — so an actually-broken chat keeps showing the card
+              // instead of silently claiming to be healthy.
+              // The guard is not an optimisation: secure_broken_at does not
+              // exist before v6, and referencing it there fails the whole
+              // upgrade with "no such column" (app won't start).
+              if (from >= 6)
+                conversations.iCanReadPeer: const CustomExpression<bool>(
+                  'secure_broken_at IS NULL',
+                ),
+            },
+            newColumns: [
+              conversations.iCanReadPeer,
+              conversations.peerCanReadUs,
+              // Also listed here even though it belongs to v10: the rebuild
+              // recreates the table from the *current* schema, so the column
+              // exists in the new table either way — without this it would be
+              // copied from a source table that has no such column (NULL,
+              // failing the NOT NULL/CHECK constraint). The v10 step below
+              // therefore only runs for databases that skipped this rebuild.
+              conversations.writeAnyway,
+            ],
+          ),
+        );
+        // Same as above: rebuild without the dropped column.
+        // ignore: experimental_member_use
+        await m.alterTable(TableMigration(contacts));
+      }
+      // "Write anyway" moved from screen state to the conversation, so it
+      // survives leaving the chat. Defaults to false: existing chats start
+      // blocked again exactly as they were. Only for databases already at v9
+      // — anything older got the column from the v9 rebuild above, and adding
+      // it twice fails with "duplicate column name".
+      if (from >= 9 && from < 10) {
+        await m.addColumn(conversations, conversations.writeAnyway);
       }
     },
   );
