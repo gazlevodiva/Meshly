@@ -100,12 +100,114 @@ key derivation differs (ECDH shared secret for DMs, HKDF-of-PSK for channels).
   packets, so Meshly traffic no longer interoperates with non-Meshly clients.
   `MeshService.sendText` returns `SendResult.needsKey` instead of sending in
   the clear when a DM peer's public key isn't known yet. On receive
-  (`_onBytesReceived`): an incoming DM that fails to decrypt (missing key,
-  corruption, or a plaintext DM from a non-Meshly sender) is stored with the
-  `kUndecryptableSentinel` placeholder; an incoming channel packet is only
-  accepted if it is `PRIVATE_APP` and decrypts under the channel PSK —
-  anything else (plaintext broadcast, wrong/unknown channel, auth failure) is
-  silently dropped without notifying.
+  (`_onBytesReceived`): an incoming channel packet is only accepted if it is
+  `PRIVATE_APP` and decrypts under the channel PSK — anything else (plaintext
+  broadcast, wrong/unknown channel, auth failure) is silently dropped without
+  notifying. Unicast packets go through the DM path described below.
+- **Service packets**: version bytes `0x02..0x04` on `PRIVATE_APP` are
+  reserved for the secure-chat state machine and never carry user text —
+  `[0x02]` is the bare "I cannot decrypt you" notice, `[0x03]`/`[0x04]` are
+  the encrypted verify ping/ack. They are recognised by their version byte
+  *before* any decryption attempt, so they never reach the message path. See
+  `SECURITY.md` → *Secure-chat service packets* for the threat model.
+
+## Secure chat state (DMs)
+
+A DM conversation stores two booleans of state (`lib/models/conversation.dart`,
+persisted in `Conversations`): `iCanReadPeer` — our copy of the peer's identity
+key still decrypts what they send — and `peerCanReadUs` — they hold our current
+public key. Both start optimistic (`true`). A third boolean, `writeAnyway`,
+records the user's override rather than the chat's state (see below).
+
+`Conversation.secureOk` is the derived `iCanReadPeer && peerCanReadUs`, and it
+is the single source of truth for everything user-visible: the in-chat recovery
+card, the hint in the chat list, and the send block in `MeshService.sendText`
+(which returns `SendResult.needsKey` unless `force: true`). Nothing re-derives
+the state from raw flags, and the flags never influence key selection,
+decryption, or trust — only the UI and the send/don't-send decision.
+
+What moves the flags:
+
+- A regular envelope (`[0x01]`) that **decrypts** proves both directions at
+  once — ECDH is symmetric, so a readable message means our stored key is
+  right *and* the peer encrypted to our current public key. Both flags are set
+  (`markSecureVerified`).
+- A verify packet (`[0x03]`/`[0x04]`) that authenticates proves the same thing
+  and marks the chat healthy; a ping is answered with an ack, an ack is never
+  answered (that asymmetry bounds the exchange at two packets).
+- A real envelope we **cannot** decrypt is the only honest proof that our copy
+  of the peer's key is stale: the very first such failure clears
+  `iCanReadPeer`, any placeholder rows left by older builds are
+  purged, and a rate-limited `[0x02]` notice tells the peer to re-share their
+  QR. There is deliberately no "N failures in a row" threshold — `from` is
+  forgeable, so a threshold buys no security against anyone able to forge one
+  packet, while it made the honest case (the peer reinstalled) cost several
+  messages sent into the void before the recovery card appeared.
+  The undecryptable message itself is **not stored** — earlier versions
+  saved a `kUndecryptableSentinel` placeholder bubble per junk packet, which
+  flooded the thread; the constant survives only to render and clean up such
+  legacy rows.
+- A received `[0x02]` clears `peerCanReadUs` only — it says the *peer* cannot
+  read us, which does not invalidate our own scan of them.
+- A QR scan of the peer optimistically sets `iCanReadPeer`; a stale QR
+  self-corrects on the next unreadable packet.
+
+### When a verify ping is sent
+
+There is one rule and one entry point, `MeshService.announceSecureState`:
+
+> Send a verify ping whenever our view of a chat's health may have drifted
+> apart from the peer's view of it.
+
+Three occasions qualify, and no others:
+
+- **(a) we just learned the peer's key** — their QR was scanned
+  (`add_contact_screen`);
+- **(b) we opened a chat we consider broken** (`chat_screen`) — LoRa
+  acknowledges nothing, so an earlier ping may simply have evaporated;
+- **(c) our view just became healthy** — something of theirs decrypted, but
+  they cannot know that. Tracked in `MeshService`, not in the UI: the flags are
+  read *before* `markSecureVerified` so only a real broken → healthy
+  **transition** announces. Without (c), a lost ack left the other device's
+  recovery card up forever while both sides were in fact fine.
+
+The transition condition is what bounds the exchange: a side that is already
+healthy answers a ping with one ack and announces nothing, so ping → ack →
+ping cannot recur. Per-peer throttling (60 s) is a second line of defence, not
+the mechanism. `test/mesh_service_test.dart` wires two services' radios
+together and asserts the handshake converges and stops.
+
+Because the breakage signal is unauthenticated, the user always keeps a
+**"send anyway"** escape hatch, and pressing it is remembered: `writeAnyway` is
+persisted per conversation (column `write_anyway`) and is what `chat_screen`
+passes as `force:` to `MeshService.sendText`. A per-visit override meant the
+chat re-blocked itself every time the user left and came back. It is cleared
+when the conversation returns to a healthy state (both flags true again), so
+the next genuine breakage shows the recovery card as usual — `ContactStore`
+enforces that invariant centrally rather than at each call site.
+
+The receive path is deliberately narrow (`_onDmPacket`). A unicast packet is
+considered only if it is addressed to *our* node (`to == _myNodeNum`; while our
+own node num is still unknown the packet is dropped), is on `PRIVATE_APP`, has
+a non-empty payload, comes from a contact we have actually scanned, and a DM
+conversation for that contact already exists. The addressee check matters
+beyond attacks: the radio also hands up unicasts it merely overheard or
+relayed, so two of our own contacts chatting with each other used to fail
+decryption here and flag a healthy chat broken. Everything else is dropped
+silently: no flag moves, and **incoming packets never create a conversation**,
+so strangers and stock-Meshtastic traffic cannot conjure phantom chats (least
+of all ones flagged as broken) in the chat list.
+
+One narrow exception concerns *unknown* senders. A packet that passes every
+other filter — our port, addressed to us, non-empty, and carrying the ordinary
+message version byte `[0x01]` — is answered with a `[0x02]`, because it looks
+like a genuine Meshly DM from someone whose contact entry we no longer have.
+That is the wiped-device case: without the reply the sender sees two ticks from
+their own radio and believes the message arrived, while nobody learns anything.
+Service bytes (`[0x02]`/`[0x03]`/`[0x04]`) and unknown version bytes are
+answered with nothing. The invariant is unchanged — **no state is created for
+unknown nodes**: no contact, no conversation, no message, no notification, and
+nothing appears in the UI. The reply shares the global reactive-packet budget.
 
 ## Reactive store pattern
 
@@ -139,9 +241,26 @@ Notable points:
   unique** (packets without an id all arrive as `meshId == 0`, and
   radio-assigned ids can collide over time), so it must never be used as a
   primary key.
+- `Conversations` carries the two secure-chat facts (`iCanReadPeer`,
+  `peerCanReadUs`), both defaulting to `true`, plus `write_anyway`
+  (`writeAnyway`, default `false`) — the persisted "send anyway" override.
 - Schema changes bump `schemaVersion` and add a step to `onUpgrade`; the
   generated `app_database.g.dart` is committed and regenerated via
   `dart run build_runner build --delete-conflicting-outputs`.
+- The current `schemaVersion` is **10**. Versions 5..8 only ever existed on dev
+  builds (never released) and their upgrade steps were deleted, so `from` can
+  jump straight from 4 to 9. Each of them added one column that v9 removes
+  again (`contacts.key_updated_at`, `conversations.secure_broken_at`,
+  `.broken_with_key`, `.peer_scanned_at`) — no step re-adds them, but any code
+  reading such a column must guard on `from`, since a v4 database does not have
+  it and referencing it fails the whole upgrade.
+- v9 collapses those ad-hoc flags into the two facts above by **rebuilding**
+  `conversations` and `contacts` with drift's `TableMigration` (the only way to
+  drop a column); `messages` is untouched. v10 only adds
+  `conversations.write_anyway` (a plain `addColumn`, applied when the database
+  is already at v9 — the v9 rebuild creates the column itself).
+  `app_database_migration_test.dart` covers every path v1..v8 → v9 as well as
+  v9 → v10.
 
 ## Theming and localization
 
