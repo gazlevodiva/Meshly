@@ -158,8 +158,11 @@ class AppColorsExt extends ThemeExtension<AppColorsExt> {
       danger: Color.lerp(danger, other.danger, t)!,
       brand: Color.lerp(brand, other.brand, t)!,
       onAccent: Color.lerp(onAccent, other.onAccent, t)!,
-      qrCardBackground:
-          Color.lerp(qrCardBackground, other.qrCardBackground, t)!,
+      qrCardBackground: Color.lerp(
+        qrCardBackground,
+        other.qrCardBackground,
+        t,
+      )!,
       qrForeground: Color.lerp(qrForeground, other.qrForeground, t)!,
       qrCardShadow: Color.lerp(qrCardShadow, other.qrCardShadow, t)!,
       islandShadow: Color.lerp(islandShadow, other.islandShadow, t)!,
@@ -201,9 +204,11 @@ abstract final class AppSpacing {
   /// Bottom list padding that keeps content clear of the floating navbar.
   static const double listBottomPadding = 96;
 
-  /// Bottom padding of the chat message list so the last bubble scrolls
-  /// clear of the floating input bar.
-  static const double chatListBottomPadding = 88;
+  /// How close to the end of the chat still counts as "following the tail":
+  /// roughly one bubble of slack, so a small nudge does not stop new messages
+  /// from scrolling into view. (The list's real bottom padding is measured
+  /// from the floating bottom area and can be far larger.)
+  static const double chatTailSlack = 40;
 }
 
 // ── Corner radii ──────────────────────────────────────────────
@@ -328,6 +333,23 @@ abstract final class AppSizes {
   /// Chat bubble max width as a fraction of screen width.
   static const double bubbleMaxWidthFraction = 0.75;
 
+  /// Cap on the floating bottom area of the chat (input bar / key-exchange
+  /// card) as a fraction of the chat area, so a huge system font can never
+  /// hide the conversation behind it.
+  ///
+  /// Tuned against the key-exchange card, the tallest thing that lives here.
+  /// The card keeps its title and action button outside its own scroll view,
+  /// so this fraction only decides how much of the tail (explanation,
+  /// checklist, "write anyway") is visible before it has to be scrolled — the
+  /// action itself stays in frame at any text scale.
+  static const double chatBottomAreaMaxFraction = 0.68;
+
+  /// Below this the compact key-exchange reminder above the chat input is
+  /// dropped instead of being sliced: it is roughly what its pinned head
+  /// (one title line + the action button + card padding) occupies at text
+  /// scale 1, and is scaled with the system font at use site.
+  static const double chatReminderMinHeight = 96;
+
   // QR codes.
   static const double qrMedium = 200;
   static const double qrLarge = 220;
@@ -367,6 +389,10 @@ abstract final class AppSizes {
 
   /// Round header action button (search / add) on the main tabs.
   static const double headerButton = 44;
+
+  /// Compact text button used as an inline link inside a card footer
+  /// (smaller than the Material default so it reads as a link, not a button).
+  static const double linkButtonHeight = 32;
 
   // Signal-strength bars (4 ascending bars in the device list).
   static const double signalBarWidth = 3;
@@ -442,55 +468,73 @@ abstract final class AppTextStyles {
 
   /// 12 grey monospace — node IDs in dialogs/cards.
   static TextStyle monoCaption(BuildContext context) => TextStyle(
-        fontSize: 12,
-        color: context.appColors.textSecondary,
-        fontFamily: monoFamily,
-      );
+    fontSize: 12,
+    color: context.appColors.textSecondary,
+    fontFamily: monoFamily,
+  );
 
   /// 11 monospace — QR link preview.
-  static const TextStyle monoLabel =
-      TextStyle(fontSize: 11, fontFamily: monoFamily);
+  static const TextStyle monoLabel = TextStyle(
+    fontSize: 11,
+    fontFamily: monoFamily,
+  );
 
   /// 18 semibold — dialog/empty-state titles.
-  static const TextStyle title =
-      TextStyle(fontSize: 18, fontWeight: FontWeight.w600);
+  static const TextStyle title = TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w600,
+  );
 
   /// 22 semibold — screen headers (contact/channel name).
-  static const TextStyle headline =
-      TextStyle(fontSize: 22, fontWeight: FontWeight.w600);
+  static const TextStyle headline = TextStyle(
+    fontSize: 22,
+    fontWeight: FontWeight.w600,
+  );
 
   /// 24 bold — onboarding page titles.
-  static const TextStyle pageTitle =
-      TextStyle(fontSize: 24, fontWeight: FontWeight.bold);
+  static const TextStyle pageTitle = TextStyle(
+    fontSize: 24,
+    fontWeight: FontWeight.bold,
+  );
 
   /// 32 bold — "Meshly" logo on the scan screen.
-  static const TextStyle logo =
-      TextStyle(fontSize: 32, fontWeight: FontWeight.bold);
+  static const TextStyle logo = TextStyle(
+    fontSize: 32,
+    fontWeight: FontWeight.bold,
+  );
 
   /// Unread-count badge text.
   static TextStyle badge(BuildContext context) => TextStyle(
-        color: context.appColors.onAccent,
-        fontSize: 11,
-        fontWeight: FontWeight.bold,
-      );
+    color: context.appColors.onAccent,
+    fontSize: 11,
+    fontWeight: FontWeight.bold,
+  );
 
   /// Navbar item label. One fixed weight in both states so item widths stay
   /// stable while the pill slides; only the color animates.
-  static const TextStyle navLabel =
-      TextStyle(fontSize: 12, fontWeight: FontWeight.w600);
+  static const TextStyle navLabel = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+  );
 
   /// 13 medium — connection status pill text (color set per state).
-  static const TextStyle statusPill =
-      TextStyle(fontSize: 13, fontWeight: FontWeight.w500);
+  static const TextStyle statusPill = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+  );
 
   /// 16 semibold — conversation/contact card title
   /// (bumps to w700 when the conversation has unread messages).
-  static const TextStyle cardTitle =
-      TextStyle(fontSize: 16, fontWeight: FontWeight.w600);
+  static const TextStyle cardTitle = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+  );
 
   /// 34 bold — big tab headers ("Meshly", "Контакты").
-  static const TextStyle headerTitle =
-      TextStyle(fontSize: 34, fontWeight: FontWeight.bold);
+  static const TextStyle headerTitle = TextStyle(
+    fontSize: 34,
+    fontWeight: FontWeight.bold,
+  );
 
   /// Settings section header — combine with
   /// `.copyWith(color: Theme.of(context).colorScheme.primary)`.
@@ -531,24 +575,25 @@ ThemeData buildLightTheme() {
 /// surface roles are pinned to a deep navy-graphite ramp and the primary to
 /// the vivid brand blue.
 ThemeData buildDarkTheme() {
-  final scheme = ColorScheme.fromSeed(
-    seedColor: _brandBlue,
-    brightness: Brightness.dark,
-  ).copyWith(
-    primary: _brandBlue,
-    onPrimary: Colors.white,
-    primaryContainer: const Color(0xFF1C355F),
-    onPrimaryContainer: const Color(0xFFD6E3FF),
-    surface: const Color(0xFF0B1017),
-    onSurface: const Color(0xFFE6EAF2),
-    onSurfaceVariant: const Color(0xFF8B95A5),
-    surfaceContainerLowest: const Color(0xFF070B10),
-    surfaceContainerLow: const Color(0xFF121822),
-    surfaceContainer: const Color(0xFF161D27),
-    surfaceContainerHigh: const Color(0xFF1B2330),
-    surfaceContainerHighest: const Color(0xFF212A38),
-    outlineVariant: const Color(0xFF2A3341),
-  );
+  final scheme =
+      ColorScheme.fromSeed(
+        seedColor: _brandBlue,
+        brightness: Brightness.dark,
+      ).copyWith(
+        primary: _brandBlue,
+        onPrimary: Colors.white,
+        primaryContainer: const Color(0xFF1C355F),
+        onPrimaryContainer: const Color(0xFFD6E3FF),
+        surface: const Color(0xFF0B1017),
+        onSurface: const Color(0xFFE6EAF2),
+        onSurfaceVariant: const Color(0xFF8B95A5),
+        surfaceContainerLowest: const Color(0xFF070B10),
+        surfaceContainerLow: const Color(0xFF121822),
+        surfaceContainer: const Color(0xFF161D27),
+        surfaceContainerHigh: const Color(0xFF1B2330),
+        surfaceContainerHighest: const Color(0xFF212A38),
+        outlineVariant: const Color(0xFF2A3341),
+      );
   return ThemeData(
     colorScheme: scheme,
     useMaterial3: true,

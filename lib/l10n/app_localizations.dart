@@ -434,12 +434,6 @@ abstract class AppLocalizations {
   /// **'Чат'**
   String get chatFallbackTitle;
 
-  /// Banner over a DM from an unknown sender
-  ///
-  /// In ru, this message translates to:
-  /// **'Незнакомец · {nodeId}'**
-  String strangerNodeId(String nodeId);
-
   /// Presence line: the DM peer is currently reachable on the mesh
   ///
   /// In ru, this message translates to:
@@ -509,14 +503,92 @@ abstract class AppLocalizations {
   /// Snackbar shown when a DM can't be sent because the peer's public key is unknown
   ///
   /// In ru, this message translates to:
-  /// **'Пересканируйте QR-код этого контакта, чтобы включить защищённую переписку'**
+  /// **'Сначала отсканируйте QR-код этого человека — иначе сообщение не дойдёт'**
   String get rescanForSecureChat;
 
-  /// Placeholder shown instead of an incoming DM's text when it couldn't be decrypted
+  /// Placeholder shown inside the message bubble instead of an incoming DM's text when it couldn't be decrypted
   ///
   /// In ru, this message translates to:
-  /// **'🔒 Зашифрованное сообщение — добавьте контакт по QR'**
-  String get undecryptableMessage;
+  /// **'🔒 Не удалось прочитать'**
+  String get undecryptableBubble;
+
+  /// Conversation-list preview for a last message that couldn't be decrypted
+  ///
+  /// In ru, this message translates to:
+  /// **'🔒 Не удалось прочитать'**
+  String get undecryptablePreview;
+
+  /// Conversation-list preview shown instead of the last message while the secure chat is broken; names the action instead of the diagnosis
+  ///
+  /// In ru, this message translates to:
+  /// **'🔒 Нужно обменяться QR-кодами'**
+  String get secureChatBrokenPreview;
+
+  /// Title of the card shown in a DM whose secure chat is broken (peer's keys changed). Names the task, not the failure
+  ///
+  /// In ru, this message translates to:
+  /// **'Нужно обменяться QR-кодами'**
+  String get secureChatBrokenTitle;
+
+  /// One-line explanation under the card title: the action first, the likely reason second
+  ///
+  /// In ru, this message translates to:
+  /// **'Покажите друг другу QR-коды — это полминуты. Так бывает, когда у человека новый телефон.'**
+  String get secureChatBrokenBody;
+
+  /// Secondary action in the broken-secure-chat card: bring the input field back. Names the chat because the choice is sticky for the whole conversation, not for one message
+  ///
+  /// In ru, this message translates to:
+  /// **'Всё равно писать в этот чат'**
+  String get sendAnywayButton;
+
+  /// Key-exchange card, step 1. Impersonal on purpose: Russian would need the genitive for 'the peer's code' and ICU cannot decline names
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы сканируете код собеседника'**
+  String get keyExchangeStepScan;
+
+  /// Key-exchange card, step 2. Impersonal, matching step 1
+  ///
+  /// In ru, this message translates to:
+  /// **'Собеседник сканирует ваш код'**
+  String get keyExchangeStepShow;
+
+  /// Hint under the scan button: there has to be a code on the other screen before the camera is any use
+  ///
+  /// In ru, this message translates to:
+  /// **'Попросите собеседника открыть «Мой контакт» в приложении'**
+  String get keyExchangeAskPeer;
+
+  /// Hint under the key-exchange checklist: the checkmarks arrive on their own, no button to press
+  ///
+  /// In ru, this message translates to:
+  /// **'Галочка появится сама, когда собеседник отсканирует ваш код'**
+  String get keyExchangeHint;
+
+  /// Hint under the disabled scan button in the key-exchange card while the radio is not connected: the verify packet cannot leave the phone
+  ///
+  /// In ru, this message translates to:
+  /// **'Сначала подключитесь к устройству'**
+  String get connectDeviceFirst;
+
+  /// Snackbar shown in the chat the moment both halves of the key exchange are done. Says what changed instead of naming a 'secure chat' the user has never been introduced to
+  ///
+  /// In ru, this message translates to:
+  /// **'Готово — теперь вы читаете друг друга'**
+  String get secureChatRestored;
+
+  /// Button in the key-exchange card that opens the QR scanning screen
+  ///
+  /// In ru, this message translates to:
+  /// **'Отсканировать QR-код'**
+  String get scanQrButton;
+
+  /// Button in the key-exchange card that opens the user's own QR code screen
+  ///
+  /// In ru, this message translates to:
+  /// **'Показать мой код'**
+  String get showMyQrButton;
 
   /// Prefix in the conversation list preview for the user's own last message, rendered as 'Я: <text>'
   ///

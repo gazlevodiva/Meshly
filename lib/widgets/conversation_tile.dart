@@ -80,7 +80,23 @@ class ConversationTile extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          if (last != null) ...[
+                          // A broken secure chat outranks the last message:
+                          // otherwise an old readable message keeps sitting
+                          // here and nothing hints that the chat is stuck.
+                          // Unless the user has chosen to write anyway — then
+                          // the chat is in daily use and permanently trading
+                          // its preview for a notice it already dismissed
+                          // would be pure loss; the chat screen still shows
+                          // the compact reminder.
+                          if (!conv.secureOk && !conv.writeAnyway) ...[
+                            const SizedBox(height: AppSpacing.s2),
+                            Text(
+                              context.l10n.secureChatBrokenPreview,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.subtitle(context),
+                            ),
+                          ] else if (last != null) ...[
                             const SizedBox(height: AppSpacing.s2),
                             _LastMessageRow(msg: last),
                           ],
@@ -252,8 +268,13 @@ class _LastMessageRow extends StatelessWidget {
     final prefix = msg.isMe
         ? '${context.l10n.mePrefix}: '
         : '${store.displayNameFor(msg.fromNodeId)}: ';
+    // Undecryptable incoming messages carry an internal sentinel as their
+    // text — never show it to the user.
+    final body = msg.text == kUndecryptableSentinel
+        ? context.l10n.undecryptablePreview
+        : msg.text;
     return Text(
-      '$prefix${msg.text}',
+      '$prefix$body',
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: AppTextStyles.subtitle(context),

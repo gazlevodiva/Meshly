@@ -233,7 +233,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     Navigator.push<void>(
                       context,
                       MaterialPageRoute<void>(
-                        builder: (_) => const AddContactScreen(),
+                        builder: (_) =>
+                            AddContactScreen(meshService: widget.meshService),
                       ),
                     ),
                   );

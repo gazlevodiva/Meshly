@@ -48,23 +48,29 @@ class _ContactsScreenState extends State<ContactsScreen> {
     final conv = store.dmForNode(contact.nodeId);
     if (conv == null) return;
     unawaited(store.markRead(conv.id));
-    unawaited(Navigator.push<void>(
-      context,
-      MaterialPageRoute<void>(
-        builder: (_) => ChatScreen(
-          meshService: widget.meshService,
-          conversation: conv,
+    unawaited(
+      Navigator.push<void>(
+        context,
+        MaterialPageRoute<void>(
+          builder: (_) => ChatScreen(
+            meshService: widget.meshService,
+            conversation: conv,
+          ),
         ),
       ),
-    ));
+    );
     // No setState — ContactStore.notifyListeners() drives rebuilds.
   }
 
   void _openAddContact(BuildContext context) {
-    unawaited(Navigator.push<void>(
-      context,
-      MaterialPageRoute<void>(builder: (_) => const AddContactScreen()),
-    ));
+    unawaited(
+      Navigator.push<void>(
+        context,
+        MaterialPageRoute<void>(
+          builder: (_) => AddContactScreen(meshService: widget.meshService),
+        ),
+      ),
+    );
   }
 
   @override
@@ -76,8 +82,12 @@ class _ContactsScreenState extends State<ContactsScreen> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(AppSpacing.s20,
-                    AppSpacing.s12, AppSpacing.s20, AppSpacing.s12),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.s20,
+                  AppSpacing.s12,
+                  AppSpacing.s20,
+                  AppSpacing.s12,
+                ),
                 child: _searching
                     ? TabSearchRow(
                         controller: _searchController,
@@ -99,9 +109,11 @@ class _ContactsScreenState extends State<ContactsScreen> {
                     final contacts = query.isEmpty
                         ? all
                         : all
-                            .where((c) =>
-                                c.displayName.toLowerCase().contains(query))
-                            .toList();
+                              .where(
+                                (c) =>
+                                    c.displayName.toLowerCase().contains(query),
+                              )
+                              .toList();
                     if (contacts.isEmpty) {
                       return Center(
                         child: Text(
@@ -114,10 +126,11 @@ class _ContactsScreenState extends State<ContactsScreen> {
                     }
                     return ListView.separated(
                       padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.s16,
-                          AppSpacing.s4,
-                          AppSpacing.s16,
-                          AppSpacing.listBottomPadding),
+                        AppSpacing.s16,
+                        AppSpacing.s4,
+                        AppSpacing.s16,
+                        AppSpacing.listBottomPadding,
+                      ),
                       itemCount: contacts.length,
                       separatorBuilder: (_, _) =>
                           const SizedBox(height: AppSpacing.s10),
@@ -125,10 +138,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
                         final contact = contacts[i];
                         return _ContactCard(
                           contact: contact,
-                          isOnline:
-                              widget.meshService.isOnline(contact.nodeId),
-                          lastHeard:
-                              widget.meshService.lastHeardFor(contact.nodeId),
+                          isOnline: widget.meshService.isOnline(contact.nodeId),
+                          lastHeard: widget.meshService.lastHeardFor(
+                            contact.nodeId,
+                          ),
                           onTap: () => _openChat(context, contact),
                         );
                       },

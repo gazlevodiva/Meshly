@@ -133,16 +133,6 @@
   "@chatFallbackTitle": {
     "description": "Fallback chat header title when the peer/channel is unknown"
   },
-  "strangerNodeId": "Незнакомец · {nodeId}",
-  "@strangerNodeId": {
-    "description": "Banner over a DM from an unknown sender",
-    "placeholders": {
-      "nodeId": {
-        "type": "String",
-        "example": "!1f8e42c9"
-      }
-    }
-  },
   "online": "В сети",
   "@online": {
     "description": "Presence line: the DM peer is currently reachable on the mesh"
@@ -169,13 +159,65 @@
   "retrySend": "Повторить отправку",
   "writeFirstMessage": "Напишите первое сообщение!",
   "nameLabel": "Имя",
-  "rescanForSecureChat": "Пересканируйте QR-код этого контакта, чтобы включить защищённую переписку",
+  "rescanForSecureChat": "Сначала отсканируйте QR-код этого человека — иначе сообщение не дойдёт",
   "@rescanForSecureChat": {
     "description": "Snackbar shown when a DM can't be sent because the peer's public key is unknown"
   },
-  "undecryptableMessage": "🔒 Зашифрованное сообщение — добавьте контакт по QR",
-  "@undecryptableMessage": {
-    "description": "Placeholder shown instead of an incoming DM's text when it couldn't be decrypted"
+  "undecryptableBubble": "🔒 Не удалось прочитать",
+  "@undecryptableBubble": {
+    "description": "Placeholder shown inside the message bubble instead of an incoming DM's text when it couldn't be decrypted"
+  },
+  "undecryptablePreview": "🔒 Не удалось прочитать",
+  "@undecryptablePreview": {
+    "description": "Conversation-list preview for a last message that couldn't be decrypted"
+  },
+  "secureChatBrokenPreview": "🔒 Нужно обменяться QR-кодами",
+  "@secureChatBrokenPreview": {
+    "description": "Conversation-list preview shown instead of the last message while the secure chat is broken; names the action instead of the diagnosis"
+  },
+  "secureChatBrokenTitle": "Нужно обменяться QR-кодами",
+  "@secureChatBrokenTitle": {
+    "description": "Title of the card shown in a DM whose secure chat is broken (peer's keys changed). Names the task, not the failure"
+  },
+  "secureChatBrokenBody": "Покажите друг другу QR-коды — это полминуты. Так бывает, когда у человека новый телефон.",
+  "@secureChatBrokenBody": {
+    "description": "One-line explanation under the card title: the action first, the likely reason second"
+  },
+  "sendAnywayButton": "Всё равно писать в этот чат",
+  "@sendAnywayButton": {
+    "description": "Secondary action in the broken-secure-chat card: bring the input field back. Names the chat because the choice is sticky for the whole conversation, not for one message"
+  },
+  "keyExchangeStepScan": "Вы сканируете код собеседника",
+  "@keyExchangeStepScan": {
+    "description": "Key-exchange card, step 1. Impersonal on purpose: Russian would need the genitive for 'the peer's code' and ICU cannot decline names"
+  },
+  "keyExchangeStepShow": "Собеседник сканирует ваш код",
+  "@keyExchangeStepShow": {
+    "description": "Key-exchange card, step 2. Impersonal, matching step 1"
+  },
+  "keyExchangeAskPeer": "Попросите собеседника открыть «Мой контакт» в приложении",
+  "@keyExchangeAskPeer": {
+    "description": "Hint under the scan button: there has to be a code on the other screen before the camera is any use"
+  },
+  "keyExchangeHint": "Галочка появится сама, когда собеседник отсканирует ваш код",
+  "@keyExchangeHint": {
+    "description": "Hint under the key-exchange checklist: the checkmarks arrive on their own, no button to press"
+  },
+  "connectDeviceFirst": "Сначала подключитесь к устройству",
+  "@connectDeviceFirst": {
+    "description": "Hint under the disabled scan button in the key-exchange card while the radio is not connected: the verify packet cannot leave the phone"
+  },
+  "secureChatRestored": "Готово — теперь вы читаете друг друга",
+  "@secureChatRestored": {
+    "description": "Snackbar shown in the chat the moment both halves of the key exchange are done. Says what changed instead of naming a 'secure chat' the user has never been introduced to"
+  },
+  "scanQrButton": "Отсканировать QR-код",
+  "@scanQrButton": {
+    "description": "Button in the key-exchange card that opens the QR scanning screen"
+  },
+  "showMyQrButton": "Показать мой код",
+  "@showMyQrButton": {
+    "description": "Button in the key-exchange card that opens the user's own QR code screen"
   },
 
   "mePrefix": "Я",

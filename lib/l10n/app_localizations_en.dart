@@ -186,11 +186,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatFallbackTitle => 'Chat';
 
   @override
-  String strangerNodeId(String nodeId) {
-    return 'Stranger · $nodeId';
-  }
-
-  @override
   String get online => 'Online';
 
   @override
@@ -227,11 +222,51 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rescanForSecureChat =>
-      'Rescan this contact\'s QR code to enable secure messaging';
+      'Scan this person\'s QR code first — otherwise the message won\'t get through';
 
   @override
-  String get undecryptableMessage =>
-      '🔒 Encrypted message — add the contact by QR';
+  String get undecryptableBubble => '🔒 Couldn\'t be read';
+
+  @override
+  String get undecryptablePreview => '🔒 Couldn\'t be read';
+
+  @override
+  String get secureChatBrokenPreview => '🔒 Exchange QR codes';
+
+  @override
+  String get secureChatBrokenTitle => 'You need to exchange QR codes';
+
+  @override
+  String get secureChatBrokenBody =>
+      'Show each other your QR codes — it takes half a minute. This happens when someone has a new phone.';
+
+  @override
+  String get sendAnywayButton => 'Write in this chat anyway';
+
+  @override
+  String get keyExchangeStepScan => 'You scan the other person\'s code';
+
+  @override
+  String get keyExchangeStepShow => 'The other person scans your code';
+
+  @override
+  String get keyExchangeAskPeer => 'Ask them to open “My contact” in the app';
+
+  @override
+  String get keyExchangeHint =>
+      'The checkmark appears by itself once they scan your code';
+
+  @override
+  String get connectDeviceFirst => 'Connect to your device first';
+
+  @override
+  String get secureChatRestored => 'Done — you can read each other now';
+
+  @override
+  String get scanQrButton => 'Scan QR code';
+
+  @override
+  String get showMyQrButton => 'Show my code';
 
   @override
   String get mePrefix => 'Me';

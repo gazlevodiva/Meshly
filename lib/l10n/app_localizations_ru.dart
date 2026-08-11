@@ -186,11 +186,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get chatFallbackTitle => 'Чат';
 
   @override
-  String strangerNodeId(String nodeId) {
-    return 'Незнакомец · $nodeId';
-  }
-
-  @override
   String get online => 'В сети';
 
   @override
@@ -227,11 +222,52 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get rescanForSecureChat =>
-      'Пересканируйте QR-код этого контакта, чтобы включить защищённую переписку';
+      'Сначала отсканируйте QR-код этого человека — иначе сообщение не дойдёт';
 
   @override
-  String get undecryptableMessage =>
-      '🔒 Зашифрованное сообщение — добавьте контакт по QR';
+  String get undecryptableBubble => '🔒 Не удалось прочитать';
+
+  @override
+  String get undecryptablePreview => '🔒 Не удалось прочитать';
+
+  @override
+  String get secureChatBrokenPreview => '🔒 Нужно обменяться QR-кодами';
+
+  @override
+  String get secureChatBrokenTitle => 'Нужно обменяться QR-кодами';
+
+  @override
+  String get secureChatBrokenBody =>
+      'Покажите друг другу QR-коды — это полминуты. Так бывает, когда у человека новый телефон.';
+
+  @override
+  String get sendAnywayButton => 'Всё равно писать в этот чат';
+
+  @override
+  String get keyExchangeStepScan => 'Вы сканируете код собеседника';
+
+  @override
+  String get keyExchangeStepShow => 'Собеседник сканирует ваш код';
+
+  @override
+  String get keyExchangeAskPeer =>
+      'Попросите собеседника открыть «Мой контакт» в приложении';
+
+  @override
+  String get keyExchangeHint =>
+      'Галочка появится сама, когда собеседник отсканирует ваш код';
+
+  @override
+  String get connectDeviceFirst => 'Сначала подключитесь к устройству';
+
+  @override
+  String get secureChatRestored => 'Готово — теперь вы читаете друг друга';
+
+  @override
+  String get scanQrButton => 'Отсканировать QR-код';
+
+  @override
+  String get showMyQrButton => 'Показать мой код';
 
   @override
   String get mePrefix => 'Я';

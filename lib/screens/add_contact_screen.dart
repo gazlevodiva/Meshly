@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/models/contact.dart';
 import 'package:meshly/services/contact_store.dart';
+import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/qr_service.dart';
 import 'package:meshly/theme/app_theme.dart';
 import 'package:meshly/widgets/section_card.dart';
@@ -11,7 +12,21 @@ import 'package:meshly/widgets/tab_header.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class AddContactScreen extends StatefulWidget {
-  const AddContactScreen({super.key});
+  const AddContactScreen({super.key, this.meshService, this.qrOnly = false});
+
+  /// Optional: when present, scanning a contact QR immediately sends the peer
+  /// an encrypted verify ping, so a repaired secure chat heals by itself
+  /// instead of waiting for someone to type a message. Null (tests, call
+  /// sites without a radio) simply skips the ping.
+  final MeshService? meshService;
+
+  /// Hides the manual-entry tab, leaving the scanner alone.
+  ///
+  /// For call sites that exist specifically to obtain a *key* — the "scan the
+  /// QR again" button on the broken-secure-chat card. Typing a node ID by
+  /// hand cannot produce a key, so offering it there sends the user down a
+  /// path that looks like it worked and fixes nothing.
+  final bool qrOnly;
 
   @override
   State<AddContactScreen> createState() => _AddContactScreenState();
@@ -26,7 +41,7 @@ class _AddContactScreenState extends State<AddContactScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 2, vsync: this);
+    _tabs = TabController(length: widget.qrOnly ? 1 : 2, vsync: this);
   }
 
   @override
@@ -78,6 +93,27 @@ class _AddContactScreenState extends State<AddContactScreen>
 
     if (confirmed == true) {
       await _store.saveContact(contact);
+      // Мы держим свежий ключ партнёра → мы его читаем. Оптимистично: QR мог
+      // оказаться устаревшим, но тогда первый же нечитаемый пакет от него
+      // вернёт флаг в false. saveContact уже создал беседу, если её не было.
+      //
+      // Только при реально имеющемся ключе: старый QR без `pk` (и ручной
+      // ввод) ключа не даёт, а флаг «я его читаю» пометил бы сломанный чат
+      // исправным — отправка при этом молча падала бы с needsKey.
+      if (contact.publicKey != null) {
+        await _store.setICanReadPeer('dm_${contact.nodeId}', value: true);
+      }
+      // Occasion (a) of MeshService.announceSecureState: мы только что узнали
+      // ключ партнёра — наше представление о чате изменилось, его нет. Если он
+      // тоже отсканировал нас — ping расшифруется, придёт ack, и пометка
+      // «секретный чат прерван» снимется на обоих устройствах сама.
+      // Fire and forget: announceSecureState never throws (it swallows a dead
+      // BLE link and any crypto failure itself), so closing the scanner is
+      // never held up — or broken — by the radio.
+      final mesh = widget.meshService;
+      if (mesh != null && contact.publicKey != null) {
+        unawaited(mesh.announceSecureState(contact.nodeId));
+      }
       if (mounted) {
         Navigator.pop(context, contact);
       }
@@ -168,10 +204,11 @@ class _AddContactScreenState extends State<AddContactScreen>
                     icon: const Icon(Icons.qr_code_scanner),
                     text: context.l10n.tabScanQr,
                   ),
-                  Tab(
-                    icon: const Icon(Icons.keyboard),
-                    text: context.l10n.tabManual,
-                  ),
+                  if (!widget.qrOnly)
+                    Tab(
+                      icon: const Icon(Icons.keyboard),
+                      text: context.l10n.tabManual,
+                    ),
                 ],
               ),
             ),
@@ -182,12 +219,13 @@ class _AddContactScreenState extends State<AddContactScreen>
                   // Tab 1: QR Scanner
                   _buildScannerTab(context),
                   // Tab 2: Manual input
-                  _ManualInputTab(
-                    onAdd: (contact) async {
-                      await _store.saveContact(contact);
-                      if (context.mounted) Navigator.pop(context, contact);
-                    },
-                  ),
+                  if (!widget.qrOnly)
+                    _ManualInputTab(
+                      onAdd: (contact) async {
+                        await _store.saveContact(contact);
+                        if (context.mounted) Navigator.pop(context, contact);
+                      },
+                    ),
                 ],
               ),
             ),
