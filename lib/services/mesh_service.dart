@@ -7,6 +7,7 @@ import 'package:meshly/models/conversation.dart';
 import 'package:meshly/models/message.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/crypto_service.dart';
+import 'package:meshly/services/lora_region.dart';
 import 'package:meshly/services/meshtastic_proto.dart';
 import 'package:meshly/services/notification_service.dart';
 import 'package:meshly/services/notification_settings.dart';
@@ -100,6 +101,30 @@ class MeshService {
   final ValueNotifier<MeshConnectionStatus> connectionStatus = ValueNotifier(
     MeshConnectionStatus.disconnected,
   );
+
+  /// Регион радио: `null` — устройство ещё не прислало конфиг,
+  /// [LoraRegion.unset] — регион не задан и плата молчит в эфире.
+  ///
+  /// Устройство присылает конфиг само в ответ на want_config при подключении,
+  /// отдельный запрос не нужен.
+  final ValueNotifier<int?> loraRegion = ValueNotifier(null);
+
+  /// Модель платы, как её сообщило устройство (null — ещё не прислало).
+  ///
+  /// Устройство присылает `DeviceMetadata` само в рамках дампа конфига при
+  /// подключении, отдельный запрос не нужен — тот же паттерн, что и
+  /// [loraRegion]. Имя модели НЕ говорит о частотном диапазоне платы (см.
+  /// комментарий у `MeshtasticProto.decodeHwModel`), поэтому единственная
+  /// защита от несовместимого региона — [LoraRegion.compatibleWith].
+  final ValueNotifier<String?> hwModel = ValueNotifier(null);
+
+  // Сырые байты LoRaConfig ровно как их прислало устройство. Без них менять
+  // регион нельзя: set_config заменяет конфиг целиком (см. encodeSetRegion).
+  Uint8List? _loraRaw;
+
+  /// Регион можно менять только когда конфиг устройства уже получен.
+  bool get canSetRegion =>
+      _loraRaw != null && _canTransmit && _myNodeNum != null;
 
   String? get myNodeId => _myNodeNum != null
       ? '!${_myNodeNum!.toRadixString(16).padLeft(8, '0')}'
@@ -258,6 +283,12 @@ class MeshService {
     // is addressed to *its* node num, and the `decoded.to != _myNodeNum` gate
     // would silently drop them until (or unless) a MyNodeInfo arrives.
     _myNodeNum = null;
+    // Конфиг принадлежит конкретному устройству: после разрыва он неизвестен,
+    // а не «такой же, как был» — иначе UI покажет чужой регион.
+    _loraRaw = null;
+    loraRegion.value = null;
+    // Модель платы тоже принадлежит конкретному устройству — как и регион.
+    hwModel.value = null;
     _lastHeard.clear();
     if (!_disposed) deviceName.value = null;
   }
@@ -403,6 +434,37 @@ class MeshService {
       // Fire-and-forget callers have nobody to hand this to.
       debugPrint('[Mesh] $what failed: $e');
     }
+  }
+
+  /// Задаёт регион радио: `begin_edit` → `set_config{lora}` → `commit_edit`.
+  ///
+  /// Регион определяет частоту, на которой законно вещать, поэтому вызывается
+  /// только по явному выбору пользователя — никогда по догадке о его стране.
+  ///
+  /// Возвращает `false`, если конфиг устройства ещё не получен: без исходных
+  /// байт менять регион нельзя, `set_config` затёр бы остальные настройки.
+  ///
+  /// [loraRegion] здесь НЕ обновляется. После смены региона устройство
+  /// перезагружается и присылает конфиг заново — вот он и есть подтверждение.
+  /// Выставить значение заранее значило бы показать «настроено» при неудачной
+  /// записи.
+  Future<bool> setRegion(int region) async {
+    final lora = _loraRaw;
+    final fromNode = _myNodeNum;
+    if (lora == null || fromNode == null || !_canTransmit) {
+      debugPrint('[Mesh] setRegion: no device config yet');
+      return false;
+    }
+    final frames = MeshtasticProto.encodeSetRegion(
+      currentLora: lora,
+      region: region,
+      fromNode: fromNode,
+    );
+    for (var i = 0; i < frames.length; i++) {
+      await _write(frames[i], what: 'region frame ${i + 1}/${frames.length}');
+    }
+    debugPrint('[Mesh] region set to $region (${LoraRegion.codeOf(region)})');
+    return true;
   }
 
   // True if enough time passed since the last event for [key] (and then
@@ -639,22 +701,51 @@ class MeshService {
       debugPrint('[Mesh] my node = $myNodeId');
     }
 
+    // Config.lora → регион радио
+    final lora = MeshtasticProto.decodeLoraConfig(bytes);
+    if (lora != null) {
+      _loraRaw = lora.raw;
+      loraRegion.value = lora.region;
+    }
+
+    // DeviceMetadata → модель платы
+    final model = MeshtasticProto.decodeHwModel(bytes);
+    if (model != null) {
+      hwModel.value = model;
+      debugPrint('[Mesh] hw_model = $model');
+    }
+
     // NodeInfo — только логируем, имя контакта пользователь задаёт сам
     final nodeInfo = MeshtasticProto.decodeNodeInfo(bytes);
     if (nodeInfo != null) {
       debugPrint('[Mesh] node ${nodeInfo.nodeId} info received');
     }
 
-    // ROUTING ACK (portnum=5) → обновляем статус сообщения
+    // ROUTING ACK (portnum=5) → обновляем статус сообщения.
+    // errorName — человекочитаемое имя (NOT_AUTHORIZED, ADMIN_BAD_SESSION_KEY
+    // и т.п. из mesh.proto Routing.Error), нужно именно для диагностики
+    // молчащих админ-команд — раньше в логе был только голый код ошибки.
     final ack = MeshtasticProto.decodeRoutingAck(bytes);
     if (ack != null) {
       debugPrint(
-        '[Mesh] routing ack meshId=${ack.meshId} error=${ack.errorCode}',
+        '[Mesh] routing ack meshId=${ack.meshId} '
+        'error=${ack.errorCode} (${ack.errorName})',
       );
       final status = ack.errorCode == 0
           ? MessageStatus.acked
           : MessageStatus.failed;
       await store.updateMessageStatus(ack.meshId, status);
+    }
+
+    // Ответ на админ-команду (portnum=ADMIN_APP), если устройство его
+    // прислало — например get_config_response и т.п. Само по себе появление
+    // этого лога уже диагностически ценно: значит AdminModule увидел пакет.
+    final adminResp = MeshtasticProto.decodeAdminResponse(bytes);
+    if (adminResp != null) {
+      debugPrint(
+        '[Mesh] admin response meshId=${adminResp.meshId} '
+        'variantTag=${adminResp.variantTag}',
+      );
     }
 
     // MESSAGE (portnum=1 plaintext text, or portnum=PRIVATE_APP encrypted DM)
