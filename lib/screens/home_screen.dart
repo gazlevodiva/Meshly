@@ -7,8 +7,10 @@ import 'package:meshly/screens/add_contact_screen.dart';
 import 'package:meshly/screens/chat_screen.dart';
 import 'package:meshly/screens/my_card_screen.dart';
 import 'package:meshly/screens/new_channel_screen.dart';
+import 'package:meshly/screens/radio_region_screen.dart';
 import 'package:meshly/screens/scan_screen.dart';
 import 'package:meshly/services/contact_store.dart';
+import 'package:meshly/services/lora_region.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/notification_service.dart';
 import 'package:meshly/theme/app_theme.dart';
@@ -101,6 +103,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _openRadioRegion() {
+    unawaited(
+      Navigator.push<void>(
+        context,
+        MaterialPageRoute<void>(
+          builder: (_) => RadioRegionScreen(meshService: widget.meshService),
+        ),
+      ),
+    );
+  }
+
   void _openChat(Conversation conv) {
     unawaited(_store.markRead(conv.id));
     unawaited(
@@ -150,6 +163,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           _StatusPill(
                             meshService: widget.meshService,
                             onReconnect: _openScan,
+                          ),
+                          _RadioNotConfiguredCard(
+                            meshService: widget.meshService,
+                            onChooseRegion: _openRadioRegion,
                           ),
                         ],
                       ),
@@ -378,6 +395,76 @@ class _StatusPill extends StatelessWidget {
               ),
             ],
           ],
+        );
+      },
+    );
+  }
+}
+
+/// Карточка «устройство не настроено»: показывается, когда конфиг устройства
+/// уже получен и регион LoRa явно [LoraRegion.unset] — плата подключена, но
+/// физически не выходит в эфир, пока регион не выбран. Пока конфиг ещё едет
+/// ([MeshService.loraRegion] == null) карточка не рисуется — рано делать
+/// выводы.
+class _RadioNotConfiguredCard extends StatelessWidget {
+  const _RadioNotConfiguredCard({
+    required this.meshService,
+    required this.onChooseRegion,
+  });
+
+  final MeshService meshService;
+  final VoidCallback onChooseRegion;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int?>(
+      valueListenable: meshService.loraRegion,
+      builder: (context, region, _) {
+        if (region != LoraRegion.unset) return const SizedBox.shrink();
+        final scheme = Theme.of(context).colorScheme;
+        return Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.s16),
+          child: Material(
+            color: scheme.errorContainer,
+            borderRadius: BorderRadius.circular(AppRadius.cardLarge),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.s16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.settings_input_antenna,
+                        color: scheme.onErrorContainer,
+                      ),
+                      const SizedBox(width: AppSpacing.s10),
+                      Expanded(
+                        child: Text(
+                          context.l10n.radioNotConfiguredTitle,
+                          style: AppTextStyles.cardTitle.copyWith(
+                            color: scheme.onErrorContainer,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.s8),
+                  Text(
+                    context.l10n.radioNotConfiguredBody,
+                    style: AppTextStyles.subtitle(
+                      context,
+                    ).copyWith(color: scheme.onErrorContainer),
+                  ),
+                  const SizedBox(height: AppSpacing.s16),
+                  FilledButton(
+                    onPressed: onChooseRegion,
+                    child: Text(context.l10n.radioRegionChoose),
+                  ),
+                ],
+              ),
+            ),
+          ),
         );
       },
     );

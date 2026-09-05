@@ -95,6 +95,89 @@
     "description": "Explains that the BLE pairing code is shown on the device screen and the system prompt may arrive as a notification"
   },
 
+  "radioRegionTitle": "Регион радио",
+  "@radioRegionTitle": {
+    "description": "Title of the radio-region setting and of the region picker screen"
+  },
+  "radioRegionNotSet": "Не задан",
+  "@radioRegionNotSet": {
+    "description": "Value shown next to the region setting while the device region is UNSET"
+  },
+  "radioNotConfiguredTitle": "Устройство ещё не настроено",
+  "@radioNotConfiguredTitle": {
+    "description": "Heading of the card shown after connecting to a radio whose LoRa region is unset"
+  },
+  "radioNotConfiguredBody": "Пока не выбран регион, устройство не выходит в эфир — сообщения никуда не уйдут. Регион задаёт частоту, на которой разрешено вещать там, где вы находитесь.",
+  "@radioNotConfiguredBody": {
+    "description": "Explains why an unconfigured radio silently fails to send anything"
+  },
+  "radioRegionChoose": "Выбрать регион",
+  "@radioRegionChoose": {
+    "description": "Button that opens the region picker"
+  },
+  "radioRegionHint": "Выберите регион той страны, где вы находитесь. Работа на чужой частоте нарушает местные правила радиосвязи.",
+  "@radioRegionHint": {
+    "description": "Legal warning at the top of the region picker; the region is never guessed for the user"
+  },
+  "radioRegionCommon": "Частые",
+  "@radioRegionCommon": {
+    "description": "Section heading above the short list of the most common LoRa regions"
+  },
+  "radioRegionAll": "Все регионы",
+  "@radioRegionAll": {
+    "description": "Section heading above the full list of LoRa region codes"
+  },
+  "radioRegionApplying": "Применяем настройку. Устройство перезагрузится и подключится само.",
+  "@radioRegionApplying": {
+    "description": "Shown after the region was sent; the radio reboots and reconnects on its own"
+  },
+  "radioRegionFailed": "Не удалось изменить регион. Проверьте подключение к устройству.",
+  "@radioRegionFailed": {
+    "description": "Shown when the region write could not be sent"
+  },
+  "radioRegionReading": "Читаем настройки устройства…",
+  "@radioRegionReading": {
+    "description": "Placeholder while the device config has not arrived yet and the region is unknown"
+  },
+  "radioRegionUnknownCode": "Неизвестный код ({code})",
+  "@radioRegionUnknownCode": {
+    "description": "Region value reported by a newer firmware that this app does not know yet",
+    "placeholders": { "code": { "type": "int" } }
+  },
+  "radioRegionSuggestBody": "Похоже, вам подходит {code}. Настроить устройство?",
+  "@radioRegionSuggestBody": {
+    "description": "One-tap setup: shown when the phone's platform locale suggests a region for the device (no country name — see project notes on why)",
+    "placeholders": { "code": { "type": "String" } }
+  },
+  "radioRegionSuggestConfirm": "Настроить",
+  "@radioRegionSuggestConfirm": {
+    "description": "Primary button that applies the suggested region"
+  },
+  "radioRegionSuggestOther": "Выбрать другой регион",
+  "@radioRegionSuggestOther": {
+    "description": "Secondary link below the one-tap suggestion, opens the full region list"
+  },
+  "radioRegionChangeWarning": "Связь со всеми, у кого устройство осталось на прежнем регионе, прервётся.",
+  "@radioRegionChangeWarning": {
+    "description": "Shown in the confirmation sheet when the device already has a region set and the user is changing it"
+  },
+  "radioRegionIncompatibleSection": "Другой диапазон",
+  "@radioRegionIncompatibleSection": {
+    "description": "Heading above regions whose frequency band does not match the device's current region"
+  },
+  "radioRegionIncompatibleWarning": "Эти регионы работают на другой частоте, чем плата уже настроена. Железо устройства может не поддерживать такой диапазон — связь пропадёт.",
+  "@radioRegionIncompatibleWarning": {
+    "description": "Warning text above the incompatible-region section in the full region list"
+  },
+  "settingsAdvancedTitle": "Дополнительно",
+  "@settingsAdvancedTitle": {
+    "description": "Settings row and subscreen title gathering settings meant only for users who understand the consequences"
+  },
+  "settingsAdvancedSubtitle": "Подключение и регион радио",
+  "@settingsAdvancedSubtitle": {
+    "description": "Subtitle of the 'Advanced' settings row, naming what is inside"
+  },
+
   "onboardingTitle1": "Общайтесь без интернета\nи сотовой связи",
   "onboardingText1": "Сообщения идут напрямую между устройствами Meshtastic по радио. Никаких тарифов и вышек — связь работает даже там, где нет сети.",
   "onboardingTitle2": "Нужен Meshtastic-девайс",

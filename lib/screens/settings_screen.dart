@@ -5,9 +5,11 @@ import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/screens/blocked_nodes_screen.dart';
 import 'package:meshly/screens/my_card_screen.dart';
 import 'package:meshly/screens/notification_settings_screen.dart';
+import 'package:meshly/screens/radio_region_screen.dart';
 import 'package:meshly/screens/scan_screen.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/locale_controller.dart';
+import 'package:meshly/services/lora_region.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/notification_settings.dart';
 import 'package:meshly/services/theme_controller.dart';
@@ -48,24 +50,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     } on Exception {
       // Platform channel unavailable (e.g. in tests) — keep the default.
-    }
-  }
-
-  Future<void> _disconnect() async {
-    await widget.meshService.disconnect();
-    if (mounted) {
-      unawaited(
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute<void>(
-            builder: (_) => ScanScreen(
-              meshService: widget.meshService,
-              // Намеренный disconnect: не переподключаться сразу же.
-              autoConnect: false,
-            ),
-          ),
-          (_) => false,
-        ),
-      );
     }
   }
 
@@ -264,40 +248,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
 
-                    // ── Устройство ───────────────────────────────────
-                    SectionCard(
-                      title: context.l10n.settingsSectionDevice,
-                      child: ValueListenableBuilder<String?>(
-                        valueListenable: widget.meshService.deviceName,
-                        builder: (_, name, _) {
-                          final connected = widget.meshService.isConnected;
-                          if (name != null || connected) {
-                            return ListTile(
-                              leading: Icon(
-                                Icons.bluetooth_connected,
-                                color: context.appColors.brand,
-                              ),
-                              title: Text(
-                                name != null
-                                    ? context.l10n.connectedToName(name)
-                                    : context.l10n.statusConnected,
-                              ),
-                              subtitle: Text(context.l10n.tapToDisconnect),
-                              onTap: _disconnect,
-                            );
-                          } else {
-                            return ListTile(
-                              leading: Icon(
-                                Icons.bluetooth_disabled,
-                                color: context.appColors.iconSecondary,
-                              ),
-                              title: Text(context.l10n.statusNoConnection),
-                            );
-                          }
-                        },
-                      ),
-                    ),
-
                     // ── Уведомления ──────────────────────────────────
                     SectionCard(
                       title: context.l10n.notificationsTitle,
@@ -411,6 +361,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
 
+                    // ── Дополнительно ────────────────────────────────
+                    // Без заголовка секции — намеренно: состояние
+                    // подключения и регион радио спрятаны в подэкран,
+                    // на виду эта строка только путает новичка. Своего
+                    // заголовка у карточки нет, поэтому явно просим у неё
+                    // верхний отступ — иначе она прилипнет к предыдущей.
+                    SectionCard(
+                      topGap: true,
+                      child: ListTile(
+                        leading: const Icon(Icons.tune),
+                        title: Text(context.l10n.settingsAdvancedTitle),
+                        subtitle: Text(context.l10n.settingsAdvancedSubtitle),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => unawaited(
+                          Navigator.push<void>(
+                            context,
+                            MaterialPageRoute<void>(
+                              builder: (_) => _AdvancedSettingsScreen(
+                                meshService: widget.meshService,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
                     // ── О приложении ─────────────────────────────────
                     SectionCard(
                       title: context.l10n.settingsSectionAbout,
@@ -439,6 +415,139 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Значение строки региона: код, «не задан» или «читаем настройки» —
+/// используется и настройками, и подэкраном «Дополнительно».
+String _regionLabel(BuildContext context, int? value) {
+  if (value == null) return context.l10n.radioRegionReading;
+  if (value == LoraRegion.unset) return context.l10n.radioRegionNotSet;
+  final code = LoraRegion.codeOf(value);
+  return code ?? context.l10n.radioRegionUnknownCode(value);
+}
+
+/// Подэкран «Дополнительно» — настройки для тех, кто понимает последствия.
+///
+/// Строка подключения и регион радио сгруппированы одной секцией
+/// «Устройство»: обе строки про физическое устройство. Состояние
+/// подключения и так видно на главном экране — сюда оно спрятано, чтобы не
+/// путать новичка. Регион радио спрятан по той же причине: правильно
+/// настроенный регион менять почти никогда не нужно, а смена рвёт связь со
+/// всеми, у кого устройство осталось на прежнем (см. карточку «не
+/// настроено» на главном экране — она остаётся для новичка).
+class _AdvancedSettingsScreen extends StatelessWidget {
+  const _AdvancedSettingsScreen({required this.meshService});
+
+  final MeshService meshService;
+
+  Future<void> _disconnect(BuildContext context) async {
+    await meshService.disconnect();
+    if (context.mounted) {
+      unawaited(
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute<void>(
+            builder: (_) => ScanScreen(
+              meshService: meshService,
+              // Намеренный disconnect: не переподключаться сразу же.
+              autoConnect: false,
+            ),
+          ),
+          (_) => false,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final topInset = MediaQuery.paddingOf(context).top + kToolbarHeight;
+
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Text(context.l10n.settingsAdvancedTitle),
+      ),
+      body: TabGradientBackground(
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.s16,
+            topInset + AppSpacing.s8,
+            AppSpacing.s16,
+            AppSpacing.listBottomPadding,
+          ),
+          children: [
+            SectionCard(
+              title: context.l10n.settingsSectionDevice,
+              child: Column(
+                children: [
+                  ValueListenableBuilder<String?>(
+                    valueListenable: meshService.deviceName,
+                    builder: (context, name, _) {
+                      final connected = meshService.isConnected;
+                      if (name != null || connected) {
+                        return ListTile(
+                          leading: Icon(
+                            Icons.bluetooth_connected,
+                            color: context.appColors.brand,
+                          ),
+                          title: Text(
+                            name != null
+                                ? context.l10n.connectedToName(name)
+                                : context.l10n.statusConnected,
+                          ),
+                          subtitle: Text(context.l10n.tapToDisconnect),
+                          onTap: () => unawaited(_disconnect(context)),
+                        );
+                      } else {
+                        return ListTile(
+                          leading: Icon(
+                            Icons.bluetooth_disabled,
+                            color: context.appColors.iconSecondary,
+                          ),
+                          title: Text(context.l10n.statusNoConnection),
+                        );
+                      }
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ValueListenableBuilder<int?>(
+                    valueListenable: meshService.loraRegion,
+                    builder: (context, region, _) {
+                      final enabled = meshService.canSetRegion;
+                      return ListTile(
+                        leading: Icon(
+                          Icons.settings_input_antenna,
+                          color: enabled
+                              ? null
+                              : context.appColors.iconSecondary,
+                        ),
+                        title: Text(context.l10n.radioRegionTitle),
+                        subtitle: Text(_regionLabel(context, region)),
+                        trailing: const Icon(Icons.chevron_right),
+                        enabled: enabled,
+                        onTap: () => unawaited(
+                          Navigator.push<void>(
+                            context,
+                            MaterialPageRoute<void>(
+                              builder: (_) =>
+                                  RadioRegionScreen(meshService: meshService),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

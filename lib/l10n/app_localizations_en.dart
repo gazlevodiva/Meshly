@@ -122,6 +122,76 @@ class AppLocalizationsEn extends AppLocalizations {
       'Enter the code shown on your device\'s screen. If no dialog appears, check your notification shade.';
 
   @override
+  String get radioRegionTitle => 'Radio region';
+
+  @override
+  String get radioRegionNotSet => 'Not set';
+
+  @override
+  String get radioNotConfiguredTitle => 'Device is not set up yet';
+
+  @override
+  String get radioNotConfiguredBody =>
+      'Until a region is chosen the device stays off the air — nothing you send will go anywhere. The region sets the frequency you are allowed to transmit on where you are.';
+
+  @override
+  String get radioRegionChoose => 'Choose region';
+
+  @override
+  String get radioRegionHint =>
+      'Pick the region for the country you are in. Transmitting on another region\'s frequency breaks local radio regulations.';
+
+  @override
+  String get radioRegionCommon => 'Common';
+
+  @override
+  String get radioRegionAll => 'All regions';
+
+  @override
+  String get radioRegionApplying =>
+      'Applying. The device will restart and reconnect on its own.';
+
+  @override
+  String get radioRegionFailed =>
+      'Could not change the region. Check the connection to your device.';
+
+  @override
+  String get radioRegionReading => 'Reading device settings…';
+
+  @override
+  String radioRegionUnknownCode(int code) {
+    return 'Unknown code ($code)';
+  }
+
+  @override
+  String radioRegionSuggestBody(String code) {
+    return 'Looks like $code suits you. Set up the device?';
+  }
+
+  @override
+  String get radioRegionSuggestConfirm => 'Set up';
+
+  @override
+  String get radioRegionSuggestOther => 'Choose a different region';
+
+  @override
+  String get radioRegionChangeWarning =>
+      'Anyone whose device is still on the old region will lose contact with you.';
+
+  @override
+  String get radioRegionIncompatibleSection => 'Different band';
+
+  @override
+  String get radioRegionIncompatibleWarning =>
+      'These regions use a different frequency than the device is already set to. The hardware may not support this band — the connection could go silent.';
+
+  @override
+  String get settingsAdvancedTitle => 'Advanced';
+
+  @override
+  String get settingsAdvancedSubtitle => 'Connection and radio region';
+
+  @override
   String get onboardingTitle1 =>
       'Communicate without internet\nor cellular service';
 

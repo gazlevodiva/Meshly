@@ -123,6 +123,76 @@ class AppLocalizationsRu extends AppLocalizations {
       'Введите код с экрана устройства. Если окно не появилось — проверьте шторку уведомлений.';
 
   @override
+  String get radioRegionTitle => 'Регион радио';
+
+  @override
+  String get radioRegionNotSet => 'Не задан';
+
+  @override
+  String get radioNotConfiguredTitle => 'Устройство ещё не настроено';
+
+  @override
+  String get radioNotConfiguredBody =>
+      'Пока не выбран регион, устройство не выходит в эфир — сообщения никуда не уйдут. Регион задаёт частоту, на которой разрешено вещать там, где вы находитесь.';
+
+  @override
+  String get radioRegionChoose => 'Выбрать регион';
+
+  @override
+  String get radioRegionHint =>
+      'Выберите регион той страны, где вы находитесь. Работа на чужой частоте нарушает местные правила радиосвязи.';
+
+  @override
+  String get radioRegionCommon => 'Частые';
+
+  @override
+  String get radioRegionAll => 'Все регионы';
+
+  @override
+  String get radioRegionApplying =>
+      'Применяем настройку. Устройство перезагрузится и подключится само.';
+
+  @override
+  String get radioRegionFailed =>
+      'Не удалось изменить регион. Проверьте подключение к устройству.';
+
+  @override
+  String get radioRegionReading => 'Читаем настройки устройства…';
+
+  @override
+  String radioRegionUnknownCode(int code) {
+    return 'Неизвестный код ($code)';
+  }
+
+  @override
+  String radioRegionSuggestBody(String code) {
+    return 'Похоже, вам подходит $code. Настроить устройство?';
+  }
+
+  @override
+  String get radioRegionSuggestConfirm => 'Настроить';
+
+  @override
+  String get radioRegionSuggestOther => 'Выбрать другой регион';
+
+  @override
+  String get radioRegionChangeWarning =>
+      'Связь со всеми, у кого устройство осталось на прежнем регионе, прервётся.';
+
+  @override
+  String get radioRegionIncompatibleSection => 'Другой диапазон';
+
+  @override
+  String get radioRegionIncompatibleWarning =>
+      'Эти регионы работают на другой частоте, чем плата уже настроена. Железо устройства может не поддерживать такой диапазон — связь пропадёт.';
+
+  @override
+  String get settingsAdvancedTitle => 'Дополнительно';
+
+  @override
+  String get settingsAdvancedSubtitle => 'Подключение и регион радио';
+
+  @override
   String get onboardingTitle1 => 'Общайтесь без интернета\nи сотовой связи';
 
   @override

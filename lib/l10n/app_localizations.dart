@@ -314,6 +314,126 @@ abstract class AppLocalizations {
   /// **'Введите код с экрана устройства. Если окно не появилось — проверьте шторку уведомлений.'**
   String get pairingHintBody;
 
+  /// Title of the radio-region setting and of the region picker screen
+  ///
+  /// In ru, this message translates to:
+  /// **'Регион радио'**
+  String get radioRegionTitle;
+
+  /// Value shown next to the region setting while the device region is UNSET
+  ///
+  /// In ru, this message translates to:
+  /// **'Не задан'**
+  String get radioRegionNotSet;
+
+  /// Heading of the card shown after connecting to a radio whose LoRa region is unset
+  ///
+  /// In ru, this message translates to:
+  /// **'Устройство ещё не настроено'**
+  String get radioNotConfiguredTitle;
+
+  /// Explains why an unconfigured radio silently fails to send anything
+  ///
+  /// In ru, this message translates to:
+  /// **'Пока не выбран регион, устройство не выходит в эфир — сообщения никуда не уйдут. Регион задаёт частоту, на которой разрешено вещать там, где вы находитесь.'**
+  String get radioNotConfiguredBody;
+
+  /// Button that opens the region picker
+  ///
+  /// In ru, this message translates to:
+  /// **'Выбрать регион'**
+  String get radioRegionChoose;
+
+  /// Legal warning at the top of the region picker; the region is never guessed for the user
+  ///
+  /// In ru, this message translates to:
+  /// **'Выберите регион той страны, где вы находитесь. Работа на чужой частоте нарушает местные правила радиосвязи.'**
+  String get radioRegionHint;
+
+  /// Section heading above the short list of the most common LoRa regions
+  ///
+  /// In ru, this message translates to:
+  /// **'Частые'**
+  String get radioRegionCommon;
+
+  /// Section heading above the full list of LoRa region codes
+  ///
+  /// In ru, this message translates to:
+  /// **'Все регионы'**
+  String get radioRegionAll;
+
+  /// Shown after the region was sent; the radio reboots and reconnects on its own
+  ///
+  /// In ru, this message translates to:
+  /// **'Применяем настройку. Устройство перезагрузится и подключится само.'**
+  String get radioRegionApplying;
+
+  /// Shown when the region write could not be sent
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось изменить регион. Проверьте подключение к устройству.'**
+  String get radioRegionFailed;
+
+  /// Placeholder while the device config has not arrived yet and the region is unknown
+  ///
+  /// In ru, this message translates to:
+  /// **'Читаем настройки устройства…'**
+  String get radioRegionReading;
+
+  /// Region value reported by a newer firmware that this app does not know yet
+  ///
+  /// In ru, this message translates to:
+  /// **'Неизвестный код ({code})'**
+  String radioRegionUnknownCode(int code);
+
+  /// One-tap setup: shown when the phone's platform locale suggests a region for the device (no country name — see project notes on why)
+  ///
+  /// In ru, this message translates to:
+  /// **'Похоже, вам подходит {code}. Настроить устройство?'**
+  String radioRegionSuggestBody(String code);
+
+  /// Primary button that applies the suggested region
+  ///
+  /// In ru, this message translates to:
+  /// **'Настроить'**
+  String get radioRegionSuggestConfirm;
+
+  /// Secondary link below the one-tap suggestion, opens the full region list
+  ///
+  /// In ru, this message translates to:
+  /// **'Выбрать другой регион'**
+  String get radioRegionSuggestOther;
+
+  /// Shown in the confirmation sheet when the device already has a region set and the user is changing it
+  ///
+  /// In ru, this message translates to:
+  /// **'Связь со всеми, у кого устройство осталось на прежнем регионе, прервётся.'**
+  String get radioRegionChangeWarning;
+
+  /// Heading above regions whose frequency band does not match the device's current region
+  ///
+  /// In ru, this message translates to:
+  /// **'Другой диапазон'**
+  String get radioRegionIncompatibleSection;
+
+  /// Warning text above the incompatible-region section in the full region list
+  ///
+  /// In ru, this message translates to:
+  /// **'Эти регионы работают на другой частоте, чем плата уже настроена. Железо устройства может не поддерживать такой диапазон — связь пропадёт.'**
+  String get radioRegionIncompatibleWarning;
+
+  /// Settings row and subscreen title gathering settings meant only for users who understand the consequences
+  ///
+  /// In ru, this message translates to:
+  /// **'Дополнительно'**
+  String get settingsAdvancedTitle;
+
+  /// Subtitle of the 'Advanced' settings row, naming what is inside
+  ///
+  /// In ru, this message translates to:
+  /// **'Подключение и регион радио'**
+  String get settingsAdvancedSubtitle;
+
   /// No description provided for @onboardingTitle1.
   ///
   /// In ru, this message translates to:
