@@ -684,9 +684,11 @@ class MeshtasticProto {
         pos = l.$2;
         final end = pos + l.$1;
         // Length taken from untrusted bytes: reject if it overruns the
-        // buffer so sublist() cannot throw RangeError (an Error, which the
-        // `on Exception` wrappers would NOT catch).
-        if (end > data.length) return null;
+        // buffer OR is negative (10-byte varint with the low bit of the
+        // last byte set — see _decVarint) so sublist() cannot throw
+        // RangeError (an Error, which the `on Exception` wrappers would
+        // NOT catch).
+        if (end > data.length || end < pos) return null;
         if (f == field) return Uint8List.fromList(data.sublist(pos, end));
         pos = end;
       } else if (wt == 5) {
@@ -719,9 +721,10 @@ class MeshtasticProto {
       } else if (wt == 2) {
         final l = _decVarint(data, pos);
         final end = l.$2 + l.$1;
-        // Malformed/oversized length from untrusted bytes: stop scanning
-        // instead of walking pos past the buffer.
-        if (end > data.length) break;
+        // Malformed/oversized length from untrusted bytes (including a
+        // negative length from a 10-byte varint — see _decVarint): stop
+        // scanning instead of walking pos past the buffer or backwards.
+        if (end > data.length || end < l.$2) break;
         pos = end;
       } else if (wt == 5) {
         if (pos + 4 > data.length) break;
@@ -760,9 +763,10 @@ class MeshtasticProto {
       } else if (wt == 2) {
         final l = _decVarint(data, pos);
         final end = l.$2 + l.$1;
-        // Malformed/oversized length from untrusted bytes: stop scanning
-        // instead of walking pos past the buffer.
-        if (end > data.length) break;
+        // Malformed/oversized length from untrusted bytes (including a
+        // negative length from a 10-byte varint — see _decVarint): stop
+        // scanning instead of walking pos past the buffer or backwards.
+        if (end > data.length || end < l.$2) break;
         pos = end;
       } else if (wt == 1) {
         if (pos + 8 > data.length) break;
@@ -780,7 +784,19 @@ class MeshtasticProto {
     var currentPos = pos;
     while (currentPos < data.length) {
       final b = data[currentPos++];
-      result |= (b & 0x7F) << shift;
+      // Dart's `int` is a signed 64-bit value: shifting a bit into position
+      // 63 (the 10th varint byte) sets the sign bit and turns an otherwise
+      // valid-looking field length into a negative number, which later
+      // survives an `end > data.length` check (a negative end is always
+      // "not greater than" the buffer length) and reaches
+      // `data.sublist(pos, end)` with `end < pos`, which throws a
+      // `RangeError` — an `Error`, not caught by `on Exception` wrappers.
+      // We only ever need this for varints, whose values are lengths well
+      // under 2^63, so bits at shift >= 63 are simply discarded: result
+      // stays non-negative instead of "almost always" non-negative.
+      if (shift < 63) {
+        result |= (b & 0x7F) << shift;
+      }
       if ((b & 0x80) == 0) break;
       shift += 7;
       // A varint is at most 10 bytes (70 bits). Cap the shift so a stream

@@ -430,12 +430,27 @@ void main() {
         List<int>.filled(20, 0x80), // varint continuation bytes forever
       );
 
+      // Длина поля, закодированная 10-байтовым варинтом: 9 continuation-байт
+      // (0x80 — сами по себе нулевые биты значения) и терминальный байт
+      // 0x01 на позиции shift=63. До правки _decVarint это задирало 63-й
+      // (знаковый) бит результата, длина поля становилась отрицательной, и
+      // старая проверка `end > data.length` её пропускала — sublist(pos,
+      // end) с end < pos бросал RangeError (Error, не Exception, мимо
+      // `on Exception` в decodeLoraConfig и подобных). Раз получить длину
+      // именно так — реалистичный эфирный пакет.
+      final negativeLength = Uint8List.fromList([
+        0x12, // field 2 (MeshPacket), wire type 2
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, // 9 байт
+        0x01, // 10-й байт: терминальный, младший бит установлен
+      ]);
+
       final cases = <String, Uint8List>{
         'oversized length': oversizedLength,
         'truncated tag': truncated,
         'empty': empty,
         'pseudo-random': randomish,
         'endless varint': allContinuation,
+        'negative length (10-byte varint overflow)': negativeLength,
       };
 
       for (final entry in cases.entries) {
@@ -449,8 +464,22 @@ void main() {
           );
           expect(() => MeshtasticProto.decodeMyNodeNum(bytes), returnsNormally);
           expect(() => MeshtasticProto.decodeNodeInfo(bytes), returnsNormally);
+          expect(
+            () => MeshtasticProto.decodeLoraConfig(bytes),
+            returnsNormally,
+          );
         });
       }
+
+      test(
+        'negative-length field is rejected (null), not thrown as RangeError',
+        () {
+          expect(
+            MeshtasticProto.decodeLoraConfig(negativeLength),
+            isNull,
+          );
+        },
+      );
     });
   });
 }

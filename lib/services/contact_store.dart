@@ -442,6 +442,17 @@ class ContactStore extends ChangeNotifier {
     bool? peerCanReadUs,
     bool? writeAnyway,
   }) async {
+    // ВНИМАНИЕ: от чтения полей conv (здесь) до их мутации (conv..iCanReadPeer
+    // = ... ниже) не должно быть ни одного `await`. Сейчас гонки нет именно
+    // потому, что весь этот путь синхронный и Dart не отдаёт управление
+    // планировщику между чтением prevMine/prevTheirs/prevForce и присвоением
+    // nextMine/nextTheirs/nextForce — конкурентный вызов _setSecureFlags для
+    // той же беседы физически не может вклиниться между ними. Если кто-то
+    // добавит `await` в этот промежуток (например, асинхронную проверку
+    // перед мутацией), инвариант "prev* — это состояние ДО этого вызова"
+    // тихо сломается: два конкурентных вызова смогут прочитать одно и то же
+    // prev-состояние и один из них при откате (см. catch ниже) отменит
+    // изменения другого. Заметить это на глаз потом будет очень трудно.
     final conv = _conversations[conversationId];
     if (conv == null) return;
     final nextMine = iCanReadPeer ?? conv.iCanReadPeer;
