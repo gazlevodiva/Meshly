@@ -20,6 +20,8 @@ A simple messenger built on top of the [Meshtastic](https://meshtastic.org/) LoR
 - Group conversations, as many as you like — they are not tied to the
   radio's eight hardware channel slots
 - Add people by scanning their QR code (or by typing a device ID)
+- A group conversation announces when someone joins or leaves, shown as a
+  log in its info screen — not a member list, see below
 - Detects when a chat's encryption breaks — a peer reinstalled the app, say
   — explains it, and walks both sides through fixing it
 - Delivery marks that claim only what they can prove
@@ -149,7 +151,7 @@ If your device uses different UUIDs, update the constants in `lib/services/mesh_
 
 - ✅ Tested on Android (Samsung S901B, Android 16) and iOS (iPhone 14, iOS 26)
 - ✅ Tested with Heltec MeshPocket over BLE
-- ⚠️ Group conversations have no member list and nobody can be removed from one: everyone shares a single key, and the app cannot know who holds it (see [SECURITY.md](SECURITY.md) for why that's a hard limit, not a missing UI)
+- ⚠️ Group conversations have no member list and nobody can be removed from one: everyone shares a single key, and the app cannot know who holds it (see [SECURITY.md](SECURITY.md) for why that's a hard limit, not a missing UI). The join/leave log shown in a conversation's info screen is a per-device sighting log, not a roster — entries can be missed, and, like any message in the group, forged by another member.
 - ⚠️ Push notifications work in foreground only — background BLE on iOS requires additional native setup
 - ⚠️ Protobuf encoding is implemented manually (no official Meshtastic Dart package exists)
 - ⚠️ iOS free developer certificate expires every 7 days — use Apple Developer Program ($99/yr) for permanent install

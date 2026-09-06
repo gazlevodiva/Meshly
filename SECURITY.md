@@ -163,6 +163,51 @@ What this does and does not buy you:
   used, whether a payload is decrypted, or whether a sender is trusted — a
   forged or replayed service packet cannot widen what anyone can read.
 
+## Join/leave announcements
+
+Joining a group conversation (scanning its QR) and leaving it (deleting it
+locally) each broadcast a one-shot announcement, carried as plaintext
+*inside* the normal encrypted channel envelope rather than as a separate
+packet type — see `ARCHITECTURE.md` → *Join/leave announcements* for the
+wire format. Be clear-eyed about what this is and isn't:
+
+- **It is forgeable, same as any channel message.** The channel key is
+  shared by every member (see *One shared key for the whole group* above),
+  and the Meshtastic `from` field is not authenticated, so anyone who holds
+  the conversation's key — any member, in good standing or not — can
+  broadcast an announcement claiming any name joined or left. This is not a
+  separate weakness introduced by announcements; it is the same in-group
+  forgery the shared channel key already allows for ordinary messages,
+  applied to this one plaintext shape.
+- **The leading NUL byte is a UI-integrity guard, not an authentication
+  mechanism.** It exists so an ordinary message a person *types* can never
+  be misread as a system event (no keyboard can produce U+0000) — it stops
+  an accidental or naively-crafted collision, not a modified client that
+  builds the bytes directly. A custom client can produce this prefix as
+  easily as any other byte sequence.
+- **The payload is name-only, never key material.** No service or
+  announcement packet in Meshly ever carries key material over the air —
+  see *Secure-chat service packets* below for why: the only way a contact's
+  key reaches your device is scanning their QR in person. A forged
+  announcement can misrepresent who joined or left; it cannot make your
+  device trust a new key or accept a substituted identity.
+- **The announced name is sanitized on arrival, not trusted from the
+  wire.** `decodeSystemEvent` runs every incoming name through
+  `sanitizeDisplayName` — the same 32-code-point cap and control-character
+  flattening applied where a name is typed — and drops an announcement whose
+  name is empty afterwards. The sender's own encoder applies that cap too,
+  but a modified client is under no obligation to, and a system line renders
+  centred and unattributed, as if the app itself said it. The chat's system
+  line is additionally bounded to two lines. Names arriving from a scanned
+  QR code (`QrService.decodeContact` / `decodeChannel`) get the same
+  treatment for the same reason.
+- **The "Входы и выходы" log is a sighting log, not a membership roster,
+  and the UI says so.** It is built from whichever announcements this one
+  device happened to receive: a broadcast with no delivery confirmation, so
+  entries can go missing, and — per the above — every entry is an
+  unverified self-report that could have been forged by any member. Do not
+  treat it as authoritative for who is actually in a conversation.
+
 If you're evaluating Meshly for a situation where confidentiality actually
 matters (activism, abusive-relationship safety planning, etc.), please read
 the above carefully — DM content confidentiality is meaningfully better

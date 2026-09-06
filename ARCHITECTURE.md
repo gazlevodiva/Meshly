@@ -83,6 +83,41 @@ for other device configuration:
 - The region is deliberately never set without an explicit user choice: no
   auto-detection writes to the device on its own.
 
+## Onboarding and the display name
+
+A device's own node id — and therefore whether a self-contact already
+exists — is only known once a radio has actually connected and sent
+`MyNodeInfo`, so asking for a display name can't happen during the intro
+slides. `OnboardingScreen` only shows three static pages and a "skip"
+button, then hands off to `ScanScreen`; once a connection succeeds,
+`postConnectDestination` (in `lib/screens/scan_screen.dart`) decides where
+to land: straight to `MainScreen` if `ContactStore.contactByNodeId(myNodeId)`
+already exists (a returning user or a reconnect), otherwise to
+`NameStepScreen` (defined in `lib/screens/onboarding_screen.dart`) to ask
+for a name once, right after the first successful connect.
+
+- **One limit everywhere.** `kDisplayNameMaxLength` (32 Unicode code points,
+  `lib/models/contact.dart`) is the single cap on a display name, enforced
+  three times so it can never drift: live, as a `TextInputFormatter` on the
+  name field (`_DisplayNameInputFormatter` in `my_card_screen.dart`) that
+  refuses further input rather than silently truncating later;
+  `sanitizeDisplayName`, which trims, flattens control characters/newlines
+  to spaces, and caps by *code points* (not UTF-16 units, so an emoji's
+  surrogate pair is never split) before a name is persisted; and again
+  inside `encodeSystemEvent` (see *Join/leave announcements* below), so a
+  name that already fits the field is guaranteed to reach an announcement
+  unchanged. The cap is also applied on every path a name arrives from
+  *another* device — `decodeSystemEvent`, `QrService.decodeContact` and
+  `QrService.decodeChannel` — because those senders' encoders bind only
+  honest clients, and a name that skipped the cap would reach the store,
+  the chat header and a push-notification title as encoded.
+- **No QR until a name exists.** `MyCardScreen._hasName` is true only once
+  `ContactStore.contactByNodeId` returns a row for this device, which only
+  happens after the first successful `_saveName` — there is no placeholder
+  name. The QR/share section stays hidden until then, so a card never
+  encodes an invented stand-in name that a scanning contact would save as
+  this device's real name.
+
 ## Meshly encryption (DMs and channels)
 
 Both direct messages and group channels between Meshly installs use Meshly's
@@ -193,6 +228,59 @@ per conversation, an eavesdropper who saw two nodes both transmitting on slot
 Fixing every conversation to channel 0 removes that signal: the slot field no
 longer distinguishes one Meshly group from another.
 
+## Join/leave announcements
+
+Scanning a conversation's QR (joining) and leaving it (the action is
+labelled *Выйти из беседы* / *Leave conversation*, and removes the
+conversation and its messages from this device only) each broadcast a
+one-shot announcement so other members' devices can show
+something happened, without the app ever maintaining an authoritative
+member list (see *Conversations are not hardware channel slots* above for
+why there is no roster to maintain in the first place).
+
+- **Wire format** (`lib/models/message.dart`): `encodeSystemEvent`/
+  `decodeSystemEvent` prefix the plaintext with `\u0000meshly:v1:<kind>:`
+  before it goes through the normal channel AEAD envelope
+  (`CryptoService.encryptForChannel`) and `PRIVATE_APP` framing — same
+  portnum, same channel 0, same envelope version as an ordinary message.
+  From outside the encryption, an announcement is byte-for-byte
+  indistinguishable from a regular broadcast; a distinct outer packet type
+  would have let an eavesdropper count joins/leaves without decrypting
+  anything, exactly the metadata leak the hardware-slot removal just closed.
+  The leading `\u0000` (NUL) is what keeps an ordinary typed message from
+  ever being misread as an event — no on-screen keyboard can produce
+  U+0000 — see *Security* below for what that does and does not protect
+  against.
+- **Payload is name-only.** `encodeSystemEvent` carries the sender's
+  `sanitizeDisplayName`-capped display name (falling back to the raw node id
+  if no self-contact name is set yet — see *Onboarding* above) and nothing
+  else. No key material is ever in an announcement.
+- **Send**: `MeshService.announceChannelEvent` (called from
+  `ChannelManager.addFromQr` on join, and from
+  `MeshService.leaveChannelConversation` on leave) is fire-and-forget, like
+  the secure-chat service packets — one broadcast, no retry, no delivery
+  tracking. Leaving announces best-effort *before* the local conversation
+  row is deleted, so a radio failure never blocks the delete.
+- **Receive** (`_onBytesReceived` → `_storeSystemEvent`): a decrypted
+  broadcast is checked with `decodeSystemEvent` before being treated as an
+  ordinary message; the name it carries is re-sanitized there (an
+  announcement whose name sanitizes to nothing is rejected outright), and
+  `_SystemEventLine` in `chat_screen.dart` renders at most two lines; a recognised announcement is stored as a
+  `Message.systemEvent` row (`Messages.eventKind`, schema v11 — see
+  *Storage* below) instead. It does not call `NotificationService` and does
+  not bump the unread counter — `ContactStore.addMessage` skips both for any
+  `Message.isSystemEvent` row, since this isn't a message from a person.
+  It is still pushed onto the same incoming-message stream so an already
+  open chat updates live.
+- **The "Входы и выходы" log** (`_ChannelEventsCard`,
+  `lib/screens/channel_info_screen.dart`) renders these rows inline in the
+  conversation's info screen. It is deliberately not framed as a member
+  list in the UI copy (`channelEventsTitle`/`channelEventsNote` in the ARB
+  files) — it is one device's own sighting log of a lossy broadcast, not a
+  roster: some announcements never arrive, duplicates are possible, and
+  entries are unverified self-reports. See `SECURITY.md` for why an
+  announcement can also be *forged*, not just lost.
+
 ## Secure chat state (DMs)
 
 A DM conversation stores two booleans of state (`lib/models/conversation.dart`,
@@ -291,6 +379,29 @@ answered with nothing. The invariant is unchanged — **no state is created for
 unknown nodes**: no contact, no conversation, no message, no notification, and
 nothing appears in the UI. The reply shares the global reactive-packet budget.
 
+## The user is not their own contact
+
+`ContactStore` tracks which node id is "us" (`_myNodeId`, set via
+`setMyNodeId`) — `MeshService` calls it every time `MyNodeInfo` arrives on
+connect or reconnect, not just once. Everything that must keep the user out
+of their own contact/chat list reads this one field rather than each call
+site re-deriving it, on purpose: a filter applied in one list but forgotten
+in another is exactly what caused an earlier "chat with yourself" bug.
+
+- `ContactStore.contacts` excludes any contact whose `nodeId == _myNodeId`,
+  and `ContactStore.conversations` excludes any DM whose peer is
+  `_myNodeId` — both filters live in the getter, not in the database, so a
+  stray self-DM row from before this existed still never surfaces.
+- `saveContact` refuses to create a DM conversation for the self-contact
+  (the only place a self-contact is ever saved from is the name step and
+  "Мой контакт"). `setMyNodeId` also deletes, once and for all, any
+  self-DM conversation and its messages that a pre-fix install already has
+  on disk, the moment the node id becomes known again.
+- The self-contact row itself is **not** deleted from the `Contacts` table —
+  `MyCardScreen`/`ContactStore.contactByNodeId` reads it legitimately to
+  back the "Мой контакт" screen and the QR code. Only the two list getters
+  and DM creation treat it specially.
+
 ## Reactive store pattern
 
 State that the UI needs to react to lives in singleton `ChangeNotifier`s,
@@ -337,7 +448,7 @@ Notable points:
 - Schema changes bump `schemaVersion` and add a step to `onUpgrade`; the
   generated `app_database.g.dart` is committed and regenerated via
   `dart run build_runner build --delete-conflicting-outputs`.
-- The current `schemaVersion` is **10**. Versions 5..8 only ever existed on dev
+- The current `schemaVersion` is **11**. Versions 5..8 only ever existed on dev
   builds (never released) and their upgrade steps were deleted, so `from` can
   jump straight from 4 to 9. Each of them added one column that v9 removes
   again (`contacts.key_updated_at`, `conversations.secure_broken_at`,
@@ -348,9 +459,13 @@ Notable points:
   `conversations` and `contacts` with drift's `TableMigration` (the only way to
   drop a column); `messages` is untouched. v10 only adds
   `conversations.write_anyway` (a plain `addColumn`, applied when the database
-  is already at v9 — the v9 rebuild creates the column itself).
+  is already at v9 — the v9 rebuild creates the column itself). v11 adds
+  `messages.eventKind` (nullable text, plain `addColumn`) to hold the
+  join/leave kind for a system-event row (see *Join/leave announcements*
+  above) — the announced name itself is stored in the existing `text` column,
+  not a new one.
   `app_database_migration_test.dart` covers every path v1..v8 → v9 as well as
-  v9 → v10.
+  v9 → v10 → v11.
 
 ## Theming and localization
 
