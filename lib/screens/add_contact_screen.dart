@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/models/contact.dart';
+import 'package:meshly/services/channel_manager.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/qr_service.dart';
@@ -132,11 +133,25 @@ class _AddContactScreenState extends State<AddContactScreen>
     );
 
     if (confirmed == true) {
-      await _store.createChannel(
-        name: data.name,
-        avatarEmoji: data.avatarEmoji,
-        psk: data.psk,
-      );
+      // Through ChannelManager, not straight to the store: joining is what
+      // announces us to the conversation, and that lives in the manager.
+      // Calling the store directly here is how the announcement silently
+      // never happened.
+      final mesh = widget.meshService;
+      if (mesh != null) {
+        await ChannelManager.instance.addFromQr(
+          name: data.name,
+          psk: data.psk,
+          avatarEmoji: data.avatarEmoji,
+          meshService: mesh,
+        );
+      } else {
+        await _store.createChannel(
+          name: data.name,
+          avatarEmoji: data.avatarEmoji,
+          psk: data.psk,
+        );
+      }
       if (mounted) Navigator.pop(context);
     } else {
       setState(() => _scanned = false);

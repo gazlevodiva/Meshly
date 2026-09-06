@@ -288,6 +288,16 @@ class AppLocalizationsRu extends AppLocalizations {
   String get writeFirstMessage => 'Напишите первое сообщение!';
 
   @override
+  String systemEventJoined(String name) {
+    return '$name присоединяется к беседе';
+  }
+
+  @override
+  String systemEventLeft(String name) {
+    return '$name покидает беседу';
+  }
+
+  @override
   String get nameLabel => 'Имя';
 
   @override
@@ -550,6 +560,17 @@ class AppLocalizationsRu extends AppLocalizations {
   String deleteChannelWarning(String name) {
     return 'Беседа \"$name\" будет удалена локально. Другие участники продолжат её видеть.';
   }
+
+  @override
+  String get channelEventsTitle => 'Входы и выходы';
+
+  @override
+  String get channelEventsNote =>
+      'Это не список участников: здесь только входы и выходы, которые заметило это устройство, — часть объявлений не доходит. Записи присылают сами участники, и они не проверяются.';
+
+  @override
+  String get channelEventsEmpty =>
+      'Пока не замечено ни одного входа или выхода';
 
   @override
   String get addTitle => 'Добавить';

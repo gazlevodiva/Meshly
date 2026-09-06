@@ -119,6 +119,8 @@
   "resendQuestion": "Send this message again?",
   "retrySend": "Resend",
   "writeFirstMessage": "Write the first message!",
+  "systemEventJoined": "{name} joined the conversation",
+  "systemEventLeft": "{name} left the conversation",
   "nameLabel": "Name",
   "rescanForSecureChat": "Scan this person's QR code first — otherwise the message won't get through",
   "undecryptableBubble": "🔒 Couldn't be read",
@@ -212,6 +214,9 @@
   "deleteChannelAction": "Delete conversation",
   "deleteChannelQuestion": "Delete conversation?",
   "deleteChannelWarning": "The conversation \"{name}\" will be deleted locally. Other members will still see it.",
+  "channelEventsTitle": "Joins and leaves",
+  "channelEventsNote": "This is not a member list, just a history of joins and leaves this device happened to notice — some announcements never arrive. Entries come from other members and aren't verified.",
+  "channelEventsEmpty": "No joins or leaves seen yet",
 
   "addTitle": "Add",
   "unrecognizedQr": "Unrecognized QR code",

@@ -614,6 +614,18 @@ abstract class AppLocalizations {
   /// **'Напишите первое сообщение!'**
   String get writeFirstMessage;
 
+  /// Centred timeline line for a join announcement seen by this device. {name} is the announced display name, not declinable — kept in the nominative case
+  ///
+  /// In ru, this message translates to:
+  /// **'{name} присоединяется к беседе'**
+  String systemEventJoined(String name);
+
+  /// Centred timeline line for a leave announcement seen by this device. {name} is the announced display name, not declinable — kept in the nominative case
+  ///
+  /// In ru, this message translates to:
+  /// **'{name} покидает беседу'**
+  String systemEventLeft(String name);
+
   /// No description provided for @nameLabel.
   ///
   /// In ru, this message translates to:
@@ -1099,6 +1111,24 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Беседа \"{name}\" будет удалена локально. Другие участники продолжат её видеть.'**
   String deleteChannelWarning(String name);
+
+  /// Heading of the join/leave history section on the channel info screen. Deliberately not called a member list — see channelEventsNote
+  ///
+  /// In ru, this message translates to:
+  /// **'Входы и выходы'**
+  String get channelEventsTitle;
+
+  /// Short honest note under the join/leave log: explains it is a per-device sighting log, not a member roster, and that entries are unverified self-reports. One or two sentences, not an alarming warning banner
+  ///
+  /// In ru, this message translates to:
+  /// **'Это не список участников: здесь только входы и выходы, которые заметило это устройство, — часть объявлений не доходит. Записи присылают сами участники, и они не проверяются.'**
+  String get channelEventsNote;
+
+  /// Empty state for the join/leave history section when no announcements have been seen yet
+  ///
+  /// In ru, this message translates to:
+  /// **'Пока не замечено ни одного входа или выхода'**
+  String get channelEventsEmpty;
 
   /// Add-contact screen title
   ///

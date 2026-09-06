@@ -288,6 +288,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get writeFirstMessage => 'Write the first message!';
 
   @override
+  String systemEventJoined(String name) {
+    return '$name joined the conversation';
+  }
+
+  @override
+  String systemEventLeft(String name) {
+    return '$name left the conversation';
+  }
+
+  @override
   String get nameLabel => 'Name';
 
   @override
@@ -548,6 +558,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String deleteChannelWarning(String name) {
     return 'The conversation \"$name\" will be deleted locally. Other members will still see it.';
   }
+
+  @override
+  String get channelEventsTitle => 'Joins and leaves';
+
+  @override
+  String get channelEventsNote =>
+      'This is not a member list, just a history of joins and leaves this device happened to notice — some announcements never arrive. Entries come from other members and aren\'t verified.';
+
+  @override
+  String get channelEventsEmpty => 'No joins or leaves seen yet';
 
   @override
   String get addTitle => 'Add';

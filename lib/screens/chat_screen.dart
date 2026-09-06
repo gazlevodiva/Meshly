@@ -15,6 +15,7 @@ import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/theme/app_theme.dart';
 import 'package:meshly/utils/date_format.dart';
+import 'package:meshly/utils/system_event_text.dart';
 import 'package:meshly/widgets/conversation_tile.dart' show ListAvatar;
 import 'package:meshly/widgets/section_card.dart';
 import 'package:meshly/widgets/tab_header.dart' show TabGradientBackground;
@@ -281,7 +282,8 @@ class _ChatScreenState extends State<ChatScreen> {
       Navigator.push(
         context,
         MaterialPageRoute<void>(
-          builder: (_) => ChannelInfoScreen(channel: ch),
+          builder: (_) =>
+              ChannelInfoScreen(channel: ch, meshService: widget.meshService),
         ),
       ),
     );
@@ -424,6 +426,17 @@ class _ChatScreenState extends State<ChatScreen> {
                               final newDay =
                                   prev == null ||
                                   !_sameDay(prev.time, msg.time);
+                              // A join/leave announcement is not a message
+                              // from a person: no avatar, no bubble, no
+                              // delivery ticks — just a centred, muted line.
+                              if (msg.isSystemEvent) {
+                                return Column(
+                                  children: [
+                                    if (newDay) _DateChip(date: msg.time),
+                                    _SystemEventLine(msg: msg),
+                                  ],
+                                );
+                              }
                               // In channels the sender avatar + name are shown
                               // once per run of consecutive same-sender
                               // messages (and again after a date chip).
@@ -432,6 +445,12 @@ class _ChatScreenState extends State<ChatScreen> {
                                   !msg.isMe &&
                                   (newDay ||
                                       prev.isMe ||
+                                      // A system event carries the node id of
+                                      // whoever announced it, so without this
+                                      // the next message from that person is
+                                      // taken for a continuation and loses its
+                                      // avatar and name.
+                                      prev.isSystemEvent ||
                                       prev.fromNodeId != msg.fromNodeId);
                               return Column(
                                 children: [
@@ -1100,6 +1119,30 @@ class _DateChip extends StatelessWidget {
         ),
         child: Text(
           chatDate(context.l10n, date),
+          style: AppTextStyles.caption(context),
+        ),
+      ),
+    );
+  }
+}
+
+/// Centred, muted line for a join/leave announcement — never a bubble: no
+/// avatar, no delivery ticks, since a system event has neither a sender to
+/// portray nor a delivery state to track (see `Message.systemEvent`).
+class _SystemEventLine extends StatelessWidget {
+  const _SystemEventLine({required this.msg});
+
+  final Message msg;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = systemEventText(context, msg);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.s4),
+      child: Center(
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
           style: AppTextStyles.caption(context),
         ),
       ),

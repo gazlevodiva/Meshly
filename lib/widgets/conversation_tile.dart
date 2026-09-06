@@ -6,6 +6,7 @@ import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/notification_settings.dart';
 import 'package:meshly/theme/app_theme.dart';
 import 'package:meshly/utils/date_format.dart';
+import 'package:meshly/utils/system_event_text.dart';
 
 /// A conversation rendered as a rounded surface card:
 /// 48px emoji avatar (with online dot), title + last-message preview
@@ -264,6 +265,19 @@ class _LastMessageRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A join/leave announcement is not authored text: show the same
+    // localized line the chat timeline uses instead of a bare name with no
+    // context (there is no "sender" to prefix it with).
+    final kind = msg.eventKind;
+    if (kind != null) {
+      final text = systemEventText(context, msg);
+      return Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: AppTextStyles.subtitle(context),
+      );
+    }
     final store = ContactStore.instance;
     final prefix = msg.isMe
         ? '${context.l10n.mePrefix}: '

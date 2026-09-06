@@ -20,7 +20,16 @@ import 'package:meshly/services/mesh_service.dart'
 import 'package:meshly/widgets/conversation_tile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// Wording comes from the ARB files, never from literals here: a test that
+// hard-codes the phrasing goes green on wrong grammar and has to be
+// rewritten whenever the text is improved.
+late AppLocalizations l10n;
+
 void main() {
+  setUpAll(() async {
+    l10n = await AppLocalizations.delegate.load(const Locale('ru'));
+  });
+
   final store = ContactStore.instance;
 
   setUp(() async {
@@ -456,6 +465,49 @@ void main() {
       await pumpTile();
       expect(find.text('🔒 Нужно обменяться QR-кодами'), findsNothing);
       expect(find.textContaining('привет'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  // A join/leave announcement is not authored text — the chat-list preview
+  // must show the same localized line the chat timeline uses, not a bare
+  // announced name with no context.
+  testWidgets(
+    'the conversation tile shows the localized line for a system event, not '
+    'a bare name',
+    (tester) async {
+      final conv = Conversation.channel('gen_evt_tile')
+        ..lastMessage = Message.systemEvent(
+          kind: SystemEventKind.joined,
+          announcedName: 'Кира',
+          fromNodeId: '!aaaa0009',
+          conversationId: 'ch_gen_evt_tile',
+          time: DateTime.now(),
+          isMe: false,
+        );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('ru'),
+          home: Scaffold(
+            body: ConversationTile(
+              conv: conv,
+              title: 'Поход',
+              onTap: () {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text(l10n.systemEventJoined('Кира')), findsOneWidget);
+      // Not shown as an authored message with a "sender: " prefix.
+      expect(
+        find.text('Кира: ${l10n.systemEventJoined('Кира')}'),
+        findsNothing,
+      );
 
       await tester.pumpWidget(const SizedBox());
     },
@@ -1077,6 +1129,156 @@ void main() {
     );
   });
 
+  group('join/leave system events in the timeline', () {
+    testWidgets(
+      'a system event renders as a centered muted line, not a message '
+      'bubble, and an ordinary message still renders as before',
+      (tester) async {
+        final conv = Conversation.channel('gen_evt1');
+        await store.saveConversation(conv);
+        await store.addMessage(
+          Message.systemEvent(
+            kind: SystemEventKind.joined,
+            announcedName: 'Аня',
+            fromNodeId: '!aaaa0001',
+            conversationId: conv.id,
+            time: DateTime.now().subtract(const Duration(minutes: 5)),
+            isMe: false,
+          ),
+        );
+        await store.addMessage(
+          Message(
+            meshId: 1,
+            fromNodeId: '!bbbb0002',
+            conversationId: conv.id,
+            text: 'привет всем',
+            time: DateTime.now(),
+            isMe: false,
+          ),
+        );
+
+        final mesh = await pumpChat(tester, conversation: conv);
+
+        // The event line: localized wording, centered, no delivery ticks.
+        final eventLine = find.text(l10n.systemEventJoined('Аня'));
+        expect(eventLine, findsOneWidget);
+        expect(tester.widget<Text>(eventLine).textAlign, TextAlign.center);
+        expect(
+          find.ancestor(of: eventLine, matching: find.byType(Center)),
+          findsWidgets,
+        );
+
+        // The ordinary message still renders as a bubble with the sender's
+        // name shown above it (channel, different sender than the event).
+        expect(find.text('привет всем'), findsOneWidget);
+        expect(find.textContaining('...b0002'), findsOneWidget);
+
+        await tester.pumpWidget(const SizedBox());
+        mesh.dispose();
+      },
+    );
+
+    testWidgets(
+      'a message after an event from the same node still shows its sender: '
+      'the event must break the run, not continue it',
+      (tester) async {
+        final conv = Conversation.channel('gen_evt3');
+        await store.saveConversation(conv);
+        const peer = '!ce9eb39d';
+        // Same node id on the event and on the message that follows it —
+        // exactly what happens when someone announces themselves and then
+        // writes. Grouping used to read that as one run and drop the avatar
+        // and name from the message.
+        await store.addMessage(
+          Message.systemEvent(
+            kind: SystemEventKind.joined,
+            announcedName: 'Аня',
+            fromNodeId: peer,
+            conversationId: conv.id,
+            time: DateTime.now().subtract(const Duration(minutes: 1)),
+            isMe: false,
+          ),
+        );
+        await store.addMessage(
+          Message(
+            meshId: 7,
+            fromNodeId: peer,
+            conversationId: conv.id,
+            text: 'уже тут',
+            time: DateTime.now(),
+            isMe: false,
+          ),
+        );
+
+        final mesh = await pumpChat(tester, conversation: conv);
+
+        expect(find.text('уже тут'), findsOneWidget);
+        expect(find.textContaining('...eb39d'), findsOneWidget);
+
+        await tester.pumpWidget(const SizedBox());
+        mesh.dispose();
+      },
+    );
+
+    testWidgets(
+      'a known contact is shown under the name we gave them, not the one '
+      'their device announced',
+      (tester) async {
+        final conv = Conversation.channel('gen_evt4');
+        await store.saveConversation(conv);
+        const peer = '!dddd0004';
+        await store.saveContact(
+          Contact(nodeId: peer, displayName: 'Мама'),
+        );
+        // The device announced a bare node id — what happens when its owner
+        // never opened their own card and set a name.
+        await store.addMessage(
+          Message.systemEvent(
+            kind: SystemEventKind.joined,
+            announcedName: peer,
+            fromNodeId: peer,
+            conversationId: conv.id,
+            time: DateTime.now(),
+            isMe: false,
+          ),
+        );
+
+        final mesh = await pumpChat(tester, conversation: conv);
+
+        expect(find.text(l10n.systemEventJoined('Мама')), findsOneWidget);
+        expect(find.text(l10n.systemEventJoined(peer)), findsNothing);
+
+        await tester.pumpWidget(const SizedBox());
+        mesh.dispose();
+      },
+    );
+
+    testWidgets(
+      'a leave event uses the leave wording',
+      (tester) async {
+        final conv = Conversation.channel('gen_evt2');
+        await store.saveConversation(conv);
+        await store.addMessage(
+          Message.systemEvent(
+            kind: SystemEventKind.left,
+            announcedName: 'Глеб',
+            fromNodeId: '!cccc0003',
+            conversationId: conv.id,
+            time: DateTime.now(),
+            isMe: false,
+          ),
+        );
+
+        final mesh = await pumpChat(tester, conversation: conv);
+
+        expect(find.text(l10n.systemEventLeft('Глеб')), findsOneWidget);
+
+        await tester.pumpWidget(const SizedBox());
+        mesh.dispose();
+      },
+    );
+  });
+
   group('closing when the conversation disappears', () {
     testWidgets(
       'deleting a channel from its info card returns to the chat list, not '
@@ -1096,7 +1298,7 @@ void main() {
         unawaited(
           navigatorKey.currentState!.push(
             MaterialPageRoute<void>(
-              builder: (_) => ChannelInfoScreen(channel: ch),
+              builder: (_) => ChannelInfoScreen(channel: ch, meshService: mesh),
             ),
           ),
         );
@@ -1199,7 +1401,7 @@ void main() {
         unawaited(
           navigatorKey.currentState!.push(
             MaterialPageRoute<void>(
-              builder: (_) => ChannelInfoScreen(channel: ch),
+              builder: (_) => ChannelInfoScreen(channel: ch, meshService: mesh),
             ),
           ),
         );

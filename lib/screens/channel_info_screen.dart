@@ -4,18 +4,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/models/mesh_channel.dart';
+import 'package:meshly/models/message.dart';
 import 'package:meshly/services/contact_store.dart';
+import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/services/notification_settings.dart';
 import 'package:meshly/services/qr_service.dart';
 import 'package:meshly/theme/app_theme.dart';
+import 'package:meshly/utils/date_format.dart';
+import 'package:meshly/utils/system_event_text.dart';
 import 'package:meshly/widgets/qr_card.dart';
 import 'package:meshly/widgets/section_card.dart';
 import 'package:meshly/widgets/tab_header.dart';
 
 class ChannelInfoScreen extends StatelessWidget {
-  const ChannelInfoScreen({required this.channel, super.key});
+  const ChannelInfoScreen({
+    required this.channel,
+    required this.meshService,
+    super.key,
+  });
 
   final MeshChannel channel;
+  final MeshService meshService;
+
+  /// The conversation id this channel is stored under (see
+  /// `Conversation.channel` / `ContactStore.deleteChannel`).
+  String get _conversationId => 'ch_${channel.id}';
 
   String get _qrData => QrService.encodeChannel(channel);
 
@@ -48,7 +61,9 @@ class ChannelInfoScreen extends StatelessWidget {
       ),
     );
     if (confirmed == true && context.mounted) {
-      await ContactStore.instance.deleteChannel(channel.id);
+      // Announces "left" to the mesh (best effort) before deleting locally,
+      // so leaving is no longer silent — see MeshService.leaveChannelConversation.
+      await meshService.leaveChannelConversation(channel);
       // No result value: the chat screen below now closes itself once the
       // channel's conversation disappears from the store (see
       // ChatScreen._onStoreChanged), so nothing reads a return signal here
@@ -153,12 +168,17 @@ class ChannelInfoScreen extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.s12),
 
+            // Log of joins and leaves this device has seen — deliberately
+            // not a member list, see channelEventsNote and the widget doc.
+            _ChannelEventsCard(conversationId: _conversationId),
+            const SizedBox(height: AppSpacing.s12),
+
             // Notifications
             SectionCard(
               child: ListenableBuilder(
                 listenable: NotificationSettings.instance,
                 builder: (context, _) {
-                  final convId = 'ch_${channel.id}';
+                  final convId = _conversationId;
                   final settings = NotificationSettings.instance;
                   final muted = settings.isMuted(convId);
                   return SwitchListTile(
@@ -275,6 +295,107 @@ class _InfoRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// A history of the joins and leaves *this device* has seen — never a member
+/// list. An announcement is a single unacknowledged broadcast, LoRa drops
+/// packets routinely, and anyone who joined before this feature existed or
+/// while this device was out of range never appears here. Framed honestly
+/// via the `channelEventsTitle`/`channelEventsNote` ARB strings rather than
+/// as a roster — see the sprint brief and CLAUDE.md → "Conversations are not
+/// hardware channel slots".
+class _ChannelEventsCard extends StatelessWidget {
+  const _ChannelEventsCard({required this.conversationId});
+
+  final String conversationId;
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionCard(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.s16),
+        child: ListenableBuilder(
+          listenable: ContactStore.instance,
+          builder: (context, _) {
+            // Newest first: messagesFor returns chronological order, so the
+            // filtered system events are reversed for display.
+            final events = ContactStore.instance
+                .messagesFor(conversationId)
+                .where((m) => m.isSystemEvent)
+                .toList()
+                .reversed
+                .toList();
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.l10n.channelEventsTitle,
+                  style: AppTextStyles.cardTitle,
+                ),
+                const SizedBox(height: AppSpacing.s4),
+                Text(
+                  context.l10n.channelEventsNote,
+                  style: AppTextStyles.caption(context),
+                ),
+                const SizedBox(height: AppSpacing.s12),
+                if (events.isEmpty)
+                  Text(
+                    context.l10n.channelEventsEmpty,
+                    style: AppTextStyles.caption(context),
+                  )
+                else
+                  for (var i = 0; i < events.length; i++) ...[
+                    if (i > 0) const SizedBox(height: AppSpacing.s10),
+                    _EventRow(msg: events[i]),
+                  ],
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+/// One row of the joins/leaves log: icon, the same localized line the chat
+/// timeline shows, and when this device saw it.
+class _EventRow extends StatelessWidget {
+  const _EventRow({required this.msg});
+
+  final Message msg;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = systemEventText(context, msg);
+    final kind = msg.eventKind;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          kind == SystemEventKind.joined ? Icons.login : Icons.logout,
+          size: AppIconSizes.info,
+          color: context.appColors.iconSecondary,
+        ),
+        const SizedBox(width: AppSpacing.s10),
+        // A Column, not a trailing fixed-width time next to the text: at a
+        // large system font a same-line timestamp would either overflow the
+        // card or force the text to fight it for width.
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(text, style: AppTextStyles.body),
+              const SizedBox(height: AppSpacing.s2),
+              Text(
+                formatLastHeard(context.l10n, msg.time),
+                style: AppTextStyles.label(context),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
