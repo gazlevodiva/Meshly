@@ -20,16 +20,18 @@ class MeshChannel {
         : null,
   );
 
-  final String id; // локальный uuid
+  final String id; // local uuid
   String name;
   String? avatarEmoji;
   Uint8List psk; // 32 bytes
-  // Момент создания беседы — по нему сортируется список бесед. Аппаратного
-  // слота Meshtastic в модели больше нет: он и не настраивался в устройстве
-  // (encodeSetChannel был сломан), а беседа на приёме определяется перебором
-  // PSK (см. отчёт спринта «отвязка бесед от слотов»). Колонка
-  // Channels.slotIndex в БД осталась (NOT NULL, схему не меняем) — в неё
-  // теперь всегда пишется 0, см. ContactStore.createChannel.
+  // The moment the conversation was created — the conversation list is
+  // sorted by it. There is no more Meshtastic hardware slot in the model:
+  // it was never actually configured on the device (encodeSetChannel was
+  // broken), and on receive the conversation is determined by trying PSKs
+  // one by one (see the "decouple conversations from slots" sprint report).
+  // The Channels.slotIndex column in the DB remains (NOT NULL, we're not
+  // changing the schema) — 0 is now always written into it, see
+  // ContactStore.createChannel.
   final DateTime createdAt;
 
   Map<String, dynamic> toJson() => {

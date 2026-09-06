@@ -68,7 +68,7 @@ class _Body extends StatelessWidget {
         AppSpacing.s32,
       ),
       children: [
-        // ── Глобальный переключатель ────────────────────────
+        // ── Global toggle ────────────────────────
         SectionCard(
           child: SwitchListTile(
             secondary: const Icon(Icons.notifications_outlined),
@@ -79,7 +79,7 @@ class _Body extends StatelessWidget {
           ),
         ),
 
-        // ── По источнику ────────────────────────────────────
+        // ── By source ────────────────────────────────────
         SectionCard(
           title: context.l10n.sourcesSection,
           child: Column(
@@ -105,7 +105,7 @@ class _Body extends StatelessWidget {
           ),
         ),
 
-        // ── Замьюченные чаты ────────────────────────────────
+        // ── Muted chats ────────────────────────────────
         if (muted.isNotEmpty)
           SectionCard(
             title: context.l10n.mutedSection,

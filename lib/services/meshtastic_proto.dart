@@ -27,43 +27,46 @@ class MeshtasticProto {
     return _buf([_varint(3, id)]);
   }
 
-  // ── Регион радио (LoRaConfig) ─────────────────────────────────────────
+  // ── Radio region (LoRaConfig) ───────────────────────────────────────────
   //
-  // Номера полей сверены с meshtastic/protobufs (master):
+  // Field numbers checked against meshtastic/protobufs (master):
   //   FromRadio.config = 5, Config.lora = 6, LoRaConfig.region = 7,
   //   AdminMessage.set_config = 34, begin_edit_settings = 64,
   //   commit_edit_settings = 65.
-  // Раньше здесь же был encodeSetChannel (AdminMessage.set_channel) — удалён
-  // в спринте отвязки бесед от слотов Meshtastic: у него были неверны и
-  // номер поля (writалось 11, а set_channel — это 33), и поле from пакета
-  // (было fromNode вместо требуемого прошивкой нуля), и — что было системной
-  // причиной обеих неудач — общий для всех админ-команд баг порта, см. ниже.
+  // This used to also have encodeSetChannel (AdminMessage.set_channel) —
+  // removed in the sprint that decoupled conversations from Meshtastic
+  // slots: it had both the wrong field number (it wrote 11, but set_channel
+  // is 33) and the wrong packet `from` field (it was fromNode instead of
+  // the zero the firmware requires), and — which turned out to be the
+  // systemic cause of both failures — a port bug shared by all admin
+  // commands, see below.
   //
-  // НАЙДЕННАЯ ИСТИННАЯ ПРИЧИНА (2026-09): все админ-команды (и региона, и
-  // канала) уходили с Data.portnum = 68. В meshtastic/protobufs
-  // (portnums.proto) 68 — это ZPS_APP, а ADMIN_APP = 6. Прошивка
+  // ROOT CAUSE FOUND (2026-09): every admin command (both region and
+  // channel) went out with Data.portnum = 68. In meshtastic/protobufs
+  // (portnums.proto) 68 is ZPS_APP, while ADMIN_APP = 6. The firmware
   // (PhoneAPI::handleToRadioPacket → MeshService::handleToRadio →
-  // Router::sendLocal) честно принимает пакет с BLE (отсюда
-  // GATT_SUCCESS на запись характеристики) и доставляет его себе же
-  // локально (to == собственный node num), но диспетчер модулей
+  // Router::sendLocal) honestly accepts the packet from BLE (hence the
+  // GATT_SUCCESS on the characteristic write) and delivers it to itself
+  // locally (to == its own node num), but the module dispatcher
   // (FloodingRouter/Router::perhapsHandleReceived → MeshModule::callPlugins,
-  // src/mesh/Router.cpp) ищет модуль, подписанный на конкретный portnum —
-  // AdminModule подписан на ADMIN_APP=6, а не на 68. Модуля с portnum=68 нет,
-  // пакет молча роняется до AdminModule::handleReceivedProtobuf: отсюда и
-  // тишина — ни NAK, ни ADMIN_BAD_SESSION_KEY, ни перезагрузки. Чтение
-  // конфига работало отдельно от этого пути: это не AdminMessage-запрос, а
-  // часть автоматического дампа конфига при подключении
-  // (PhoneAPI STATE_SEND_CONFIG), поэтому её ничего не роняло.
-  static const int _adminPort = 6; // ADMIN_APP (было 68 = ZPS_APP — баг)
+  // src/mesh/Router.cpp) looks for a module subscribed to that specific
+  // portnum — AdminModule is subscribed to ADMIN_APP=6, not to 68. There's
+  // no module for portnum=68, so the packet is silently dropped before it
+  // ever reaches AdminModule::handleReceivedProtobuf: hence the silence —
+  // no NAK, no ADMIN_BAD_SESSION_KEY, no reboot. Reading the config worked
+  // independently of this path: it's not an AdminMessage request, it's part
+  // of the automatic config dump on connect (PhoneAPI STATE_SEND_CONFIG),
+  // so nothing dropped it.
+  static const int _adminPort = 6; // ADMIN_APP (was 68 = ZPS_APP — a bug)
   static int _adminSeq = 0;
 
-  /// Сырые байты `LoRaConfig` ровно как их прислало устройство + разобранный
-  /// регион (0 = UNSET, устройство не вещает в эфир).
+  /// Raw `LoRaConfig` bytes exactly as sent by the device + the parsed
+  /// region (0 = UNSET, the device doesn't transmit at all).
   ///
-  /// Сырые байты нужны именно как байты: [encodeSetRegion] правит в них одно
-  /// поле, а не пересобирает сообщение — так переживают нетронутыми все
-  /// настройки, которых мы не знаем (модем-пресет, мощность, поля, добавленные
-  /// новой прошивкой).
+  /// The raw bytes are needed specifically as bytes: [encodeSetRegion]
+  /// patches a single field in them rather than rebuilding the message —
+  /// that way all settings we don't know about (modem preset, power, fields
+  /// added by newer firmware) survive untouched.
   static ({Uint8List raw, int region})? decodeLoraConfig(List<int> raw) {
     try {
       final bytes = Uint8List.fromList(raw);
@@ -80,12 +83,12 @@ class MeshtasticProto {
     }
   }
 
-  /// Три кадра ToRadio, меняющие регион и ничего больше:
+  /// Three ToRadio frames that change the region and nothing else:
   /// `begin_edit_settings` → `set_config{lora}` → `commit_edit_settings`.
   ///
-  /// [currentLora] обязан быть байтами из [decodeLoraConfig]: `set_config`
-  /// заменяет весь `LoRaConfig` целиком, поэтому сообщение, собранное с нуля,
-  /// молча затёрло бы пользователю модем-пресет, hop limit и мощность.
+  /// [currentLora] has to be the bytes from [decodeLoraConfig]: `set_config`
+  /// replaces the whole `LoRaConfig`, so a message built from scratch would
+  /// silently wipe the user's modem preset, hop limit, and power.
   static List<Uint8List> encodeSetRegion({
     required Uint8List currentLora,
     required int region,
@@ -100,37 +103,38 @@ class MeshtasticProto {
     ];
   }
 
-  // AdminMessage → MeshPacket самому себе, hop_limit=1: пакет не уходит в эфир.
+  // AdminMessage → a MeshPacket to ourselves, hop_limit=1: the packet never
+  // goes out over the air.
   static Uint8List _adminFrame(Uint8List admin, int fromNode) {
     final data = _buf([_varint(1, _adminPort), _bytes(2, admin)]);
-    // Свой id на каждый кадр: три подряд с одинаковым id радио сочло бы
-    // дублями и выполнило бы только первый.
+    // A distinct id per frame: the radio would treat three frames in a row
+    // with the same id as duplicates and only execute the first one.
     final msgId =
         (DateTime.now().millisecondsSinceEpoch + _adminSeq++) & 0x7FFFFFFF;
     final packet = _buf([
-      // from = 0 — ОБЯЗАТЕЛЬНО. Прошивка считает локальной (и потому
-      // доверенной) только ту админ-команду, у которой from == 0: свой номер
-      // узла она подставит сама. С ненулевым from команда считается удалённым
-      // администрированием, требует сессионный ключ и молча отвергается
-      // (AdminModule::handleReceivedProtobuf → "Ignore unauthorized admin
-      // payload"). Именно поэтому запись канала в устройство (удалённый
-      // encodeSetChannel) никогда не работала.
+      // from = 0 — MANDATORY. The firmware treats only an admin command
+      // with from == 0 as local (and therefore trusted): it fills in its
+      // own node number itself. With a non-zero from, the command is
+      // treated as remote administration, requires a session key, and is
+      // silently rejected (AdminModule::handleReceivedProtobuf → "Ignore
+      // unauthorized admin payload"). This is exactly why writing a channel
+      // to the device (the removed encodeSetChannel) never worked.
       _fixed32field(1, 0),
-      _fixed32field(2, fromNode), // адресовано самому устройству
-      _varint(3, 0), // admin едет по первичному каналу
+      _fixed32field(2, fromNode), // addressed to the device itself
+      _varint(3, 0), // admin travels over the primary channel
       _msg(4, data),
       _fixed32field(6, msgId),
-      _varint(9, 1), // hop_limit=1 — только локально
+      _varint(9, 1), // hop_limit=1 — local only
     ]);
     return _buf([_msg(1, packet)]);
   }
 
-  /// Копия [msg] байт в байт, где varint-поле [field] заменено на [value]
-  /// (или дописано, если его не было). Все прочие поля переносятся как есть,
-  /// включая неизвестные нам.
+  /// A byte-for-byte copy of [msg] with the varint field [field] replaced by
+  /// [value] (or appended, if it wasn't present). All other fields are
+  /// carried over as-is, including ones we don't know about.
   ///
-  /// На испорченном сообщении возвращает исходник нетронутым: лучше не менять
-  /// регион вовсе, чем отправить в устройство обрезанный конфиг.
+  /// On a corrupted message, returns the original untouched: better to not
+  /// change the region at all than to send the device a truncated config.
   static Uint8List _replaceVarintField(Uint8List msg, int field, int value) {
     final out = <int>[];
     var pos = 0;
@@ -151,9 +155,9 @@ class MeshtasticProto {
         case 5:
           end = pos + 4;
         default:
-          return msg; // неизвестный wire type — не трогаем сообщение
+          return msg; // unknown wire type — leave the message untouched
       }
-      // end < pos ловит отрицательную длину из переполненного варинта.
+      // end < pos catches a negative length from an overflowed varint.
       if (end > msg.length || end < pos) return msg;
       if (f != field) out.addAll(msg.sublist(tagStart, end));
       pos = end;
@@ -162,9 +166,10 @@ class MeshtasticProto {
     return Uint8List.fromList(out);
   }
 
-  // `id` — наш packet id (MeshPacket.id, field 6). Радио использует его как есть,
-  // и ROUTING ACK приходит с этим же id в Data.request_id — так мы сопоставляем
-  // подтверждение доставки с сообщением в store.
+  // `id` is our packet id (MeshPacket.id, field 6). The radio uses it as-is,
+  // and the ROUTING ACK comes back with this same id in Data.request_id —
+  // that's how we match the delivery confirmation to the message in the
+  // store.
   static Uint8List encodeTextMessage(
     String text, {
     int? to,
@@ -191,7 +196,7 @@ class MeshtasticProto {
       _msg(4, data),
       _fixed32field(6, msgId), // id = fixed32
       _varint(9, 3), // hop_limit = 3
-      _varint(10, 1), // want_ack = true → firmware генерирует end-to-end ACK
+      _varint(10, 1), // want_ack = true → firmware generates an end-to-end ACK
     ]);
 
     final toRadio = _buf([_msg(1, packet)]);
@@ -303,7 +308,7 @@ class MeshtasticProto {
           ? '!${(fromNode & 0xFFFFFFFF).toRadixString(16).padLeft(8, '0')}'
           : null;
 
-      // isDm = unicast (to != broadcast и to != 0)
+      // isDm = unicast (to != broadcast and to != 0)
       final isDm = toNode != null && toNode != 0xFFFFFFFF && toNode != 0;
 
       debugPrint(
@@ -340,22 +345,22 @@ class MeshtasticProto {
     }
   }
 
-  // ── Модель платы (DeviceMetadata.hw_model) ────────────────────────────
+  // ── Board model (DeviceMetadata.hw_model) ───────────────────────────────
   //
-  // Номера полей сверены с meshtastic/protobufs (master):
+  // Field numbers checked against meshtastic/protobufs (master):
   //   FromRadio.metadata = 13, DeviceMetadata.hw_model = 9 (enum HardwareModel,
-  //   varint). Устройство присылает metadata само в рамках дампа конфига при
-  //   подключении (want_config), отдельный запрос не нужен — тот же паттерн,
-  //   что и decodeLoraConfig выше.
+  //   varint). The device sends metadata on its own as part of the config
+  //   dump on connect (want_config), no separate request needed — the same
+  //   pattern as decodeLoraConfig above.
   //
-  // ВАЖНО (см. отчёт спринта): имя модели НЕ говорит о частотном диапазоне
-  // платы. Одна и та же модель (например HELTEC_V3) продаётся в
-  // региональных вариантах на разное железо (868/915/433 МГц) под одним и
-  // тем же hw_model — единственное известное исключение зашито в самом
-  // имени (BETAFPV_2400_TX, BETAFPV_900_NANO_TX), остальные ~90 моделей
-  // диапазон не кодируют. Поэтому единственная защита от несовместимого
-  // диапазона — [LoraRegion.compatibleWith] по уже установленному региону,
-  // а не по модели платы.
+  // IMPORTANT (see the sprint report): the model name does NOT indicate the
+  // board's frequency band. The same model (e.g. HELTEC_V3) is sold in
+  // regional variants on different hardware (868/915/433 MHz) under the
+  // same hw_model — the only known exception is baked into the name itself
+  // (BETAFPV_2400_TX, BETAFPV_900_NANO_TX), the remaining ~90 models don't
+  // encode a band. That's why the only guard against an incompatible band
+  // is [LoraRegion.compatibleWith] based on the already-set region, not on
+  // the board model.
   static const Map<int, String> _hardwareModelNames = {
     0: 'UNSET',
     1: 'TLORA_V2',
@@ -453,10 +458,10 @@ class MeshtasticProto {
     255: 'PRIVATE_HW',
   };
 
-  /// Имя модели платы (`HardwareModel`) из `DeviceMetadata.hw_model`, или
-  /// null, если кадр не содержит metadata либо модель не UNSET/незнакома
-  /// (новая прошивка может прислать значение, которого мы ещё не знаем —
-  /// тогда честнее вернуть null, чем соврать именем).
+  /// Board model name (`HardwareModel`) from `DeviceMetadata.hw_model`, or
+  /// null if the frame has no metadata, or the model is UNSET/unrecognized
+  /// (newer firmware may send a value we don't know about yet — in that
+  /// case it's more honest to return null than to lie about the name).
   static String? decodeHwModel(List<int> raw) {
     try {
       final bytes = Uint8List.fromList(raw);
@@ -486,7 +491,7 @@ class MeshtasticProto {
     }
   }
 
-  // Decode ROUTING_APP (portnum=5) ACK → meshId + errorCode (+ имя ошибки).
+  // Decode ROUTING_APP (portnum=5) ACK → meshId + errorCode (+ error name).
   static ({int meshId, int errorCode, String errorName})? decodeRoutingAck(
     List<int> raw,
   ) {
@@ -498,7 +503,7 @@ class MeshtasticProto {
       if (decoded == null) return null;
       final portnum = _readVarint(decoded, 1);
       if (portnum != 5) return null; // ROUTING_APP
-      // Data.payload = Routing message; request_id в Data field 6
+      // Data.payload = Routing message; request_id is in Data field 6
       final requestId = _readFixed32(decoded, 6) ?? 0;
       final routingPayload = _readMsg(decoded, 2);
       final errorCode = routingPayload != null
@@ -514,9 +519,9 @@ class MeshtasticProto {
     }
   }
 
-  // Человекочитаемые имена `Routing.Error` (meshtastic/protobufs → mesh.proto,
-  // enum Error). Нужны, чтобы в логе было видно `NOT_AUTHORIZED`,
-  // `ADMIN_BAD_SESSION_KEY` и т.п., а не голое число.
+  // Human-readable names for `Routing.Error` (meshtastic/protobufs →
+  // mesh.proto, enum Error). Needed so the log shows `NOT_AUTHORIZED`,
+  // `ADMIN_BAD_SESSION_KEY` etc. instead of a bare number.
   static String routingErrorName(int code) {
     const names = {
       0: 'NONE',
@@ -541,13 +546,13 @@ class MeshtasticProto {
     return names[code] ?? 'UNKNOWN($code)';
   }
 
-  // Разбирает ответ AdminMessage (portnum=ADMIN_APP=6), если устройство его
-  // прислало. Возвращает request_id (Data.field6) и номер поля oneof
-  // payload_variant, которое пришло в ответе — этого достаточно для
-  // диагностики "устройство вообще увидело админ-команду и что-то ответило".
-  // Точное декодирование конкретных ответов (get_config_response и т.п.) не
-  // нужно для диагностики региона — молчание устройства как раз и было
-  // проблемой, а не непонятный ответ.
+  // Parses an AdminMessage reply (portnum=ADMIN_APP=6), if the device sent
+  // one. Returns the request_id (Data.field6) and the number of the oneof
+  // payload_variant field that came in the reply — that's enough to
+  // diagnose "the device actually saw the admin command and replied with
+  // something". Decoding the specific replies exactly (get_config_response
+  // etc.) isn't needed for diagnosing the region — the device's silence was
+  // precisely the problem, not a confusing reply.
   static ({int meshId, int variantTag})? decodeAdminResponse(List<int> raw) {
     try {
       final bytes = Uint8List.fromList(raw);
@@ -566,10 +571,10 @@ class MeshtasticProto {
     }
   }
 
-  // Номер первого поля верхнего уровня в [data] (любой wire type), или null
-  // для пустого/испорченного сообщения. Используется только для диагностики
-  // (decodeAdminResponse) — AdminMessage это oneof, поэтому единственное
-  // заполненное поле и есть искомый вариант ответа.
+  // Number of the first top-level field in [data] (any wire type), or null
+  // for an empty/corrupted message. Used only for diagnostics
+  // (decodeAdminResponse) — AdminMessage is a oneof, so the single field
+  // that's set is exactly the reply variant we're looking for.
   static int? _firstFieldTag(Uint8List data) {
     if (data.isEmpty) return null;
     final t = _decVarint(data, 0);

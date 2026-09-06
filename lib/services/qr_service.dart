@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:meshly/models/contact.dart';
 import 'package:meshly/models/mesh_channel.dart';
 
-// URL схема:
+// URL scheme:
 // mesh://contact/!1f8e42c9?name=Dentro&emoji=👩
 // mesh://channel/gazchannel?psk=base64&slot=2&emoji=🏕️
 
@@ -45,11 +45,11 @@ class QrService {
       path: '/${Uri.encodeComponent(ch.name)}',
       queryParameters: {
         'psk': base64Url.encode(ch.psk),
-        // Модель MeshChannel больше не хранит слот (см. отчёт спринта
-        // «отвязка бесед от слотов»), но старые версии приложения при
-        // декодировании ТРЕБУЮТ поле `slot`, поэтому печатаем фиксированную
-        // единицу ради совместимости с ними. Новые версии (см. decodeChannel
-        // ниже) это поле не требуют и не используют.
+        // The MeshChannel model no longer stores a slot (see the sprint
+        // report "decoupling conversations from slots"), but older app
+        // versions REQUIRE the `slot` field when decoding, so we print a
+        // fixed one for compatibility with them. Newer versions (see
+        // decodeChannel below) don't require or use this field.
         'slot': '1',
         if (ch.avatarEmoji != null) 'emoji': ch.avatarEmoji,
       },
@@ -97,9 +97,10 @@ class QrService {
       final name = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
       final pskStr = uri.queryParameters['psk'];
       if (name == null || pskStr == null) return null;
-      // `slot` теперь необязателен и никуда не декодируется: новые коды его
-      // не несут (см. encodeChannel), старые несут `slot=1` — оба читаются
-      // одинаково, значение просто игнорируется (см. отчёт спринта).
+      // `slot` is now optional and isn't decoded into anything: new codes
+      // don't carry it (see encodeChannel), old ones carry `slot=1` — both
+      // are read the same way, the value is simply ignored (see the sprint
+      // report).
       final psk = base64Url.decode(pskStr);
       if (!_pskLengths.contains(psk.length)) return null;
       return ChannelQrData(
@@ -114,7 +115,7 @@ class QrService {
     }
   }
 
-  // Определяем тип QR по содержимому
+  // Determine the QR type from its content
   static QrType? detectType(String raw) {
     try {
       final uri = Uri.parse(raw);

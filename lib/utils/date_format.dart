@@ -1,6 +1,6 @@
 // Locale-aware relative/absolute date formatting utilities.
 //
-// Relative phrases ("5 дней назад" / "5 days ago") come from ICU plurals in
+// Relative phrases (e.g. "5 days ago") come from ICU plurals in
 // the ARB files; month names come from intl's CLDR data via [DateFormat].
 // In the app that data is loaded by the flutter_localizations delegates;
 // pure unit tests must call initializeDateFormatting() first (see
@@ -9,12 +9,12 @@
 import 'package:intl/intl.dart';
 import 'package:meshly/l10n/app_localizations.dart';
 
-/// "2 мая 2026" / "2 May 2026"
+/// "2 May 2026"
 String absoluteDate(AppLocalizations l10n, DateTime dt) =>
     DateFormat('d MMMM yyyy', l10n.localeName).format(dt);
 
 /// Date-chip label between messages from different days in a chat:
-/// "Сегодня" / "Вчера" / "5 мая" (same year) / "5 мая 2025" (other year).
+/// "Today" / "Yesterday" / "May 5" (same year) / "May 5, 2025" (other year).
 ///
 /// [now] is injectable for tests.
 String chatDate(AppLocalizations l10n, DateTime dt, {DateTime? now}) {
@@ -30,7 +30,7 @@ String chatDate(AppLocalizations l10n, DateTime dt, {DateTime? now}) {
   return absoluteDate(l10n, dt);
 }
 
-/// "сегодня" / "5 дней назад" / "2 мая 2026"
+/// "today" / "5 days ago" / "2 May 2026"
 String formatAdded(AppLocalizations l10n, DateTime dt) {
   final diff = DateTime.now().difference(dt).inDays;
   if (diff < 1) return l10n.relativeToday;
@@ -38,8 +38,8 @@ String formatAdded(AppLocalizations l10n, DateTime dt) {
   return absoluteDate(l10n, dt);
 }
 
-/// "только что" / "3 минуты назад" / "2 часа назад" / "5 дней назад" /
-/// "2 мая 2026"
+/// "just now" / "3 minutes ago" / "2 hours ago" / "5 days ago" /
+/// "2 May 2026"
 String formatLastHeard(AppLocalizations l10n, DateTime dt) {
   final diff = DateTime.now().difference(dt);
   if (diff.inMinutes < 1) return l10n.dateJustNow;

@@ -28,7 +28,7 @@ class ConversationTile extends StatelessWidget {
   final VoidCallback onTap;
 
   /// When the DM peer was last heard on the mesh (drives the
-  /// "Был(а) в сети ..." line while offline).
+  /// "Last seen ..." line while offline).
   final DateTime? lastHeard;
 
   @override
@@ -237,8 +237,8 @@ class ListAvatar extends StatelessWidget {
   }
 }
 
-/// Presence line for a DM peer: green "В сети" while online, otherwise
-/// grey "Был(а) в сети <когда>" when the last-heard time is known.
+/// Presence line for a DM peer: green "Online" while online, otherwise
+/// grey `"Last seen <when>"` when the last-heard time is known.
 class PresenceLine extends StatelessWidget {
   const PresenceLine({required this.lastHeard, super.key});
 

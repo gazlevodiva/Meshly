@@ -17,9 +17,9 @@ import 'package:meshly/services/notification_settings.dart';
 // screens and widgets import it from this file.
 export 'package:meshly/models/message.dart' show kUndecryptableSentinel;
 
-/// UUID BLE-сервиса Meshtastic. Публичный: экран сканирования использует
-/// его, чтобы отличать Meshtastic-девайсы от прочих BLE-устройств по
-/// advertised service UUID.
+/// UUID of the Meshtastic BLE service. Public: the scan screen uses it to
+/// tell Meshtastic devices apart from other BLE devices by their advertised
+/// service UUID.
 const String kMeshtasticServiceUuid = '6ba1b218-15a8-461f-9fa8-5dcae273eafd';
 const String _meshServiceUuid = kMeshtasticServiceUuid;
 const _toRadioCharUuid = 'f75c76d2-129e-4dad-a1dd-7866124401e7';
@@ -33,8 +33,8 @@ const _fromNumCharUuid = 'ed9da18c-a800-4f66-a670-aa7547e34453';
 /// plaintext.
 enum SendResult { sent, needsKey, noChannel }
 
-/// Наблюдаемое состояние BLE-подключения к радио. Используется UI-пилюлей
-/// статуса и логикой авто-реконнекта.
+/// Observable state of the BLE connection to the radio. Used by the UI
+/// status pill and the auto-reconnect logic.
 enum MeshConnectionStatus { disconnected, connecting, connected, reconnecting }
 
 class MeshService {
@@ -50,8 +50,8 @@ class MeshService {
   // both call it).
   bool _draining = false;
 
-  // Авто-реконнект: намеренный disconnect() не должен триггерить петлю,
-  // а параллельные петли реконнекта запрещены.
+  // Auto-reconnect: an intentional disconnect() must not trigger the loop,
+  // and concurrent reconnect loops are forbidden.
   bool _intentionalDisconnect = false;
   bool _reconnecting = false;
 
@@ -87,42 +87,44 @@ class MeshService {
 
   DateTime? lastHeardFor(String nodeId) => _lastHeard[nodeId];
 
-  // Стрим для уведомления UI о новых входящих сообщениях
+  // Stream for notifying the UI about new incoming messages
   final _incomingController = StreamController<Message>.broadcast();
   Stream<Message> get incomingMessages => _incomingController.stream;
 
-  // Имя подключённого девайса (null = нет подключения).
-  // ValueNotifier вместо broadcast-стрима: новые подписчики (экраны,
-  // созданные ПОСЛЕ connect()) сразу видят текущее значение.
+  // Name of the connected device (null = no connection).
+  // ValueNotifier instead of a broadcast stream: new subscribers (screens
+  // created AFTER connect()) immediately see the current value.
   final ValueNotifier<String?> deviceName = ValueNotifier(null);
 
-  // Наблюдаемый статус подключения. deviceName сохраняем для обратной
-  // совместимости UI; оба обновляются согласованно.
+  // Observable connection status. deviceName is kept for UI backward
+  // compatibility; both are updated consistently.
   final ValueNotifier<MeshConnectionStatus> connectionStatus = ValueNotifier(
     MeshConnectionStatus.disconnected,
   );
 
-  /// Регион радио: `null` — устройство ещё не прислало конфиг,
-  /// [LoraRegion.unset] — регион не задан и плата молчит в эфире.
+  /// Radio region: `null` — the device hasn't sent its config yet,
+  /// [LoraRegion.unset] — the region isn't set and the board stays silent.
   ///
-  /// Устройство присылает конфиг само в ответ на want_config при подключении,
-  /// отдельный запрос не нужен.
+  /// The device sends its config on its own in response to want_config on
+  /// connect, so no separate request is needed.
   final ValueNotifier<int?> loraRegion = ValueNotifier(null);
 
-  /// Модель платы, как её сообщило устройство (null — ещё не прислало).
+  /// Board model, as reported by the device (null — not reported yet).
   ///
-  /// Устройство присылает `DeviceMetadata` само в рамках дампа конфига при
-  /// подключении, отдельный запрос не нужен — тот же паттерн, что и
-  /// [loraRegion]. Имя модели НЕ говорит о частотном диапазоне платы (см.
-  /// комментарий у `MeshtasticProto.decodeHwModel`), поэтому единственная
-  /// защита от несовместимого региона — [LoraRegion.compatibleWith].
+  /// The device sends `DeviceMetadata` on its own as part of the config
+  /// dump on connect, no separate request needed — same pattern as
+  /// [loraRegion]. The model name does NOT indicate the board's frequency
+  /// band (see the comment on `MeshtasticProto.decodeHwModel`), so the only
+  /// guard against an incompatible region is [LoraRegion.compatibleWith].
   final ValueNotifier<String?> hwModel = ValueNotifier(null);
 
-  // Сырые байты LoRaConfig ровно как их прислало устройство. Без них менять
-  // регион нельзя: set_config заменяет конфиг целиком (см. encodeSetRegion).
+  // Raw LoRaConfig bytes exactly as sent by the device. Without them the
+  // region can't be changed: set_config replaces the whole config (see
+  // encodeSetRegion).
   Uint8List? _loraRaw;
 
-  /// Регион можно менять только когда конфиг устройства уже получен.
+  /// The region can only be changed once the device's config has already
+  /// been received.
   bool get canSetRegion =>
       _loraRaw != null && _canTransmit && _myNodeNum != null;
 
@@ -143,8 +145,8 @@ class MeshService {
 
   Future<void> connect(BluetoothDevice device) async {
     _intentionalDisconnect = false;
-    // Если это попытка из петли реконнекта — сохраняем reconnecting, чтобы
-    // пилюля статуса не мигала между connecting/reconnecting.
+    // If this is an attempt from the reconnect loop — keep reconnecting so
+    // the status pill doesn't flicker between connecting/reconnecting.
     if (connectionStatus.value != MeshConnectionStatus.reconnecting) {
       connectionStatus.value = MeshConnectionStatus.connecting;
     }
@@ -154,11 +156,11 @@ class MeshService {
         ? device.platformName
         : device.remoteId.str;
 
-    // Характеристики Meshtastic зашифрованы: без сопряжения (bond) подписка
-    // на них зависает (setNotifyValue timeout). На Android явно инициируем
-    // сопряжение — это показывает системный запрос PIN (как в официальном
-    // приложении). iOS сопрягается сам при обращении к защищённой
-    // характеристике, там createBond недоступен.
+    // Meshtastic characteristics are encrypted: without pairing (bond),
+    // subscribing to them hangs (setNotifyValue timeout). On Android we
+    // explicitly initiate pairing — this shows the system PIN prompt (like
+    // in the official app). iOS pairs on its own when a protected
+    // characteristic is accessed; createBond isn't available there.
     if (Platform.isAndroid) {
       final bond = await device.bondState.first.timeout(
         const Duration(seconds: 2),
@@ -176,7 +178,7 @@ class MeshService {
       await device.disconnect();
       _cleanupConnection();
       throw Exception(
-        'Meshtastic-сервис не найден.\nНайденные сервисы:\n$found',
+        'Meshtastic service not found.\nServices found:\n$found',
       );
     }
 
@@ -190,7 +192,9 @@ class MeshService {
           .join('\n');
       await device.disconnect();
       _cleanupConnection();
-      throw Exception('Не найдены нужные характеристики.\nДоступные:\n$found');
+      throw Exception(
+        'Required characteristics not found.\nAvailable:\n$found',
+      );
     }
 
     if (_fromNum != null) {
@@ -205,12 +209,12 @@ class MeshService {
       (_) => _drainFromRadio(),
     );
 
-    // Подключение состоялось — характеристики найдены, подписки живут.
+    // Connection established — characteristics found, subscriptions live.
     connectionStatus.value = MeshConnectionStatus.connected;
 
-    // Следим за реальным BLE-состоянием: если девайс отвалился
-    // (вышел из зоны, разрядился) — отражаем это в UI и запускаем
-    // авто-реконнект (если разрыв не был намеренным).
+    // Watch the actual BLE state: if the device drops out (went out of
+    // range, ran out of battery) — reflect that in the UI and start
+    // auto-reconnect (if the disconnect wasn't intentional).
     _connStateSub = device.connectionState.listen((state) {
       if (state == BluetoothConnectionState.disconnected) {
         debugPrint('[BLE] device disconnected');
@@ -223,9 +227,9 @@ class MeshService {
     });
   }
 
-  // Бесконечная петля переподключения с экспоненциальным backoff
-  // (2/4/8/16с, дальше cap 30с). Прерывается намеренным disconnect() или
-  // dispose(). Гвард _reconnecting не даёт запустить две петли параллельно.
+  // Infinite reconnect loop with exponential backoff (2/4/8/16s, then capped
+  // at 30s). Interrupted by an intentional disconnect() or dispose(). The
+  // _reconnecting guard prevents two loops from running in parallel.
   Future<void> _reconnectLoop(BluetoothDevice device) async {
     if (_reconnecting) return;
     _reconnecting = true;
@@ -239,7 +243,7 @@ class MeshService {
         if (_disposed || _intentionalDisconnect) break;
         try {
           await connect(device);
-          return; // connect() сам выставил connected
+          return; // connect() already set connected itself
         } on Exception catch (e) {
           debugPrint('[BLE] reconnect attempt failed: $e');
         }
@@ -249,15 +253,16 @@ class MeshService {
     }
   }
 
-  // Отправить сырые байты в ToRadio (для AdminMessage и др.)
+  // Send raw bytes to ToRadio (for AdminMessage etc.)
   Future<void> writeRaw(List<int> bytes) async {
     if (_toRadio == null) return;
     await _toRadio!.write(bytes);
   }
 
   Future<void> disconnect() async {
-    // Намеренный разрыв: флаг гасит петлю реконнекта (и прерывает её
-    // ожидание backoff), слушатель connectionState её не перезапустит.
+    // Intentional disconnect: the flag stops the reconnect loop (and cuts
+    // short its backoff wait), the connectionState listener won't restart
+    // it.
     _intentionalDisconnect = true;
     final device = _device;
     _cleanupConnection();
@@ -265,10 +270,10 @@ class MeshService {
     await device?.disconnect();
   }
 
-  // Идемпотентная очистка состояния подключения. Вызывается и из
-  // disconnect(), и из слушателя connectionState при реальном BLE-разрыве —
-  // повторный вызов (например, disconnect() сам триггерит событие
-  // disconnected) безопасен.
+  // Idempotent cleanup of connection state. Called both from disconnect()
+  // and from the connectionState listener on an actual BLE disconnect —
+  // a repeated call (e.g. disconnect() itself triggers the disconnected
+  // event) is safe.
   void _cleanupConnection() {
     unawaited(_connStateSub?.cancel());
     _connStateSub = null;
@@ -283,11 +288,12 @@ class MeshService {
     // is addressed to *its* node num, and the `decoded.to != _myNodeNum` gate
     // would silently drop them until (or unless) a MyNodeInfo arrives.
     _myNodeNum = null;
-    // Конфиг принадлежит конкретному устройству: после разрыва он неизвестен,
-    // а не «такой же, как был» — иначе UI покажет чужой регион.
+    // The config belongs to a specific device: after a disconnect it's
+    // unknown, not "the same as it was" — otherwise the UI would show
+    // someone else's region.
     _loraRaw = null;
     loraRegion.value = null;
-    // Модель платы тоже принадлежит конкретному устройству — как и регион.
+    // The board model also belongs to a specific device — same as the region.
     hwModel.value = null;
     _lastHeard.clear();
     if (!_disposed) deviceName.value = null;
@@ -436,18 +442,20 @@ class MeshService {
     }
   }
 
-  /// Задаёт регион радио: `begin_edit` → `set_config{lora}` → `commit_edit`.
+  /// Sets the radio region: `begin_edit` → `set_config{lora}` → `commit_edit`.
   ///
-  /// Регион определяет частоту, на которой законно вещать, поэтому вызывается
-  /// только по явному выбору пользователя — никогда по догадке о его стране.
+  /// The region determines the frequency it's legal to transmit on, so this
+  /// is only called on an explicit user choice — never guessed from their
+  /// country.
   ///
-  /// Возвращает `false`, если конфиг устройства ещё не получен: без исходных
-  /// байт менять регион нельзя, `set_config` затёр бы остальные настройки.
+  /// Returns `false` if the device's config hasn't been received yet:
+  /// without the original bytes the region can't be changed, `set_config`
+  /// would wipe out the rest of the settings.
   ///
-  /// [loraRegion] здесь НЕ обновляется. После смены региона устройство
-  /// перезагружается и присылает конфиг заново — вот он и есть подтверждение.
-  /// Выставить значение заранее значило бы показать «настроено» при неудачной
-  /// записи.
+  /// [loraRegion] is NOT updated here. After the region change the device
+  /// reboots and sends its config again — that's the actual confirmation.
+  /// Setting the value ahead of time would mean showing "configured" on a
+  /// failed write.
   Future<bool> setRegion(int region) async {
     final lora = _loraRaw;
     final fromNode = _myNodeNum;
@@ -526,12 +534,13 @@ class MeshService {
     return true;
   }
 
-  // Отправить текст в conversation (DM или канал).
+  // Send text to a conversation (DM or channel).
   //
-  // [force] обходит блокировку «секретный чат сломан»: сигнал о поломке
-  // неаутентифицируем (посторонний в эфире мог бы заблокировать чат навсегда),
-  // поэтому у пользователя всегда остаётся кнопка «всё равно отправить».
-  // Отсутствие публичного ключа [force] НЕ обходит — шифровать нечем.
+  // [force] bypasses the "secure chat is broken" block: the breakage signal
+  // is unauthenticated (a stranger on the air could block the chat
+  // permanently), so the user always has an "send anyway" button as an
+  // escape hatch. [force] does NOT bypass a missing public key — there's
+  // nothing to encrypt with.
   Future<SendResult> sendText(
     String text,
     Conversation conv, {
@@ -544,8 +553,8 @@ class MeshService {
     Uint8List? rawPayload;
 
     if (conv.isDm && conv.peerId != null) {
-      // DM: unicast к конкретному узлу, primary channel (slot 0).
-      // DM — только шифрованные: без публичного ключа контакта не отправляем.
+      // DM: unicast to a specific node, primary channel (slot 0).
+      // DMs are encrypted-only: without the contact's public key we don't send.
       final contact = store.contactByNodeId(conv.peerId!);
       final peerKey = contact?.publicKey;
       if (peerKey == null) {
@@ -571,12 +580,13 @@ class MeshService {
         plaintext: text,
       );
     } else if (conv.isChannel && conv.channelId != null) {
-      // Беседа: broadcast. Слот аппаратного канала здесь больше ни на что не
-      // влияет (см. отчёт спринта «отвязка бесед от слотов Meshtastic») —
-      // слот в прошивке никогда и не настраивался (encodeSetChannel не
-      // работал), а беседу на приёме определяют перебором PSK, а не по слоту.
-      // Шлём всегда на channel=0: беседа — это ярлык нашего собственного
-      // Meshly-AEAD, а не аппаратный канал.
+      // Conversation: broadcast. The hardware channel slot no longer affects
+      // anything here (see the sprint report "decoupling conversations from
+      // Meshtastic slots") — the slot was never configured in the firmware
+      // anyway (encodeSetChannel didn't work), and the conversation is
+      // identified on receive by trying PSKs, not by slot. We always send on
+      // channel=0: a conversation is a label of our own Meshly-AEAD, not a
+      // hardware channel.
       final ch = store.channelById(conv.channelId!);
       if (ch == null) {
         debugPrint(
@@ -584,8 +594,9 @@ class MeshService {
         );
         return SendResult.noChannel;
       }
-      // Канал: собственный Meshly-AEAD (ключ из PSK канала), portnum
-      // PRIVATE_APP — как в DM, чтобы официальное приложение не видело текст.
+      // Channel: our own Meshly-AEAD (key derived from the channel's PSK),
+      // portnum PRIVATE_APP — same as in DMs, so the official app can't see
+      // the text.
       channelSlot = 0;
       portnum = MeshtasticProto.PRIVATE_APP;
       rawPayload = await CryptoService.instance.encryptForChannel(
@@ -596,15 +607,17 @@ class MeshService {
       return SendResult.noChannel;
     }
 
-    // Генерируем packet id заранее и передаём его в encodeTextMessage,
-    // чтобы радио отправило пакет с НАШИМ id — тогда ROUTING ACK (request_id)
-    // совпадёт с meshId сохранённого сообщения и статус обновится на acked.
+    // Generate the packet id up front and pass it into encodeTextMessage, so
+    // the radio sends the packet with OUR id — then the ROUTING ACK
+    // (request_id) will match the saved message's meshId and the status
+    // will update to acked.
     final msgId = DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF;
 
-    // Нет подключения к радио (и нет тестового seam'а — см. _canTransmit):
-    // не теряем текст пользователя. Сохраняем сообщение со статусом failed
-    // (видно в треде как неотправленное, ретрай по тапу уже реализован в
-    // chat_screen) и сообщаем UI, что ввод можно очистить (SendResult.sent).
+    // No connection to the radio (and no test seam — see _canTransmit): we
+    // don't lose the user's text. Save the message with failed status
+    // (shown in the thread as unsent, retry-on-tap is already implemented
+    // in chat_screen) and tell the UI that the input can be cleared
+    // (SendResult.sent).
     if (!_canTransmit) {
       final failedMsg = Message(
         meshId: msgId,
@@ -630,12 +643,13 @@ class MeshService {
       rawPayload: rawPayload,
     );
 
-    // Тот же seam (_write/debugRadioSink), что и у служебных пакетов —
-    // так тесты видят реально уходящие в эфир байты и беседы, не только DM.
+    // The same seam (_write/debugRadioSink) as for service packets — this
+    // way tests see the actual bytes going out over the air, and
+    // conversations, not just DMs.
     await _write(encoded, what: 'sendText → ${conv.id}');
 
-    // Добавляем исходящее сообщение в store (локально всегда plaintext —
-    // это наш собственный текст до шифрования)
+    // Add the outgoing message to the store (locally always plaintext —
+    // it's our own text before encryption)
     final msg = Message(
       meshId: msgId,
       fromNodeId: myNodeId ?? '!00000000',
@@ -701,37 +715,38 @@ class MeshService {
       _lastHeard[sender] = DateTime.now();
     }
 
-    // MyNodeInfo → сохраняем свой node ID
+    // MyNodeInfo → save our own node ID
     final myNum = MeshtasticProto.decodeMyNodeNum(bytes);
     if (myNum != null) {
       _myNodeNum = myNum;
       debugPrint('[Mesh] my node = $myNodeId');
     }
 
-    // Config.lora → регион радио
+    // Config.lora → radio region
     final lora = MeshtasticProto.decodeLoraConfig(bytes);
     if (lora != null) {
       _loraRaw = lora.raw;
       loraRegion.value = lora.region;
     }
 
-    // DeviceMetadata → модель платы
+    // DeviceMetadata → board model
     final model = MeshtasticProto.decodeHwModel(bytes);
     if (model != null) {
       hwModel.value = model;
       debugPrint('[Mesh] hw_model = $model');
     }
 
-    // NodeInfo — только логируем, имя контакта пользователь задаёт сам
+    // NodeInfo — just log it, the contact's name is set by the user themself
     final nodeInfo = MeshtasticProto.decodeNodeInfo(bytes);
     if (nodeInfo != null) {
       debugPrint('[Mesh] node ${nodeInfo.nodeId} info received');
     }
 
-    // ROUTING ACK (portnum=5) → обновляем статус сообщения.
-    // errorName — человекочитаемое имя (NOT_AUTHORIZED, ADMIN_BAD_SESSION_KEY
-    // и т.п. из mesh.proto Routing.Error), нужно именно для диагностики
-    // молчащих админ-команд — раньше в логе был только голый код ошибки.
+    // ROUTING ACK (portnum=5) → update the message status.
+    // errorName is a human-readable name (NOT_AUTHORIZED,
+    // ADMIN_BAD_SESSION_KEY etc. from mesh.proto Routing.Error), needed
+    // specifically for diagnosing silent admin commands — the log used to
+    // only have the bare error code.
     final ack = MeshtasticProto.decodeRoutingAck(bytes);
     if (ack != null) {
       debugPrint(
@@ -744,9 +759,9 @@ class MeshService {
       await store.updateMessageStatus(ack.meshId, status);
     }
 
-    // Ответ на админ-команду (portnum=ADMIN_APP), если устройство его
-    // прислало — например get_config_response и т.п. Само по себе появление
-    // этого лога уже диагностически ценно: значит AdminModule увидел пакет.
+    // Reply to an admin command (portnum=ADMIN_APP), if the device sent one
+    // — e.g. get_config_response etc. This log's mere appearance is already
+    // diagnostically valuable: it means AdminModule saw the packet.
     final adminResp = MeshtasticProto.decodeAdminResponse(bytes);
     if (adminResp != null) {
       debugPrint(
@@ -765,10 +780,10 @@ class MeshService {
 
     final fromNodeId = decoded.from ?? '!00000000';
 
-    // Не показываем собственные эхо-пакеты
+    // Don't show our own echo packets
     if (fromNodeId == myNodeId) return;
 
-    // Игнорируем сообщения от заблокированных нод
+    // Ignore messages from blocked nodes
     if (store.isBlocked(fromNodeId)) return;
 
     // Unicast → DM. The whole secure-chat state machine lives there, and it
@@ -805,40 +820,42 @@ class MeshService {
       return;
     }
 
-    // Broadcast → это трафик беседы (группового чата). Аппаратный слот
-    // канала больше ни на что не влияет (см. отчёт спринта «отвязка бесед от
-    // слотов Meshtastic»): он и не настраивался в устройстве (encodeSetChannel
-    // не работал ни разу), поэтому нужную беседу ищем перебором известных
-    // PSK — пробуем расшифровать конверт ключом каждой беседы, первая
-    // успешная расшифровка и есть искомая беседа. Poly1305 отвергает чужой
-    // ключ, так что ложных совпадений быть не может.
+    // Broadcast → this is conversation (group chat) traffic. The hardware
+    // channel slot no longer affects anything (see the sprint report
+    // "decoupling conversations from Meshtastic slots"): it was never
+    // configured in the device (encodeSetChannel never worked), so we find
+    // the right conversation by trying known PSKs — we try to decrypt the
+    // envelope with each conversation's key, and the first successful
+    // decryption is the conversation we're looking for. Poly1305 rejects
+    // the wrong key, so false matches are impossible.
     //
-    // Канал: принимаем только собственный Meshly-AEAD (PRIVATE_APP + PSK
-    // беседы). Чужой plaintext (TEXT_MESSAGE_APP) и любую неудачную
-    // расшифровку молча дропаем — общий/официальный канал в Meshly не
-    // показываем.
+    // Channel: we only accept our own Meshly-AEAD (PRIVATE_APP + the
+    // conversation's PSK). Someone else's plaintext (TEXT_MESSAGE_APP) and
+    // any failed decryption are silently dropped — we don't show the
+    // shared/official channel in Meshly.
     if (portnum != MeshtasticProto.PRIVATE_APP || decoded.rawPayload == null) {
       return;
     }
     final payload = decoded.rawPayload!;
 
-    // Дешёвая проверка ДО перебора ключей: любая нода в радиусе действия
-    // может слать мусорный broadcast, и каждый такой пакет иначе заставлял
-    // бы прогонять N попыток расшифровки (по одной на беседу). Отбрасываем
-    // заведомо чужое дёшево — по структуре конверта, как и для DM (см.
-    // проверку версии байта у payload[0] выше в _onDmPacket): версия
-    // конверта должна совпадать, а длина — быть не меньше
-    // version(1) + nonce(24) + Poly1305 mac(16), иначе расшифровывать
-    // нечего ни одним ключом.
+    // Cheap check BEFORE trying keys: any node in range can send junk
+    // broadcasts, and each such packet would otherwise force N decryption
+    // attempts (one per conversation). We cheaply reject what's obviously
+    // not ours — by envelope structure, same as for DMs (see the version
+    // byte check on payload[0] above in _onDmPacket): the envelope version
+    // must match, and the length must be no less than
+    // version(1) + nonce(24) + Poly1305 mac(16), otherwise there's nothing
+    // to decrypt with any key.
     const minEnvelopeLength = 1 + 24 + 16;
     if (payload.length < minEnvelopeLength ||
         payload[0] != kMessageEnvelopeVersion) {
       return;
     }
 
-    // Несортированное представление: порядок бесед тут не нужен, а сортировка
-    // на каждый входящий broadcast (включая чужой трафик) — лишняя работа на
-    // горячем пути (см. отчёт спринта). Для интерфейса есть store.channels.
+    // Unsorted view: conversation order doesn't matter here, and sorting on
+    // every incoming broadcast (including other people's traffic) is wasted
+    // work on the hot path (see the sprint report). The UI has
+    // store.channels for that.
     for (final ch in store.channelsUnsorted) {
       final conv = store.conversationById('ch_${ch.id}');
       if (conv == null) continue;
@@ -897,23 +914,24 @@ class MeshService {
     final conv = store.dmForNode(fromNodeId);
     if (conv == null) return;
 
-    // Служебный пакет [0x02]: партнёр не может нас прочитать (мы, видимо,
-    // переустановились). Не сообщение — помечаем беседу сломанной и выходим.
+    // Service packet [0x02]: the peer cannot read us (we've apparently been
+    // reinstalled). Not a message — flag the conversation as broken and
+    // return.
     if (isKeyMismatchNotice(payload)) {
       debugPrint('[Mesh] key mismatch notice from $fromNodeId');
-      // [0x02] говорит ровно об одном направлении: ПАРТНЁР не может
-      // нас прочитать — сканировать нужно ЕМУ. Наш собственный шаг «я его
-      // отсканировал» этим не отменяется, поэтому iCanReadPeer не трогаем.
+      // [0x02] speaks to exactly one direction: the PEER cannot read us —
+      // it's THEM who needs to scan. Our own "I scanned them" step isn't
+      // undone by this, so we don't touch iCanReadPeer.
       //
-      // SECURITY: признак неаутентифицирован (байт идёт в открытую), но
-      // хуже блокировки отправки он ничего не даёт, а блокировка обходится
-      // кнопкой «всё равно отправить».
+      // SECURITY: the signal is unauthenticated (the byte travels in the
+      // clear), but the worst it can do is block sending, and that block
+      // can be bypassed with the "send anyway" button.
       await store.setPeerCanReadUs(conv.id, value: false);
       return;
     }
 
-    // Verify-рукопожатие [0x03]/[0x04]: не сообщения — в чат не попадают
-    // и уведомлений не порождают.
+    // Verify handshake [0x03]/[0x04]: not messages — they don't land in the
+    // chat and don't generate notifications.
     if (isKeyVerifyPing(payload) || isKeyVerifyAck(payload)) {
       await _onKeyVerifyPacket(conv, fromNodeId, payload);
       return;
@@ -938,11 +956,11 @@ class MeshService {
       return;
     }
 
-    // Расшифровалось → здоровы ОБА направления. ECDH симметричен:
-    // ECDH(наш приватный, его публичный) == ECDH(его приватный, наш
-    // публичный). Значит одна успешная расшифровка доказывает СРАЗУ оба
-    // направления — наш сохранённый ключ партнёра верен, и партнёр шифровал
-    // нашим актуальным публичным ключом (то есть он нас отсканировал).
+    // Decrypted → BOTH directions are healthy. ECDH is symmetric:
+    // ECDH(our private, their public) == ECDH(their private, our public).
+    // So one successful decryption proves BOTH directions at once — our
+    // stored copy of the peer's key is correct, and the peer encrypted
+    // using our current public key (meaning they scanned us).
     await _markSecureVerified(conv, fromNodeId);
     await _storeIncoming(
       conv: conv,
@@ -975,7 +993,7 @@ class MeshService {
       '[Mesh] message in ${conv.id} from $fromNodeId (${msg.text.length} chars)',
     );
 
-    // Локальное уведомление для входящих сообщений
+    // Local notification for incoming messages
     String notifTitle;
     if (conv.isDm && conv.peerId != null) {
       final contact = store.contactByNodeId(fromNodeId);
@@ -1134,8 +1152,9 @@ class MeshService {
     await store.deleteUndecryptableMessages(conv.id);
     await sendKeyMismatchNotice(fromNodeId);
 
-    // Мягкое уведомление без содержимого. Дросселируем тем же окном, что и
-    // служебный пакет: иначе каждый мусорный пакет = отдельный пуш.
+    // A soft notification with no content. Throttled by the same window as
+    // the service packet: otherwise every junk packet would be a separate
+    // push.
     if (!_allowThrottled(_lastUndecryptableNotify, fromNodeId)) return;
     if (!NotificationSettings.instance.shouldNotify(
       convId: conv.id,

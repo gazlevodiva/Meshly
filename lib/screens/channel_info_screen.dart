@@ -77,7 +77,7 @@ class ChannelInfoScreen extends StatelessWidget {
             AppSpacing.s32,
           ),
           children: [
-            // Шапка
+            // Header
             Column(
               children: [
                 Container(
@@ -100,7 +100,7 @@ class ChannelInfoScreen extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.s24),
 
-            // Приглашение — QR
+            // Invite — QR
             SectionCard(
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.s16),
@@ -128,7 +128,7 @@ class ChannelInfoScreen extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.s12),
 
-            // Почему нет списка участников
+            // Why there is no member list
             SectionCard(
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.s14),
@@ -153,7 +153,7 @@ class ChannelInfoScreen extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.s12),
 
-            // Уведомления
+            // Notifications
             SectionCard(
               child: ListenableBuilder(
                 listenable: NotificationSettings.instance,
@@ -182,7 +182,7 @@ class ChannelInfoScreen extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.s12),
 
-            // Инфо
+            // Info
             SectionCard(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -208,7 +208,7 @@ class ChannelInfoScreen extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.s12),
 
-            // Опасная зона
+            // Danger zone
             SectionCard(
               child: ListTile(
                 leading: Icon(

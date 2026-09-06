@@ -9,16 +9,16 @@ import 'package:meshly/widgets/section_card.dart';
 import 'package:meshly/widgets/sheet_drag_handle.dart';
 import 'package:meshly/widgets/tab_header.dart';
 
-/// Экран выбора региона LoRa.
+/// LoRa region selection screen.
 ///
-/// С завода плата приходит с [LoraRegion.unset] и физически не вещает в
-/// эфир, пока регион не выбран явно — здесь и есть единственное место в
-/// приложении, где это можно сделать.
+/// The board ships from the factory with [LoraRegion.unset] and physically
+/// does not transmit over the air until the region is chosen explicitly —
+/// this is the one place in the app where that can be done.
 ///
-/// Пока регион не задан, экран по возможности сводится к одному
-/// подтверждающему тапу — подсказка берётся из страны телефона
-/// ([LoraRegion.suggestedFor]). Полный список из 37 кодов — запасной вариант
-/// для случая, когда подсказки нет, либо явный переход по вторичной ссылке.
+/// While no region is set, the screen collapses as much as possible into a
+/// single confirming tap — the suggestion comes from the phone's country
+/// ([LoraRegion.suggestedFor]). The full list of 37 codes is the fallback for
+/// when there is no suggestion, or via an explicit tap on the secondary link.
 class RadioRegionScreen extends StatefulWidget {
   const RadioRegionScreen({required this.meshService, super.key});
 
@@ -31,14 +31,15 @@ class RadioRegionScreen extends StatefulWidget {
 class _RadioRegionScreenState extends State<RadioRegionScreen> {
   bool _applying = false;
 
-  /// Показать полный список вместо подсказки — либо потому что подсказки
-  /// нет, либо пользователь явно попросил «выбрать другой регион».
+  /// Show the full list instead of the suggestion — either because there is
+  /// no suggestion, or the user explicitly asked to "choose another region".
   bool _showFullList = false;
 
-  /// Регион, подходящий стране телефона, если её удалось определить.
-  /// Вычисляется один раз в [initState]: локаль платформы не меняется, пока
-  /// открыт экран, а чтение через [WidgetsBinding] (а не напрямую через
-  /// `dart:ui`) — единственный способ подменить локаль в тестах.
+  /// Region matching the phone's country, if it could be determined.
+  /// Computed once in [initState]: the platform locale doesn't change while
+  /// the screen is open, and reading it via [WidgetsBinding] (rather than
+  /// directly through `dart:ui`) is the only way to override the locale in
+  /// tests.
   late final LoraRegion? _suggested;
 
   @override
@@ -75,9 +76,9 @@ class _RadioRegionScreenState extends State<RadioRegionScreen> {
     LoraRegion region, {
     required int? current,
   }) async {
-    // Регион уже был задан (и это не тот же самый код) — смена рвёт связь
-    // со всеми, у кого устройство осталось на прежнем регионе. Об этом
-    // нужно сказать прямо, а не только про перезагрузку.
+    // A region was already set (and it's not the same code) — changing it
+    // breaks the connection with everyone whose device stayed on the old
+    // region. This needs to be said plainly, not just mention a reboot.
     final isChange =
         current != null &&
         current != LoraRegion.unset &&
@@ -88,9 +89,9 @@ class _RadioRegionScreenState extends State<RadioRegionScreen> {
       shape: AppShapes.bottomSheet,
       builder: (sheetContext) => SafeArea(
         child: SingleChildScrollView(
-          // При крупном системном шрифте (или длинном предупреждении о
-          // смене региона) содержимое может не поместиться в высоту
-          // шторки — пусть лучше прокрутится, чем обрежется снизу.
+          // With a large system font (or a long region-change warning) the
+          // content might not fit the sheet's height — better to scroll than
+          // to get clipped at the bottom.
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.s20,
             AppSpacing.s12,
@@ -196,10 +197,10 @@ class _RadioRegionScreenState extends State<RadioRegionScreen> {
   }
 }
 
-/// Единственное подтверждающее действие: подсказанный по стране телефона
-/// регион с одной заметной кнопкой и мелкой вторичной ссылкой на полный
-/// список — вместо списка из 37 кодов, который обычный человек выбрать
-/// не может.
+/// The single confirming action: the region suggested from the phone's
+/// country, with one prominent button and a small secondary link to the full
+/// list — instead of a list of 37 codes that an ordinary person can't
+/// realistically choose from.
 class _SuggestionView extends StatelessWidget {
   const _SuggestionView({
     required this.suggested,
@@ -224,8 +225,8 @@ class _SuggestionView extends StatelessWidget {
       ),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          // На маленьком экране (или при большом системном шрифте) высота
-          // может уйти в минус — BoxConstraints этого не переживёт.
+          // On a small screen (or with a large system font) the height can
+          // go negative — BoxConstraints wouldn't survive that.
           minHeight:
               (MediaQuery.sizeOf(context).height -
                       topInset -
@@ -270,10 +271,11 @@ class _SuggestionView extends StatelessWidget {
   }
 }
 
-/// Полный список: частые регионы, все регионы, и — отдельной секцией с
-/// предупреждением — регионы другого диапазона, чем уже задан на плате
-/// (несовместимые не убираем совсем: осмысленный выбор мог быть, например,
-/// заменили плату — но выбор явно окрашен как рискованный).
+/// The full list: common regions, all regions, and — in a separate section
+/// with a warning — regions of a different range than what's already set on
+/// the board (incompatible ones aren't removed entirely: there can be a
+/// legitimate reason to pick one, e.g. the board was swapped — but the
+/// choice is clearly flagged as risky).
 class _FullListView extends StatelessWidget {
   const _FullListView({
     required this.topInset,

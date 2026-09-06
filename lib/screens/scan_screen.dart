@@ -11,9 +11,9 @@ import 'package:meshly/widgets/sheet_drag_handle.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Известные паттерны в именах Meshtastic-девайсов (популярные борды и
-/// вендоры). Список щедрый намеренно: лучше показать лишний девайс, чем
-/// отсечь реальный Meshtastic-узел, у которого нетипичное имя.
+/// Known patterns in Meshtastic device names (popular boards and vendors).
+/// The list is deliberately generous: better to show an extra device than
+/// to filter out a real Meshtastic node with an atypical name.
 const _meshtasticNamePatterns = <String>[
   'meshtastic',
   'heltec',
@@ -32,15 +32,16 @@ const _meshtasticNamePatterns = <String>[
   'xiao',
 ];
 
-/// Чистая, тестируемая проверка: похоже ли BLE-устройство на Meshtastic.
+/// Pure, testable check: does this BLE device look like Meshtastic.
 ///
-/// Позитивный сигнал — ЛЮБОЙ из:
-///  - в advertised service UUID есть UUID Meshtastic-сервиса
-///    ([kMeshtasticServiceUuid]), сравнение без учёта регистра;
-///  - имя (lowercase) содержит один из [_meshtasticNamePatterns].
+/// Positive signal — ANY of:
+///  - the advertised service UUIDs include the Meshtastic service UUID
+///    ([kMeshtasticServiceUuid]), compared case-insensitively;
+///  - the name (lowercase) contains one of [_meshtasticNamePatterns].
 ///
-/// Пустое имя без совпадения по service UUID отбрасывается. Catch-all по
-/// RSSI намеренно убран — раньше он пропускал наушники/ТВ/часы.
+/// An empty name with no service UUID match is discarded. The RSSI
+/// catch-all was deliberately removed — it used to let through
+/// headphones/TVs/watches.
 bool isLikelyMeshtasticDevice({
   required String name,
   required List<String> serviceUuids,
@@ -65,10 +66,11 @@ class ScanScreen extends StatefulWidget {
   final MeshService meshService;
   final bool isReconnect;
 
-  // Пытаться ли автоматически подключиться к последнему устройству при
-  // открытии экрана. Отключаем при переходе после НАМЕРЕННОГО disconnect,
-  // иначе экран тут же переподключится к тому же девайсу (last_device_id
-  // сохраняется для следующего запуска, но сейчас реконнект не нужен).
+  // Whether to try auto-connecting to the last device when the screen
+  // opens. Disabled when navigating here after an INTENTIONAL disconnect,
+  // otherwise the screen would immediately reconnect to the same device
+  // (last_device_id is kept for the next launch, but a reconnect isn't
+  // wanted right now).
   final bool autoConnect;
 
   @override
@@ -83,14 +85,14 @@ class _ScanScreenState extends State<ScanScreen> {
   String? _connectingName;
   String? _lastDeviceName;
 
-  // Реальное состояние Bluetooth-адаптера. Когда он выключен, показываем
-  // отдельный экран с кнопкой включения вместо бесполезного скана в пустоту.
+  // The actual Bluetooth adapter state. When it's off, we show a dedicated
+  // screen with an enable button instead of a pointless scan into the void.
   BluetoothAdapterState _adapterState = BluetoothAdapterState.unknown;
   StreamSubscription<BluetoothAdapterState>? _adapterSub;
 
-  // Аварийный люк: по умолчанию список фильтруется до Meshtastic-девайсов,
-  // но пользователь может показать ВСЕ устройства — на случай борда с
-  // нестандартным/переименованным именем, не рекламирующего service UUID.
+  // Escape hatch: by default the list is filtered down to Meshtastic
+  // devices, but the user can show ALL devices — for a board with a
+  // nonstandard/renamed name that doesn't advertise the service UUID.
   bool _showAllDevices = false;
 
   List<ScanResult> get _results =>
@@ -98,8 +100,8 @@ class _ScanScreenState extends State<ScanScreen> {
         ..sort((a, b) => b.rssi.compareTo(a.rssi));
 
   bool _isRelevant(ScanResult r) {
-    // В режиме «показать все» отсекаем только безымянные устройства
-    // (по ним всё равно нельзя понять, что это).
+    // In "show all" mode we only filter out nameless devices (there's no
+    // way to tell what they are anyway).
     if (_showAllDevices) return r.device.platformName.isNotEmpty;
     return isLikelyMeshtasticDevice(
       name: r.device.platformName,
@@ -113,15 +115,17 @@ class _ScanScreenState extends State<ScanScreen> {
   void initState() {
     super.initState();
     _adapterState = FlutterBluePlus.adapterStateNow;
-    // onError глушит UnsupportedError из flutter_blue_plus без платформы
-    // (widget-тесты): остаёмся на `unknown`, адаптер не мониторим.
+    // onError silences the UnsupportedError from flutter_blue_plus without
+    // a platform (widget tests): we stay on `unknown`, not monitoring the
+    // adapter.
     _adapterSub = FlutterBluePlus.adapterState.listen(
       _onAdapterState,
       onError: (Object _) {},
     );
-    // Не запускаем автоподключение при заведомо выключенном BT — сначала
-    // пользователь включит адаптер (см. _onAdapterState). И не запускаем,
-    // если экран открыт после намеренного disconnect (autoConnect=false).
+    // Don't start auto-connect when BT is known to be off — the user needs
+    // to turn on the adapter first (see _onAdapterState). And don't start it
+    // if the screen was opened after an intentional disconnect
+    // (autoConnect=false).
     if (widget.autoConnect && _adapterState != BluetoothAdapterState.off) {
       unawaited(_tryAutoConnect());
     }
@@ -137,8 +141,8 @@ class _ScanScreenState extends State<ScanScreen> {
     if (!mounted) return;
     final wasOff = _adapterState == BluetoothAdapterState.off;
     setState(() => _adapterState = s);
-    // BT только что включили с экрана «Bluetooth выключен» — возобновляем
-    // автоподключение к последнему устройству (если оно вообще разрешено).
+    // BT was just turned on from the "Bluetooth off" screen — resume
+    // auto-connecting to the last device (if that's even allowed).
     if (widget.autoConnect &&
         wasOff &&
         s == BluetoothAdapterState.on &&
@@ -147,17 +151,18 @@ class _ScanScreenState extends State<ScanScreen> {
     }
   }
 
-  // Включить Bluetooth. Android умеет показать системный диалог включения;
-  // iOS программно включать BT не даёт — ведём в системные настройки.
+  // Turn on Bluetooth. Android can show a system enable dialog; iOS
+  // doesn't allow enabling BT programmatically — send the user to system
+  // settings instead.
   Future<void> _enableBluetooth() async {
     if (Platform.isAndroid) {
       await Permission.bluetoothConnect.request();
       try {
         await FlutterBluePlus.turnOn();
       } on Exception {
-        // Пользователь отклонил или включить не удалось — экран остаётся
-        // на состоянии «выключен» (адаптер не перешёл в on), слушатель
-        // _onAdapterState синхронизирует UI при любом изменении.
+        // The user declined or enabling failed — the screen stays in the
+        // "off" state (the adapter didn't transition to on); the
+        // _onAdapterState listener syncs the UI on any change.
       }
     } else {
       await openAppSettings();
@@ -299,9 +304,9 @@ class _ScanScreenState extends State<ScanScreen> {
         }
       }
     } on Exception catch (e) {
-      // Сырая ошибка (напр. список найденных сервисов при попытке
-      // подключиться к не-Meshtastic девайсу) — только в лог для разработчика.
-      // Пользователю показываем человечную локализованную подсказку.
+      // The raw error (e.g. the list of discovered services when trying to
+      // connect to a non-Meshtastic device) goes only to the developer log.
+      // The user is shown a friendly, localized hint.
       debugPrint('[Scan] connect failed: $e');
       if (mounted) {
         setState(() => _state = _ScreenState.idle);
@@ -569,8 +574,8 @@ class _ScanScreenState extends State<ScanScreen> {
           onPressed: _showHelpSheet,
           child: Text(context.l10n.checkConnection),
         ),
-        // Аварийный люк: показать все BLE-устройства, если нужный девайс
-        // не прошёл фильтр Meshtastic.
+        // Escape hatch: show all BLE devices, in case the wanted device
+        // didn't pass the Meshtastic filter.
         TextButton(
           onPressed: () => setState(() => _showAllDevices = !_showAllDevices),
           child: Text(
@@ -587,8 +592,8 @@ class _ScanScreenState extends State<ScanScreen> {
 
   Widget _buildMain({required bool scanning}) {
     final results = _results;
-    // После завершения поиска найденные устройства остаются на экране,
-    // чтобы не приходилось запускать сканирование заново.
+    // Once the search finishes, the found devices stay on screen so
+    // scanning doesn't have to be restarted.
     final showDevices = scanning || results.isNotEmpty;
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
@@ -646,15 +651,17 @@ class _ScanScreenState extends State<ScanScreen> {
   Widget _buildConnecting() {
     return _buildConnectingBody(
       label: context.l10n.connectingTo(_connectingName ?? ''),
-      // Ручное подключение из списка — как правило первое сопряжение с
-      // устройством, поэтому напоминаем про системный запрос кода.
+      // A manual connection from the list is usually the first pairing
+      // with the device, so we remind about the system pairing-code
+      // prompt.
       showPairingHint: true,
     );
   }
 
-  // Подсказка про сопряжение: поле ввода кода рисует ОС (заменить своим
-  // нельзя), но пользователь может пропустить системный запрос — он приходит
-  // и как уведомление. Объясняем, где взять код и куда смотреть.
+  // Pairing hint: the code entry field is drawn by the OS (it can't be
+  // replaced with a custom one), but the user might dismiss the system
+  // prompt — it also arrives as a notification. We explain where to get the
+  // code and where to look.
   Widget _buildPairingHint() {
     final scheme = Theme.of(context).colorScheme;
     return Container(
@@ -772,7 +779,7 @@ class _ScanScreenState extends State<ScanScreen> {
     final scheme = Theme.of(context).colorScheme;
     Widget body;
     if (_adapterState == BluetoothAdapterState.off) {
-      // Выключенный BT перекрывает любое состояние скана/подключения.
+      // Bluetooth being off overrides any scan/connect state.
       body = _buildBluetoothOff();
     } else {
       switch (_state) {

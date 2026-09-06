@@ -1,29 +1,29 @@
-/// Региональные коды LoRa из meshtastic `config.proto` (`RegionCode`).
+/// LoRa regional codes from meshtastic `config.proto` (`RegionCode`).
 ///
-/// Регион задаёт частоту, на которой устройству разрешено вещать, поэтому он
-/// НИКОГДА не выставляется автоматически — только явным выбором пользователя.
-/// С завода плата приходит с кодом UNSET (0) и в эфир не передаёт вообще.
+/// The region sets the frequency the device is allowed to transmit on, so it
+/// is NEVER set automatically — only via an explicit user choice. Out of the
+/// box the board ships with code UNSET (0) and doesn't transmit at all.
 library;
 
 class LoraRegion {
   const LoraRegion(this.value, this.code);
 
-  /// Значение поля `LoRaConfig.region`.
+  /// Value of the `LoRaConfig.region` field.
   final int value;
 
-  /// Регуляторный идентификатор («EU_868»). Не переводится: это код из
-  /// стандарта, по нему человек сверяется с документацией на плату.
+  /// Regulatory identifier ("EU_868"). Not translated: it's the code from
+  /// the standard, and a person checks it against the board's documentation.
   final String code;
 
-  /// Устройство не настроено и молчит в эфире.
+  /// The device isn't configured and stays silent on the air.
   static const int unset = 0;
 
-  /// Регионы, которые стоит показать первыми.
+  /// Regions worth showing first.
   ///
-  /// UA_868 сюда намеренно не входит: в `config.proto` он помечен
-  /// `deprecated = true` — предлагать его первым делом неправильно, хотя в
-  /// [all] он остаётся (у людей могут быть устройства, уже настроенные на
-  /// него).
+  /// UA_868 is deliberately not included here: in `config.proto` it's marked
+  /// `deprecated = true` — offering it first would be wrong, though it's
+  /// still kept in [all] (people may have devices already configured to
+  /// use it).
   static const List<LoraRegion> common = [
     LoraRegion(3, 'EU_868'),
     LoraRegion(2, 'EU_433'),
@@ -34,7 +34,7 @@ class LoraRegion {
     LoraRegion(5, 'JP'),
   ];
 
-  /// Полный список в порядке `RegionCode`, без UNSET.
+  /// Full list in `RegionCode` order, without UNSET.
   static const List<LoraRegion> all = [
     LoraRegion(1, 'US'),
     LoraRegion(2, 'EU_433'),
@@ -75,8 +75,8 @@ class LoraRegion {
     LoraRegion(37, 'ITU2_125CM'),
   ];
 
-  /// Код региона по значению поля, или null для UNSET и незнакомых значений
-  /// (новая прошивка может прислать код, которого мы ещё не знаем).
+  /// Region code by field value, or null for UNSET and unknown values
+  /// (newer firmware may send a code we don't know about yet).
   static String? codeOf(int value) {
     for (final r in all) {
       if (r.value == value) return r.code;
@@ -84,18 +84,18 @@ class LoraRegion {
     return null;
   }
 
-  /// Страна телефона (ISO 3166-1 alpha-2) → регион, если он для неё
-  /// однозначен. Отсутствие ключа или значение null — страна неизвестна,
-  /// либо у неё несколько равноправных региональных вариантов и угадывать
-  /// нельзя (см. Казахстан ниже).
+  /// Phone's country (ISO 3166-1 alpha-2) → region, if it's unambiguous for
+  /// that country. A missing key or a null value means the country is
+  /// unknown, or it has several equally valid regional options and guessing
+  /// is not allowed (see Kazakhstan below).
   ///
-  /// Источник — `RegionCode` (`meshtastic/protobufs` → `config.proto`) и
-  /// таблица фактических частот прошивки (`meshtastic/firmware` →
-  /// `src/mesh/RadioInterface.cpp`, массив `regions[]`).
+  /// Source: `RegionCode` (`meshtastic/protobufs` → `config.proto`) and the
+  /// firmware's actual frequency table (`meshtastic/firmware` →
+  /// `src/mesh/RadioInterface.cpp`, the `regions[]` array).
   static const Map<String, String> _suggestionByCountry = {
-    // ── Европа (ETSI EN 300 220, диапазон 868 МГц) ──────────────────────
-    // Кроме стран, у которых Meshtastic завёл отдельный код (Украина,
-    // Россия, Казахстан) — для них ниже отдельные записи.
+    // ── Europe (ETSI EN 300 220, 868 MHz band) ──────────────────────────
+    // Except for countries for which Meshtastic has a dedicated code
+    // (Ukraine, Russia, Kazakhstan) — those get separate entries below.
     'AD': 'EU_868',
     'AL': 'EU_868',
     'AT': 'EU_868',
@@ -138,19 +138,19 @@ class LoraRegion {
     'SM': 'EU_868',
     'VA': 'EU_868',
     'XK': 'EU_868',
-    // Великобритания: после Brexit регуляторика осталась в рамках того же
-    // ETSI-диапазона 868 МГц (нет отдельного кода RegionCode для UK).
+    // UK: post-Brexit regulation stayed within the same ETSI 868 MHz band
+    // (there's no separate RegionCode for the UK).
     'GB': 'EU_868',
 
-    // ── США / Канада — общий диапазон ISM 902–928 МГц ───────────────────
+    // ── US / Canada — shared 902-928 MHz ISM band ───────────────────────
     'US': 'US',
     'CA': 'US',
 
-    // ── Австралия / Новая Зеландия ───────────────────────────────────────
+    // ── Australia / New Zealand ──────────────────────────────────────────
     'AU': 'ANZ',
     'NZ': 'ANZ',
 
-    // ── Азия с собственным кодом ─────────────────────────────────────────
+    // ── Asia with a dedicated code ───────────────────────────────────────
     'JP': 'JP',
     'KR': 'KR',
     'TW': 'TW',
@@ -160,22 +160,22 @@ class LoraRegion {
     'SG': 'SG_923',
     'NP': 'NP_865',
 
-    // ── Южная Америка ─────────────────────────────────────────────────
+    // ── South America ────────────────────────────────────────────────────
     'BR': 'BR_902',
 
-    // ── СНГ ──────────────────────────────────────────────────────────────
+    // ── CIS ───────────────────────────────────────────────────────────────
     'RU': 'RU',
-    // UA_868 в config.proto помечен deprecated — предлагаем действующий
-    // UA_433, а не устаревший код.
+    // UA_868 is marked deprecated in config.proto — we suggest the current
+    // UA_433 instead of the deprecated code.
     'UA': 'UA_433',
-    // Казахстан НАМЕРЕННО не в этом списке: у него два равноправных кода
-    // (KZ_433 и KZ_863, оба валидны по регуляторике), однозначного выбора
-    // нет — см. suggestedFor.
+    // Kazakhstan is DELIBERATELY not in this list: it has two equally valid
+    // codes (KZ_433 and KZ_863, both valid under regulation), there's no
+    // unambiguous choice — see suggestedFor.
   };
 
-  /// Регион, подходящий для страны телефона (ISO 3166-1 alpha-2, например
-  /// 'ES'), или null, если страна неизвестна либо для неё нет однозначного
-  /// региона (например, Казахстан — валидны и KZ_433, и KZ_863).
+  /// Region matching the phone's country (ISO 3166-1 alpha-2, e.g. 'ES'), or
+  /// null if the country is unknown or has no unambiguous region for it
+  /// (e.g. Kazakhstan — both KZ_433 and KZ_863 are valid).
   static LoraRegion? suggestedFor(String? countryCode) {
     if (countryCode == null) return null;
     final code = _suggestionByCountry[countryCode.toUpperCase()];
@@ -183,61 +183,66 @@ class LoraRegion {
     for (final r in all) {
       if (r.code == code) return r;
     }
-    return null; // не должно случиться: код всегда берётся из all
+    return null; // should never happen: the code always comes from all
   }
 
-  /// Диапазон региона в МГц, выведенный из его кода ('EU_868' → 868),
-  /// или null, если из кода диапазон не следует.
+  /// The region's band in MHz, derived from its code ('EU_868' → 868), or
+  /// null if a band can't be derived from the code.
   ///
-  /// Источники: `RegionCode` (`meshtastic/protobufs` → `config.proto`,
-  /// числа зашиты в самих именах кодов) и таблица `regions[]` в
-  /// `meshtastic/firmware` → `src/mesh/RadioInterface.cpp` (для кодов без
-  /// числа в названии, а также как проверка номинала для остальных).
+  /// Sources: `RegionCode` (`meshtastic/protobufs` → `config.proto`, the
+  /// numbers are baked into the code names themselves) and the `regions[]`
+  /// table in `meshtastic/firmware` → `src/mesh/RadioInterface.cpp` (for
+  /// codes without a number in the name, and as a sanity check of the
+  /// nominal value for the rest).
   static int? bandOf(String code) {
-    // LORA_24 — особый случай: суффикс "24" здесь не МГц, а название
-    // 2.4-ГГц диапазона (WLAN-полоса для чипов SX128x): прошивка задаёт ему
-    // 2400.0–2483.5 МГц (RDEF(LORA_24, 2400.0f, 2483.5f, ...)).
+    // LORA_24 is a special case: the "24" suffix here is not MHz, it's the
+    // name of the 2.4 GHz band (the WLAN band for SX128x chips): the
+    // firmware assigns it 2400.0-2483.5 MHz (RDEF(LORA_24, 2400.0f,
+    // 2483.5f, ...)).
     if (code == 'LORA_24') return 2400;
 
-    // Явное число после последнего '_' в самом коде — так называет себя
-    // регион (EU_868 → 868, UA_433 → 433, EU_N_868 → 868, KZ_863 → 863).
-    // Суффикс обязан быть ЧИСТО цифрами: у кодов любительских ITU-диапазонов
-    // (ITU1_2M, ITU2_70CM, ITU2_125CM…) суффикс тоже похож на число, но
-    // означает длину волны, а не МГц — их диапазон прошивкой пока вообще не
-    // реализован (нет записи RDEF), поэтому для них возвращаем null, а не
-    // угадываем по первым цифрам суффикса.
+    // An explicit number after the last '_' in the code itself — that's how
+    // the region names itself (EU_868 → 868, UA_433 → 433, EU_N_868 → 868,
+    // KZ_863 → 863). The suffix has to be PURELY digits: amateur ITU-band
+    // codes (ITU1_2M, ITU2_70CM, ITU2_125CM…) also have a suffix that looks
+    // like a number, but it denotes a wavelength, not MHz — their band
+    // isn't implemented by the firmware at all yet (no RDEF entry), so we
+    // return null for them instead of guessing from the suffix's leading
+    // digits.
     final suffix = code.split('_').last;
     if (RegExp(r'^\d+$').hasMatch(suffix)) {
       return int.parse(suffix);
     }
 
-    // Коды без числа в названии — номинал ISM-полосы по фактическим частотам
-    // из regions[] прошивки (см. ссылку в доке метода выше). Указано
-    // номинальное имя полосы, а не точный freqStart/freqEnd:
+    // Codes without a number in the name — the ISM band's nominal value
+    // from the firmware's actual frequencies (see the link in this
+    // method's doc above). This lists the band's nominal name, not the
+    // exact freqStart/freqEnd:
     const named = {
-      'US': 915, // 902.0–928.0 МГц (US915)
-      'CN': 470, // 470.0–510.0 МГц (CN470)
-      'JP': 920, // 920.5–923.5 МГц
-      'ANZ': 915, // 915.0–928.0 МГц (AU915)
-      'KR': 920, // 920.0–923.0 МГц
-      'TW': 920, // 920.0–925.0 МГц
-      'RU': 868, // 868.7–869.2 МГц
-      'IN': 865, // 865.0–867.0 МГц (IN865)
-      'TH': 920, // 920.0–925.0 МГц
+      'US': 915, // 902.0-928.0 MHz (US915)
+      'CN': 470, // 470.0-510.0 MHz (CN470)
+      'JP': 920, // 920.5-923.5 MHz
+      'ANZ': 915, // 915.0-928.0 MHz (AU915)
+      'KR': 920, // 920.0-923.0 MHz
+      'TW': 920, // 920.0-925.0 MHz
+      'RU': 868, // 868.7-869.2 MHz
+      'IN': 865, // 865.0-867.0 MHz (IN865)
+      'TH': 920, // 920.0-925.0 MHz
     };
     return named[code];
   }
 
-  /// Регионы, которые имеет смысл предлагать для платы с текущим регионом
-  /// [currentRegion]: те, чей диапазон совпадает с диапазоном текущего.
-  /// Если текущий регион — UNSET, или его диапазон определить нельзя —
-  /// возвращает весь список [all]: плата ещё ничем себя не проявила
-  /// (или мы не знаем, что она умеет), сужать нечего.
+  /// Regions worth suggesting for a board whose current region is
+  /// [currentRegion]: those whose band matches the current one's band.
+  /// If the current region is UNSET, or its band can't be determined —
+  /// returns the whole [all] list: the board hasn't shown itself to be
+  /// anything yet (or we don't know what it can do), so there's nothing to
+  /// narrow down.
   ///
-  /// Это защита от смены региона на несовместимый диапазон: плата, уже
-  /// работающая на каком-то диапазоне, физически умеет именно его — железо
-  /// (антенна, согласующие цепи) европейского Heltec рассчитано на 868 МГц
-  /// и не сможет корректно излучать на 433.
+  /// This guards against switching the region to an incompatible band: a
+  /// board already operating on some band is physically built for exactly
+  /// that band — a European Heltec's hardware (antenna, matching circuits)
+  /// is designed for 868 MHz and can't transmit properly on 433.
   static List<LoraRegion> compatibleWith(int currentRegion) {
     if (currentRegion == unset) return all;
     final currentCode = codeOf(currentRegion);

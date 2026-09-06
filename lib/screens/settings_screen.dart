@@ -229,7 +229,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     AppSpacing.listBottomPadding,
                   ),
                   children: [
-                    // ── Профиль ──────────────────────────────────────
+                    // ── Profile ──────────────────────────────────────
                     SectionCard(
                       title: context.l10n.settingsSectionProfile,
                       child: ListTile(
@@ -248,7 +248,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
 
-                    // ── Уведомления ──────────────────────────────────
+                    // ── Notifications ──────────────────────────────────
                     SectionCard(
                       title: context.l10n.notificationsTitle,
                       child: ListenableBuilder(
@@ -285,7 +285,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
 
-                    // ── Заблокированные ──────────────────────────────
+                    // ── Blocked ──────────────────────────────
                     SectionCard(
                       title: context.l10n.settingsSectionBlocked,
                       child: ListenableBuilder(
@@ -315,7 +315,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
 
-                    // ── Внешний вид ──────────────────────────────────
+                    // ── Appearance ──────────────────────────────────
                     SectionCard(
                       title: context.l10n.settingsSectionAppearance,
                       child: Column(
@@ -361,12 +361,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
 
-                    // ── Дополнительно ────────────────────────────────
-                    // Без заголовка секции — намеренно: состояние
-                    // подключения и регион радио спрятаны в подэкран,
-                    // на виду эта строка только путает новичка. Своего
-                    // заголовка у карточки нет, поэтому явно просим у неё
-                    // верхний отступ — иначе она прилипнет к предыдущей.
+                    // ── Advanced ────────────────────────────────
+                    // No section title — deliberately: connection state and
+                    // radio region are hidden in a sub-screen; in plain
+                    // sight this row would only confuse a newcomer. The
+                    // card has no title of its own, so we explicitly ask it
+                    // for a top gap — otherwise it would stick to the
+                    // previous card.
                     SectionCard(
                       topGap: true,
                       child: ListTile(
@@ -387,7 +388,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
 
-                    // ── О приложении ─────────────────────────────────
+                    // ── About ─────────────────────────────────
                     SectionCard(
                       title: context.l10n.settingsSectionAbout,
                       child: Column(
@@ -421,8 +422,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
-/// Значение строки региона: код, «не задан» или «читаем настройки» —
-/// используется и настройками, и подэкраном «Дополнительно».
+/// Value of the region row: a code, "not set", or "reading settings" —
+/// used both by settings and the "Advanced" sub-screen.
 String _regionLabel(BuildContext context, int? value) {
   if (value == null) return context.l10n.radioRegionReading;
   if (value == LoraRegion.unset) return context.l10n.radioRegionNotSet;
@@ -430,15 +431,17 @@ String _regionLabel(BuildContext context, int? value) {
   return code ?? context.l10n.radioRegionUnknownCode(value);
 }
 
-/// Подэкран «Дополнительно» — настройки для тех, кто понимает последствия.
+/// The "Advanced" sub-screen — settings for those who understand the
+/// consequences.
 ///
-/// Строка подключения и регион радио сгруппированы одной секцией
-/// «Устройство»: обе строки про физическое устройство. Состояние
-/// подключения и так видно на главном экране — сюда оно спрятано, чтобы не
-/// путать новичка. Регион радио спрятан по той же причине: правильно
-/// настроенный регион менять почти никогда не нужно, а смена рвёт связь со
-/// всеми, у кого устройство осталось на прежнем (см. карточку «не
-/// настроено» на главном экране — она остаётся для новичка).
+/// The connection row and the radio region are grouped into one "Device"
+/// section: both rows are about the physical device. Connection state is
+/// already visible on the home screen — it's hidden here so as not to
+/// confuse a newcomer. The radio region is hidden for the same reason: a
+/// correctly configured region almost never needs to change, and changing
+/// it breaks the connection with everyone whose device stayed on the old
+/// one (see the "not configured" card on the home screen — it remains
+/// there for the newcomer).
 class _AdvancedSettingsScreen extends StatelessWidget {
   const _AdvancedSettingsScreen({required this.meshService});
 
@@ -452,7 +455,7 @@ class _AdvancedSettingsScreen extends StatelessWidget {
           MaterialPageRoute<void>(
             builder: (_) => ScanScreen(
               meshService: meshService,
-              // Намеренный disconnect: не переподключаться сразу же.
+              // Intentional disconnect: don't reconnect right away.
               autoConnect: false,
             ),
           ),

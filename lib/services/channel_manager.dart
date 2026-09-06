@@ -5,27 +5,28 @@ import 'package:meshly/models/mesh_channel.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
 
-/// Тонкая обёртка над [ContactStore.createChannel].
+/// Thin wrapper over [ContactStore.createChannel].
 ///
-/// Раньше здесь же подбирался свободный аппаратный слот (1–7, слот 0 занят
-/// прошивкой) и канал писался в устройство (`MeshtasticProto.encodeSetChannel`
-/// — теперь удалён). Обе части ушли вместе с отвязкой бесед от слотов (см.
-/// отчёт спринта): запись в устройство никогда не работала (неверный номер
-/// поля и порт), а значит слот и не настраивался — беседа на приёме
-/// определяется перебором PSK, а не по слоту, и бесед теперь может быть
-/// сколько угодно.
+/// This used to also pick a free hardware slot (1-7, slot 0 is reserved by
+/// the firmware) and write the channel to the device
+/// (`MeshtasticProto.encodeSetChannel` — now removed). Both parts went away
+/// together with decoupling conversations from slots (see the sprint
+/// report): writing to the device never actually worked (wrong field number
+/// and port), so the slot was never configured anyway — a conversation is
+/// identified on receive by trying PSKs, not by slot, and there can now be
+/// any number of conversations.
 ///
-/// Класс оставлен (не выродился в статическую функцию) намеренно: экраны
-/// (`new_channel_screen.dart`) вызывают `ChannelManager.instance.create(...)`
-/// напрямую, а по правилам спринта экраны трогать нельзя — сигнатура и точка
-/// входа должны остаться прежними.
+/// The class is kept (not collapsed into a static function) on purpose:
+/// screens (`new_channel_screen.dart`) call `ChannelManager.instance.create(...)`
+/// directly, and per sprint rules screens must not be touched — the
+/// signature and entry point have to stay the same.
 class ChannelManager {
   ChannelManager._();
   static final ChannelManager instance = ChannelManager._();
 
-  // Создать беседу: сохранить локально. Устройство больше не трогаем.
-  // ContactStore.createChannel всегда успешен (не бывает "все слоты заняты"
-  // — слотов больше нет), поэтому возврат непустой.
+  // Create a conversation: save it locally. The device is no longer touched.
+  // ContactStore.createChannel always succeeds (there's no "all slots taken"
+  // case anymore — there are no slots), so the return value is never null.
   Future<MeshChannel> create({
     required String name,
     required String? avatarEmoji,
@@ -40,7 +41,7 @@ class ChannelManager {
     );
   }
 
-  /// Добавить беседу, полученную по QR (уже есть PSK).
+  /// Add a conversation received via QR (PSK already known).
   Future<MeshChannel> addFromQr({
     required String name,
     required Uint8List psk,

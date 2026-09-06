@@ -1,34 +1,34 @@
 #!/usr/bin/env python3
-"""Собирает знак Meshly и все иконки приложения из одного описания.
+"""Builds the Meshly mark and every app icon from a single description.
 
-    python3 tool/generate_icons.py                # текущие параметры
+    python3 tool/generate_icons.py                # current parameters
     python3 tool/generate_icons.py --width 1.7 --scale 2.4
 
-Почему это скрипт, а не набор картинок в репозитории: геометрию знака
-приходится подбирать (толщина, размер узлов, масштаб), а руками
-пересчитывать восемь четырёхугольников и потом вручную резать три десятка
-PNG — верный способ ошибиться и не заметить.
+Why a script rather than a folder of images: the mark's geometry has to be
+tuned (bar thickness, node size, scale), and recomputing eight
+quadrilaterals by hand and then cutting three dozen PNGs manually is a
+reliable way to make a mistake and not notice it.
 
-ВАЖНО про прозрачность. Единственный доступный отрисовщик SVG на macOS —
-системный `qlmanage`, и он ЗАЛИВАЕТ ПРОЗРАЧНЫЙ ФОН БЕЛЫМ. На белом такой
-файл выглядит правильно, но альфа-канал у него сплошь непрозрачный.
-Для иконки приложения это безразлично (фон и так закрашен), а иконку
-уведомления Android рисует ПО ОДНОЙ ЛИШЬ АЛЬФЕ, игнорируя цвета — и файл
-превращается в белый прямоугольник в строке состояния. Поэтому силуэты
-рисуются чёрным по белому, а прозрачность вычисляется из яркости.
-Проверять результат надо по альфе: белое на белом на глаз не отличить.
+IMPORTANT, about transparency. The only SVG renderer available on macOS is
+the system `qlmanage`, and it FILLS A TRANSPARENT BACKGROUND WITH WHITE.
+Such a file looks right on white while its alpha channel is fully opaque.
+That is harmless for the app icon (its background is painted anyway), but
+Android draws a notification icon FROM ALPHA ALONE, ignoring colour — and
+the file turns into a white rectangle in the status bar. Silhouettes are
+therefore drawn black-on-white and their alpha derived from luminance.
+Verify the result by its alpha: white on white is indistinguishable by eye.
 """
 import argparse, glob, math, os, struct, subprocess, sys, zlib
 
 BRAND = '#2F6BFF'
 INK = '#FFFFFF'
-NODES = [(12, 3.5), (20.5, 12), (12, 20.5), (3.5, 12)]  # север, восток, юг, запад
+NODES = [(12, 3.5), (20.5, 12), (12, 20.5), (3.5, 12)]  # north, east, south, west
 DENSITIES = [('mdpi', 1), ('hdpi', 1.5), ('xhdpi', 2), ('xxhdpi', 3), ('xxxhdpi', 4)]
 RES = 'android/app/src/main/res'
 ICONSET = 'ios/Runner/Assets.xcassets/AppIcon.appiconset'
 
 
-# ── геометрия знака ──────────────────────────────────────────────────────
+# ── mark geometry ────────────────────────────────────────────────────────
 
 def _bars(width):
     out = []
@@ -51,8 +51,8 @@ def _nodes(radius):
 
 
 def _shape(width, radius):
-    # Перекладины и узлы — две отдельные фигуры, а не одна: в общем контуре
-    # их перекрытия взаимно вычитаются и выедают белые выемки в узлах.
+    # Bars and nodes are two separate shapes rather than one: inside a single
+    # path their overlaps cancel out and bite white notches into the nodes.
     return f'  <path d="{_bars(width)}"/>\n  <path d="{_nodes(radius)}"/>'
 
 
@@ -64,9 +64,9 @@ def write_svgs(width, radius, scale):
 
     offset = (108 - 24 * scale) / 2
     inner = shape.replace('\n  ', '\n    ').strip()
-    # Оба файла с непрозрачным фоном. Передний слой адаптивной иконки по
-    # спецификации должен быть прозрачным, но так он переживает и лаунчеры,
-    # которые подставляют собственный фон вместо объявленного нами.
+    # Both files carry an opaque background. The adaptive icon's foreground
+    # layer is meant to be transparent per the spec, but this way it also
+    # survives launchers that substitute their own background for ours.
     for name in ('mark', 'adaptive-foreground'):
         with open(f'assets/logo/{name}.svg', 'w') as f:
             f.write('<svg xmlns="http://www.w3.org/2000/svg" '
@@ -76,7 +76,7 @@ def write_svgs(width, radius, scale):
                     f'{offset:.2f}) scale({scale})">\n  {inner}\n  </g>\n</svg>\n')
 
 
-# ── PNG без сторонних библиотек ──────────────────────────────────────────
+# ── PNG without third-party libraries ────────────────────────────────────
 
 def _read_png(path):
     data = open(path, 'rb').read()
@@ -93,10 +93,10 @@ def _read_png(path):
             idat += body
         pos += 12 + size
     assert depth == 8 and color in (2, 6), f'{path}: depth={depth} color={color}'
-    # Чересстрочный PNG хранит строки в семь проходов. Наша построчная
-    # распаковка на нём не упадёт, а тихо соберёт правдоподобную, но
-    # неверную картинку — такое глазами не отличить, поэтому падаем громко.
-    assert interlace == 0, f'{path}: чересстрочный PNG не поддерживается'
+    # An interlaced PNG stores its rows in seven passes. Our row-by-row
+    # unfiltering would not crash on one — it would quietly assemble a
+    # plausible but wrong image, which no eye can catch. So fail loudly.
+    assert interlace == 0, f'{path}: interlaced PNG is not supported'
     channels = 4 if color == 6 else 3
     raw, out, prev, pos = zlib.decompress(idat), bytearray(), bytearray(width * channels), 0
     for _ in range(height):
@@ -124,8 +124,8 @@ def _read_png(path):
 
 
 def _write_png(path, width, height, pixels, channels):
-    """channels=3 — без альфы (у иконок iOS она запрещена при публикации),
-    channels=4 — с альфой (силуэты)."""
+    """channels=3 writes no alpha (App Store forbids it on iOS icons),
+    channels=4 keeps it (silhouettes)."""
     stride = width * channels
     raw = b''.join(b'\x00' + pixels[y * stride:(y + 1) * stride]
                    for y in range(height))
@@ -142,7 +142,7 @@ def _write_png(path, width, height, pixels, channels):
         + chunk(b'IEND', b''))
 
 
-# ── растеризация ─────────────────────────────────────────────────────────
+# ── rasterisation ────────────────────────────────────────────────────────
 
 def _render(svg_path, size, tmp):
     for stale in glob.glob(f'{tmp}/*.png'):
@@ -151,25 +151,25 @@ def _render(svg_path, size, tmp):
         subprocess.run(['qlmanage', '-t', '-s', str(size), '-o', tmp, svg_path],
                        capture_output=True, check=True)
     except FileNotFoundError:
-        sys.exit('Нужен qlmanage (входит в macOS): другого отрисовщика SVG здесь нет')
+        sys.exit('qlmanage is required (ships with macOS): no other SVG renderer here')
     except subprocess.CalledProcessError as err:
-        sys.exit(f'qlmanage не смог отрисовать {svg_path}:\n'
+        sys.exit(f'qlmanage failed to render {svg_path}:\n'
                  f'{err.stderr.decode(errors="replace")}')
     produced = glob.glob(f'{tmp}/*.png')
-    assert produced, f'qlmanage не отрисовал {svg_path}'
+    assert produced, f'qlmanage produced nothing for {svg_path}'
     return produced[0]
 
 
 def _check_size(out_path, width, height, size):
-    # Отрисовщик обязан отдать ровно запрошенный размер. Молча записанный
-    # файл на пиксель меньше пройдёт все наши проверки и всплывёт только
-    # при публикации в App Store.
+    # The renderer must return exactly the size asked for. A file silently
+    # written one pixel short passes every check we have and surfaces only
+    # at App Store submission.
     assert (width, height) == (size, size), (
-        f'{out_path}: получено {width}x{height} вместо {size}x{size}')
+        f'{out_path}: got {width}x{height}, expected {size}x{size}')
 
 
 def _opaque(svg_path, out_path, size, tmp):
-    """Непрозрачная картинка: фон закрашен в самом SVG, альфа не нужна."""
+    """Opaque image: the SVG paints its own background, no alpha needed."""
     src = _render(svg_path, size, tmp)
     width, height, channels, data = _read_png(src)
     _check_size(out_path, width, height, size)
@@ -180,7 +180,7 @@ def _opaque(svg_path, out_path, size, tmp):
 
 
 def _silhouette(ink_svg, out_path, size, rgb, tmp):
-    """Силуэт: знак нарисован чёрным по белому, яркость → прозрачность."""
+    """Silhouette: the mark is drawn black-on-white, luminance → alpha."""
     src = _render(ink_svg, size, tmp)
     width, height, channels, data = _read_png(src)
     _check_size(out_path, width, height, size)
@@ -205,22 +205,22 @@ def build_pngs(tmp, scale):
     shape = open('assets/logo/glyph.svg').read()
     shape = shape[shape.index('<path'):shape.rindex('</svg>')].strip()
 
-    # Знак вплотную к краям — для заставки и экрана запуска, там поле даёт
-    # сам экран.
+    # The mark flush to the edges — for the splash and launch screens, where
+    # the screen itself provides the margin.
     ink_svg = _ink(tmp, 'ink', '<svg xmlns="http://www.w3.org/2000/svg" '
                    f'viewBox="0 0 24 24" fill="#000000">\n{shape}\n</svg>\n')
 
-    # Иконка уведомления: Android и оболочки производителей дополнительно
-    # кадрируют её, поэтому знак нужно отодвинуть от краёв примерно на 8%
-    # холста — вплотную он выглядит обрезанным в строке состояния.
+    # Notification icon: Android and vendor shells crop it further, so the
+    # mark needs roughly 8% of the canvas as margin — flush to the edges it
+    # looks clipped in the status bar.
     inset = _ink(tmp, 'ink-inset', '<svg xmlns="http://www.w3.org/2000/svg" '
                  'viewBox="0 0 24 24" fill="#000000">\n'
                  f'  <g transform="translate(1.0 1.0) scale(0.916)">\n'
                  f'  {shape}\n  </g>\n</svg>\n')
 
-    # Монохромный слой (Android 13+): система тонирует его под обои. Без
-    # него иконка остаётся полноцветной среди перекрашенных соседей.
-    # Геометрия — как у переднего слоя, чтобы размер совпадал.
+    # Monochrome layer (Android 13+): the system tints it to match the
+    # wallpaper. Without it our icon stays full-colour among re-tinted
+    # neighbours. Same geometry as the foreground so the sizes agree.
     offset = (108 - 24 * scale) / 2
     mono = _ink(tmp, 'ink-mono', '<svg xmlns="http://www.w3.org/2000/svg" '
                 'viewBox="0 0 108 108" fill="#000000">\n'
@@ -263,23 +263,23 @@ def build_pngs(tmp, scale):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--width', type=float, default=1.7,
-                        help='толщина перекладин (в единицах сетки 24×24)')
+                        help='bar thickness, in units of the 24x24 grid')
     parser.add_argument('--radius', type=float, default=2.2,
-                        help='радиус узла')
+                        help='node radius')
     parser.add_argument('--scale', type=float, default=2.4,
-                        help='масштаб знака внутри плитки 108×108')
+                        help='mark scale inside the 108x108 tile')
     args = parser.parse_args()
 
     if not os.path.isdir('assets/logo'):
-        sys.exit('Запускать из корня проекта meshly/')
+        sys.exit('Run from the meshly/ project root')
 
     tmp = '.dart_tool/logo-build'
     os.makedirs(tmp, exist_ok=True)
     write_svgs(args.width, args.radius, args.scale)
     build_pngs(tmp, args.scale)
-    print(f'знак: толщина {args.width}, узлы {args.radius}, масштаб {args.scale}')
-    print('пересобраны: SVG в assets/logo, иконки Android и iOS,')
-    print('силуэты уведомления, заставки и монохромного слоя')
+    print(f'mark: width {args.width}, nodes {args.radius}, scale {args.scale}')
+    print('rebuilt: SVGs in assets/logo, Android and iOS icons,')
+    print('notification, splash and monochrome silhouettes')
 
 
 if __name__ == '__main__':

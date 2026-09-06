@@ -84,7 +84,7 @@ class _AddContactScreenState extends State<AddContactScreen>
       publicKey: data.publicKey,
     );
 
-    // Показываем подтверждение с возможностью задать эмодзи
+    // Show the confirmation with the option to set an emoji
     final confirmed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -93,20 +93,22 @@ class _AddContactScreenState extends State<AddContactScreen>
 
     if (confirmed == true) {
       await _store.saveContact(contact);
-      // Мы держим свежий ключ партнёра → мы его читаем. Оптимистично: QR мог
-      // оказаться устаревшим, но тогда первый же нечитаемый пакет от него
-      // вернёт флаг в false. saveContact уже создал беседу, если её не было.
+      // We hold the partner's fresh key → we can read them. Optimistic: the
+      // QR might turn out to be stale, but then the first unreadable packet
+      // from them will flip the flag back to false. saveContact already
+      // created the conversation if it didn't exist.
       //
-      // Только при реально имеющемся ключе: старый QR без `pk` (и ручной
-      // ввод) ключа не даёт, а флаг «я его читаю» пометил бы сломанный чат
-      // исправным — отправка при этом молча падала бы с needsKey.
+      // Only when a key is actually present: an old QR without `pk` (and
+      // manual entry) doesn't give a key, and the "I can read them" flag
+      // would mark a broken chat as healthy — sending would then silently
+      // fail with needsKey.
       if (contact.publicKey != null) {
         await _store.setICanReadPeer('dm_${contact.nodeId}', value: true);
       }
-      // Occasion (a) of MeshService.announceSecureState: мы только что узнали
-      // ключ партнёра — наше представление о чате изменилось, его нет. Если он
-      // тоже отсканировал нас — ping расшифруется, придёт ack, и пометка
-      // «секретный чат прерван» снимется на обоих устройствах сама.
+      // Occasion (a) of MeshService.announceSecureState: we just learned the
+      // partner's key — our view of the chat changed, theirs hasn't. If they
+      // also scanned us, the ping will decrypt, an ack will come back, and
+      // the "secure chat broken" marker will clear itself on both devices.
       // Fire and forget: announceSecureState never throws (it swallows a dead
       // BLE link and any crypto failure itself), so closing the scanner is
       // never held up — or broken — by the radio.
@@ -235,7 +237,7 @@ class _AddContactScreenState extends State<AddContactScreen>
   }
 }
 
-// ── Диалог подтверждения контакта ────────────────────────────
+// ── Contact confirmation dialog ────────────────────────────
 
 class _ConfirmContactDialog extends StatefulWidget {
   const _ConfirmContactDialog({required this.contact});
@@ -347,7 +349,7 @@ class _ConfirmContactDialogState extends State<_ConfirmContactDialog> {
   }
 }
 
-// ── Диалог подтверждения канала ───────────────────────────────
+// ── Channel confirmation dialog ───────────────────────────────
 
 class _ConfirmChannelDialog extends StatelessWidget {
   const _ConfirmChannelDialog({required this.data});
@@ -382,7 +384,7 @@ class _ConfirmChannelDialog extends StatelessWidget {
   }
 }
 
-// ── Ручной ввод ───────────────────────────────────────────────
+// ── Manual entry ───────────────────────────────────────────────
 
 class _ManualInputTab extends StatefulWidget {
   const _ManualInputTab({required this.onAdd});
@@ -452,7 +454,7 @@ class _ManualInputTabState extends State<_ManualInputTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Данные контакта
+          // Contact data
           SectionCard(
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.s16),
@@ -481,7 +483,7 @@ class _ManualInputTabState extends State<_ManualInputTab> {
           ),
           const SizedBox(height: AppSpacing.s12),
 
-          // Эмодзи
+          // Emoji
           SectionCard(
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.s16),

@@ -305,33 +305,35 @@ class ContactStore extends ChangeNotifier {
 
   // ── Channels ──────────────────────────────────────────────
 
-  // Колонка Channels.slotIndex в БД NOT NULL, но схему сознательно не меняем
-  // (см. отчёт спринта «отвязка бесед от слотов Meshtastic») — модель
-  // MeshChannel больше не хранит слот, поэтому сюда просто пишем константу.
+  // The Channels.slotIndex column in the DB is NOT NULL, but we deliberately
+  // don't change the schema (see the sprint report "decoupling conversations
+  // from Meshtastic slots") — the MeshChannel model no longer stores a slot,
+  // so we just write a constant here.
   static const _legacySlotIndex = 0;
 
-  // Сортировка по времени создания, а не по слоту — слот больше ни на что не
-  // влияет, а бесед теперь может быть сколько угодно. Для интерфейса
-  // (список бесед на экране).
+  // Sorted by creation time, not by slot — slot no longer affects anything,
+  // and there can now be any number of conversations. For the UI
+  // (the conversation list on screen).
   List<m.MeshChannel> get channels =>
       channelsUnsorted.toList()
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
-  // Несортированное представление — для перебора PSK на приёме
-  // (mesh_service.dart): порядок там не важен, а сортировка на каждый
-  // входящий broadcast-пакет (включая чужой трафик) была лишней работой на
-  // горячем пути.
+  // Unsorted view — used for trying PSKs on receive (mesh_service.dart):
+  // order doesn't matter there, and sorting on every incoming broadcast
+  // packet (including other people's traffic) was wasted work on the hot
+  // path.
   //
-  // ВАЖНО: это обязан быть СНИМОК (List), а не живой `_channels.values`.
-  // Вызывающий код перебирает результат с `await` внутри цикла (расшифровка
-  // на каждый канал) — на await управление уходит в event loop, и если за
-  // это время пользователь создаст/удалит беседу, `_channels` изменится.
-  // Итерация по живому представлению Map в этот момент бросает
-  // `ConcurrentModificationError` (это Error, а не Exception — воспроизведено
-  // и учтено при разборе дефекта). Копирование List<Reference> из значений
-  // Map — дешёвая операция (только ссылки, без клонирования MeshChannel),
-  // так что здесь она ничего не стоит по сравнению с сортировкой, которую
-  // как раз и хотели убрать. Не заменять обратно на `_channels.values`.
+  // IMPORTANT: this must be a SNAPSHOT (List), not a live `_channels.values`.
+  // The calling code iterates the result with `await` inside the loop
+  // (decrypting for each channel) — at the await, control goes back to the
+  // event loop, and if the user creates/deletes a conversation during that
+  // time, `_channels` changes. Iterating over the live Map view at that
+  // point throws `ConcurrentModificationError` (that's an Error, not an
+  // Exception — reproduced and accounted for while diagnosing the bug).
+  // Copying a List<Reference> from the Map's values is cheap (just
+  // references, no cloning of MeshChannel), so it costs nothing here
+  // compared to the sorting we were trying to remove in the first place.
+  // Do not replace this back with `_channels.values`.
   List<m.MeshChannel> get channelsUnsorted => _channels.values.toList();
 
   m.MeshChannel? channelById(String id) => _channels[id];
@@ -478,17 +480,18 @@ class ContactStore extends ChangeNotifier {
     bool? peerCanReadUs,
     bool? writeAnyway,
   }) async {
-    // ВНИМАНИЕ: от чтения полей conv (здесь) до их мутации (conv..iCanReadPeer
-    // = ... ниже) не должно быть ни одного `await`. Сейчас гонки нет именно
-    // потому, что весь этот путь синхронный и Dart не отдаёт управление
-    // планировщику между чтением prevMine/prevTheirs/prevForce и присвоением
-    // nextMine/nextTheirs/nextForce — конкурентный вызов _setSecureFlags для
-    // той же беседы физически не может вклиниться между ними. Если кто-то
-    // добавит `await` в этот промежуток (например, асинхронную проверку
-    // перед мутацией), инвариант "prev* — это состояние ДО этого вызова"
-    // тихо сломается: два конкурентных вызова смогут прочитать одно и то же
-    // prev-состояние и один из них при откате (см. catch ниже) отменит
-    // изменения другого. Заметить это на глаз потом будет очень трудно.
+    // WARNING: there must not be a single `await` between reading conv's
+    // fields (here) and mutating them (conv..iCanReadPeer = ... below).
+    // There's no race right now precisely because this whole path is
+    // synchronous and Dart never yields control to the scheduler between
+    // reading prevMine/prevTheirs/prevForce and assigning
+    // nextMine/nextTheirs/nextForce — a concurrent call to _setSecureFlags
+    // for the same conversation physically cannot interleave between them.
+    // If someone adds an `await` in this gap (e.g. an async check before the
+    // mutation), the invariant "prev* is the state BEFORE this call" will
+    // silently break: two concurrent calls could read the same prev-state,
+    // and one of them, on rollback (see catch below), would undo the other's
+    // change. This would be very hard to notice by eye afterwards.
     final conv = _conversations[conversationId];
     if (conv == null) return;
     final nextMine = iCanReadPeer ?? conv.iCanReadPeer;

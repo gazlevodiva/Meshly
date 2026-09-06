@@ -71,7 +71,7 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
             AppSpacing.s32,
           ),
           children: [
-            // Эмодзи + название
+            // Emoji + name
             SectionCard(
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.s16),
@@ -108,7 +108,7 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
             ),
             const SizedBox(height: AppSpacing.s12),
 
-            // Сетка эмодзи
+            // Emoji grid
             SectionCard(
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.s16),
@@ -149,7 +149,7 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
             ),
             const SizedBox(height: AppSpacing.s12),
 
-            // Инфо
+            // Info
             SectionCard(
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.s14),

@@ -36,10 +36,10 @@ class AppColorsExt extends ThemeExtension<AppColorsExt> {
     required this.islandShadow,
   });
 
-  /// Green "online" indicator (dots, "В сети" label, strong signal).
+  /// Green "online" indicator (dots, "Online" label, strong signal).
   final Color online;
 
-  /// Grey "offline" indicator (dots, "Не в сети" label).
+  /// Grey "offline" indicator (dots, "Offline" label).
   final Color offline;
 
   /// Secondary/dimmed text (captions, hints, subtitles).
@@ -530,7 +530,7 @@ abstract final class AppTextStyles {
     fontWeight: FontWeight.w600,
   );
 
-  /// 34 bold — big tab headers ("Meshly", "Контакты").
+  /// 34 bold — big tab headers ("Meshly", "Contacts").
   static const TextStyle headerTitle = TextStyle(
     fontSize: 34,
     fontWeight: FontWeight.bold,

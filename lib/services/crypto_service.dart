@@ -330,26 +330,28 @@ class CryptoService {
   // secrecy, and no member revocation without rotating the PSK.
   // ---------------------------------------------------------------------
 
-  // Кэш выведенных ключей беседы: PSK (base64) -> производный ключ.
+  // Cache of derived conversation keys: PSK (base64) -> derived key.
   //
-  // Раньше deriveChannelKey вызывался один раз на пакет (слот был известен
-  // заранее). После отвязки бесед от слотов приём перебирает PSK всех
-  // известных бесед на каждый входящий broadcast (см. mesh_service.dart) —
-  // без кэша это N вызовов HKDF на пакет вместо одного.
+  // deriveChannelKey used to be called once per packet (the slot was known
+  // ahead of time). After decoupling conversations from slots, receiving
+  // tries the PSKs of all known conversations on every incoming broadcast
+  // (see mesh_service.dart) — without a cache that's N HKDF calls per
+  // packet instead of one.
   //
-  // Ключ кэша — байты самого PSK, а НЕ id беседы. Это принципиально: когда
-  // появится смена ключа беседы (например, исключение участника), PSK
-  // беседы поменяется, а id — нет. Кэш по id беседы в этот момент начал бы
-  // молча отдавать старый (протухший) ключ — расшифровка новых сообщений
-  // ломалась бы без единой ошибки в логе. Кэш по содержимому PSK такой
-  // ошибки не допускает по построению: новый PSK — это новый ключ кэша,
-  // старая запись просто больше не запрашивается (и постепенно вытесняется
-  // ниже, чтобы карта не росла безгранично).
+  // The cache key is the PSK's own bytes, NOT the conversation id. This is
+  // essential: once conversation key rotation exists (e.g. removing a
+  // member), the conversation's PSK will change but its id won't. A cache
+  // keyed by conversation id would at that point start silently returning
+  // the old (stale) key — decrypting new messages would break with no
+  // error at all in the log. A cache keyed by the PSK's content cannot make
+  // that mistake by construction: a new PSK is a new cache key, and the old
+  // entry simply stops being requested (and is gradually evicted below so
+  // the map doesn't grow without bound).
   final _channelKeyCache = <String, SecretKey>{};
 
-  // Простой предохранитель от неограниченного роста: на практике бесед у
-  // одного пользователя мало (десятки), но лимит есть на случай интенсивной
-  // ротации PSK за время жизни процесса.
+  // A simple safeguard against unbounded growth: in practice a single user
+  // has few conversations (tens of them), but there's a limit in case of
+  // intensive PSK rotation over the process's lifetime.
   static const _channelKeyCacheLimit = 256;
 
   /// Derives the symmetric channel key from a channel [psk] via HKDF-SHA256.

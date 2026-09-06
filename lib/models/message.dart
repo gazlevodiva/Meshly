@@ -30,7 +30,7 @@ class Message {
     status: MessageStatus.values.byName(j['status'] as String),
   );
 
-  final int meshId; // packet id из MeshPacket field6
+  final int meshId; // packet id from MeshPacket field6
   final String fromNodeId; // '!1f8e42c9'
   final String conversationId;
   final String text;

@@ -308,8 +308,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-/// Connection status capsule under the header: green dot + "Подключено"
-/// with the device name alongside, or an error-colored "Нет подключения"
+/// Connection status capsule under the header: green dot + "Connected"
+/// with the device name alongside, or an error-colored "No connection"
 /// pill that opens the reconnect scan screen on tap.
 class _StatusPill extends StatelessWidget {
   const _StatusPill({required this.meshService, required this.onReconnect});
@@ -327,9 +327,9 @@ class _StatusPill extends StatelessWidget {
         final reconnecting = status == MeshConnectionStatus.reconnecting;
         final scheme = Theme.of(context).colorScheme;
 
-        // Фон и цвета зависят от статуса: подключено — нейтральный контейнер,
-        // переподключение — тот же нейтральный (акцент несёт точка/текст),
-        // нет связи — errorContainer.
+        // Background and colors depend on status: connected — neutral
+        // container, reconnecting — same neutral (the accent is carried by
+        // the dot/text), no connection — errorContainer.
         final background = connected || reconnecting
             ? scheme.surfaceContainer
             : scheme.errorContainer;
@@ -353,7 +353,7 @@ class _StatusPill extends StatelessWidget {
               color: background,
               borderRadius: radius,
               child: InkWell(
-                // Ручной реконнект доступен, пока не подключены.
+                // Manual reconnect is available while not connected.
                 onTap: connected ? null : onReconnect,
                 borderRadius: radius,
                 child: Padding(
@@ -412,11 +412,12 @@ class _StatusPill extends StatelessWidget {
   }
 }
 
-/// Карточка «устройство не настроено»: показывается, когда конфиг устройства
-/// уже получен и регион LoRa явно [LoraRegion.unset] — плата подключена, но
-/// физически не выходит в эфир, пока регион не выбран. Пока конфиг ещё едет
-/// ([MeshService.loraRegion] == null) карточка не рисуется — рано делать
-/// выводы.
+/// "Device not configured" card: shown when the device config has already
+/// arrived and the LoRa region is explicitly [LoraRegion.unset] — the board
+/// is connected, but physically doesn't transmit over the air until a
+/// region is chosen. While the config is still in transit
+/// ([MeshService.loraRegion] == null) the card isn't drawn — it's too early
+/// to draw conclusions.
 class _RadioNotConfiguredCard extends StatelessWidget {
   const _RadioNotConfiguredCard({
     required this.meshService,

@@ -7,13 +7,13 @@ class NotificationService {
 
   final _plugin = FlutterLocalNotificationsPlugin();
 
-  /// Callback для навигации при тапе на уведомление.
+  /// Callback for navigation on notification tap.
   void Function(String conversationId)? onNotificationTap;
 
   Future<void> init() async {
-    // Иконка уведомления — монохромный силуэт: Android рисует её по
-    // прозрачности, полностью игнорируя цвета. Полноцветная иконка
-    // приложения превращается здесь в сплошной белый прямоугольник.
+    // Notification icon — a monochrome silhouette: Android draws it based
+    // on alpha, ignoring colors entirely. A full-color app icon turns into
+    // a solid white rectangle here.
     const android = AndroidInitializationSettings('@drawable/ic_notification');
     const ios = DarwinInitializationSettings();
     await _plugin.initialize(

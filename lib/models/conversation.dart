@@ -31,7 +31,7 @@ class Conversation {
     updatedAt: DateTime.parse(j['updatedAt'] as String),
   );
 
-  // Фабрики для удобного создания
+  // Factories for convenient creation
   factory Conversation.dm(String nodeId) => Conversation(
     id: 'dm_$nodeId',
     type: ConversationType.dm,
@@ -47,8 +47,8 @@ class Conversation {
   final String id;
   final ConversationType type;
 
-  // dm: peerId = nodeId контакта ('!1f8e42c9')
-  // channel: channelId = MeshChannel.id (локальный uuid)
+  // dm: peerId = the contact's nodeId ('!1f8e42c9')
+  // channel: channelId = MeshChannel.id (local uuid)
   final String? peerId;
   final String? channelId;
 

@@ -329,11 +329,11 @@ class _EditContactScreenState extends State<EditContactScreen> {
             AppSpacing.s32,
           ),
           children: [
-            // Аватар + имя + статус (тап — редактор имени/эмодзи)
+            // Avatar + name + status (tap opens the name/emoji editor)
             _buildHeader(context),
             const SizedBox(height: AppSpacing.s24),
 
-            // Уведомления
+            // Notifications
             SectionCard(
               child: ListenableBuilder(
                 listenable: NotificationSettings.instance,
@@ -360,7 +360,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
             ),
             const SizedBox(height: AppSpacing.s12),
 
-            // Действия
+            // Actions
             SectionCard(
               child: Column(
                 children: [
@@ -382,7 +382,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
             ),
             const SizedBox(height: AppSpacing.s12),
 
-            // Опасная зона
+            // Danger zone
             SectionCard(
               child: Column(
                 children: [
@@ -514,7 +514,7 @@ class _EditNameEmojiSheetState extends State<_EditNameEmojiSheet> {
             ),
             onChanged: (v) {
               widget.onNameChanged(v);
-              setState(() {}); // обновляет disabled-состояние кнопки
+              setState(() {}); // refreshes the button's disabled state
             },
           ),
           const SizedBox(height: AppSpacing.s16),

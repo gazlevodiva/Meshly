@@ -30,9 +30,10 @@ class _MyCardScreenState extends State<MyCardScreen> {
 
   String get _nodeId => widget.meshService.myNodeId ?? '!????????';
 
-  // Наш публичный ключ (для QR), если identity уже инициализирован.
-  // ensureIdentity() запускается в initState; до его завершения — null,
-  // тогда QR просто не несёт ключ (лучше без ключа, чем краш).
+  // Our public key (for the QR), once identity has been initialized.
+  // ensureIdentity() runs in initState; until it completes this stays null,
+  // in which case the QR simply carries no key (better no key than a
+  // crash).
   Uint8List? _myPublicKey;
 
   Contact get _myContact {
@@ -132,7 +133,7 @@ class _MyCardScreenState extends State<MyCardScreen> {
     final contact = _myContact;
     return Column(
       children: [
-        // Аватар-эмодзи (тап — выбор эмодзи)
+        // Emoji avatar (tap — emoji picker)
         GestureDetector(
           onTap: _pickEmoji,
           child: Stack(
@@ -170,7 +171,7 @@ class _MyCardScreenState extends State<MyCardScreen> {
         ),
         const SizedBox(height: AppSpacing.s12),
 
-        // Имя
+        // Name
         if (_editingName)
           Row(
             children: [
@@ -236,11 +237,11 @@ class _MyCardScreenState extends State<MyCardScreen> {
             AppSpacing.s32,
           ),
           children: [
-            // Аватар + имя + Node ID
+            // Avatar + name + Node ID
             _buildHeader(context),
             const SizedBox(height: AppSpacing.s24),
 
-            // QR + ссылка
+            // QR + link
             SectionCard(
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.s16),
