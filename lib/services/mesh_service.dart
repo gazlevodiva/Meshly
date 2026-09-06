@@ -571,7 +571,12 @@ class MeshService {
         plaintext: text,
       );
     } else if (conv.isChannel && conv.channelId != null) {
-      // Канал: broadcast, нужный слот
+      // Беседа: broadcast. Слот аппаратного канала здесь больше ни на что не
+      // влияет (см. отчёт спринта «отвязка бесед от слотов Meshtastic») —
+      // слот в прошивке никогда и не настраивался (encodeSetChannel не
+      // работал), а беседу на приёме определяют перебором PSK, а не по слоту.
+      // Шлём всегда на channel=0: беседа — это ярлык нашего собственного
+      // Meshly-AEAD, а не аппаратный канал.
       final ch = store.channelById(conv.channelId!);
       if (ch == null) {
         debugPrint(
@@ -581,7 +586,7 @@ class MeshService {
       }
       // Канал: собственный Meshly-AEAD (ключ из PSK канала), portnum
       // PRIVATE_APP — как в DM, чтобы официальное приложение не видело текст.
-      channelSlot = ch.slotIndex;
+      channelSlot = 0;
       portnum = MeshtasticProto.PRIVATE_APP;
       rawPayload = await CryptoService.instance.encryptForChannel(
         psk: ch.psk,
@@ -596,11 +601,11 @@ class MeshService {
     // совпадёт с meshId сохранённого сообщения и статус обновится на acked.
     final msgId = DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF;
 
-    // Нет подключения к радио: не теряем текст пользователя. Сохраняем
-    // сообщение со статусом failed (видно в треде как неотправленное,
-    // ретрай по тапу уже реализован в chat_screen) и сообщаем UI, что
-    // ввод можно очистить (SendResult.sent).
-    if (_toRadio == null) {
+    // Нет подключения к радио (и нет тестового seam'а — см. _canTransmit):
+    // не теряем текст пользователя. Сохраняем сообщение со статусом failed
+    // (видно в треде как неотправленное, ретрай по тапу уже реализован в
+    // chat_screen) и сообщаем UI, что ввод можно очистить (SendResult.sent).
+    if (!_canTransmit) {
       final failedMsg = Message(
         meshId: msgId,
         fromNodeId: myNodeId ?? '!00000000',
@@ -625,7 +630,9 @@ class MeshService {
       rawPayload: rawPayload,
     );
 
-    await _toRadio!.write(encoded);
+    // Тот же seam (_write/debugRadioSink), что и у служебных пакетов —
+    // так тесты видят реально уходящие в эфир байты и беседы, не только DM.
+    await _write(encoded, what: 'sendText → ${conv.id}');
 
     // Добавляем исходящее сообщение в store (локально всегда plaintext —
     // это наш собственный текст до шифрования)
@@ -757,7 +764,6 @@ class MeshService {
     }
 
     final fromNodeId = decoded.from ?? '!00000000';
-    final channelSlot = decoded.channel ?? 0;
 
     // Не показываем собственные эхо-пакеты
     if (fromNodeId == myNodeId) return;
@@ -799,35 +805,59 @@ class MeshService {
       return;
     }
 
-    // Broadcast на канале → ищем по слоту.
-    final conv = store.conversationForSlot(channelSlot);
-    if (conv == null) {
-      debugPrint(
-        '[Mesh] no conversation for fromNode=$fromNodeId slot=$channelSlot — ignoring',
-      );
-      return;
-    }
-
+    // Broadcast → это трафик беседы (группового чата). Аппаратный слот
+    // канала больше ни на что не влияет (см. отчёт спринта «отвязка бесед от
+    // слотов Meshtastic»): он и не настраивался в устройстве (encodeSetChannel
+    // не работал ни разу), поэтому нужную беседу ищем перебором известных
+    // PSK — пробуем расшифровать конверт ключом каждой беседы, первая
+    // успешная расшифровка и есть искомая беседа. Poly1305 отвергает чужой
+    // ключ, так что ложных совпадений быть не может.
+    //
     // Канал: принимаем только собственный Meshly-AEAD (PRIVATE_APP + PSK
-    // канала). Чужой plaintext (TEXT_MESSAGE_APP) и любую неудачную
+    // беседы). Чужой plaintext (TEXT_MESSAGE_APP) и любую неудачную
     // расшифровку молча дропаем — общий/официальный канал в Meshly не
     // показываем.
     if (portnum != MeshtasticProto.PRIVATE_APP || decoded.rawPayload == null) {
       return;
     }
-    final psk = store.channelById(conv.channelId!)?.psk;
-    if (psk == null) return;
-    final text = await CryptoService.instance.decryptForChannel(
-      psk: psk,
-      envelope: decoded.rawPayload!,
-    );
-    if (text == null) return;
+    final payload = decoded.rawPayload!;
 
-    await _storeIncoming(
-      conv: conv,
-      fromNodeId: fromNodeId,
-      meshId: decoded.meshId,
-      text: text,
+    // Дешёвая проверка ДО перебора ключей: любая нода в радиусе действия
+    // может слать мусорный broadcast, и каждый такой пакет иначе заставлял
+    // бы прогонять N попыток расшифровки (по одной на беседу). Отбрасываем
+    // заведомо чужое дёшево — по структуре конверта, как и для DM (см.
+    // проверку версии байта у payload[0] выше в _onDmPacket): версия
+    // конверта должна совпадать, а длина — быть не меньше
+    // version(1) + nonce(24) + Poly1305 mac(16), иначе расшифровывать
+    // нечего ни одним ключом.
+    const minEnvelopeLength = 1 + 24 + 16;
+    if (payload.length < minEnvelopeLength ||
+        payload[0] != kMessageEnvelopeVersion) {
+      return;
+    }
+
+    // Несортированное представление: порядок бесед тут не нужен, а сортировка
+    // на каждый входящий broadcast (включая чужой трафик) — лишняя работа на
+    // горячем пути (см. отчёт спринта). Для интерфейса есть store.channels.
+    for (final ch in store.channelsUnsorted) {
+      final conv = store.conversationById('ch_${ch.id}');
+      if (conv == null) continue;
+      final text = await CryptoService.instance.decryptForChannel(
+        psk: ch.psk,
+        envelope: payload,
+      );
+      if (text == null) continue;
+
+      await _storeIncoming(
+        conv: conv,
+        fromNodeId: fromNodeId,
+        meshId: decoded.meshId,
+        text: text,
+      );
+      return;
+    }
+    debugPrint(
+      '[Mesh] broadcast from $fromNodeId decrypts with no known channel key — ignoring',
     );
   }
 

@@ -86,7 +86,6 @@ void main() {
         id: 'test-uuid',
         name: 'семья',
         psk: psk,
-        slotIndex: 2,
         avatarEmoji: '🏠',
       );
       final url = QrService.encodeChannel(channel);
@@ -94,7 +93,10 @@ void main() {
 
       expect(decoded, isNotNull);
       expect(decoded!.name, equals('семья'));
-      expect(decoded.slotIndex, equals(2));
+      // Печать `slot=1` — намеренная совместимость со старыми версиями (см.
+      // отчёт спринта), не зависящая от беседы: модель MeshChannel слот
+      // больше не хранит вовсе, а декодер это поле не парсит.
+      expect(url, contains('slot=1'));
       expect(decoded.avatarEmoji, equals('🏠'));
       expect(decoded.psk, equals(psk));
     });
@@ -105,7 +107,6 @@ void main() {
         id: 'test-uuid-2',
         name: 'gazchannel',
         psk: psk,
-        slotIndex: 3,
       );
       final url = QrService.encodeChannel(channel);
       final decoded = QrService.decodeChannel(url);
@@ -125,7 +126,6 @@ void main() {
         id: 'x',
         name: 'ch',
         psk: Uint8List(32),
-        slotIndex: 1,
       );
       final url = QrService.encodeChannel(channel);
       expect(QrService.detectType(url), equals(QrType.channel));
@@ -152,50 +152,39 @@ void main() {
       );
     });
 
-    // ── Slot bounds validation ─────────────────────────────
+    // ── Слот беседы: переходный период ──────────────────────
+    //
+    // Слот отвязан от аппаратного канала (см. отчёт спринта) и больше ни на
+    // что не влияет. Старые коды несут `slot=<N>` — читаются как раньше;
+    // новые коды поле не несут вовсе — раньше это отвергало код целиком,
+    // теперь `slot` просто необязателен.
 
-    test('decodeChannel returns null for slot=0 (reserved)', () {
-      expect(
-        QrService.decodeChannel('mesh://channel/test?psk=AAAA&slot=0'),
-        isNull,
-      );
+    test('decodeChannel accepts any slot value (no longer validated)', () {
+      final validPsk = base64Url.encode(Uint8List(16));
+      for (final slot in ['0', '8', '99', 'abc']) {
+        final decoded = QrService.decodeChannel(
+          'mesh://channel/test?psk=$validPsk&slot=$slot',
+        );
+        expect(decoded, isNotNull, reason: 'slot=$slot must decode');
+      }
     });
 
-    test('decodeChannel returns null for slot=8 (out of range)', () {
-      expect(
-        QrService.decodeChannel('mesh://channel/test?psk=AAAA&slot=8'),
-        isNull,
-      );
+    test('decodeChannel accepts an old-style QR carrying slot=1..7', () {
+      final validPsk = base64Url.encode(Uint8List(16));
+      for (final slot in [1, 7]) {
+        final decoded = QrService.decodeChannel(
+          'mesh://channel/test?psk=$validPsk&slot=$slot',
+        );
+        expect(decoded, isNotNull);
+      }
     });
 
-    test('decodeChannel returns null for slot=99 (malicious QR)', () {
-      expect(
-        QrService.decodeChannel('mesh://channel/test?psk=AAAA&slot=99'),
-        isNull,
+    test('decodeChannel accepts a new-style QR without slot at all', () {
+      final validPsk = base64Url.encode(Uint8List(16));
+      final decoded = QrService.decodeChannel(
+        'mesh://channel/test?psk=$validPsk',
       );
-    });
-
-    test('decodeChannel returns null for non-numeric slot', () {
-      expect(
-        QrService.decodeChannel('mesh://channel/test?psk=AAAA&slot=abc'),
-        isNull,
-      );
-    });
-
-    test('decodeChannel accepts valid slot boundaries 1 and 7', () {
-      final psk = Uint8List(32);
-      final channel = MeshChannel(id: 'x', name: 'ch', psk: psk, slotIndex: 1);
-      final url1 = QrService.encodeChannel(channel);
-      expect(QrService.decodeChannel(url1)?.slotIndex, equals(1));
-
-      final channel7 = MeshChannel(
-        id: 'y',
-        name: 'ch7',
-        psk: psk,
-        slotIndex: 7,
-      );
-      final url7 = QrService.encodeChannel(channel7);
-      expect(QrService.decodeChannel(url7)?.slotIndex, equals(7));
+      expect(decoded, isNotNull);
     });
 
     // ── Key material length (crash guard) ─────────────────────

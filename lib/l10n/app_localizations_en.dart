@@ -583,9 +583,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get newChannelTitle => 'New conversation';
 
   @override
-  String get allSlotsBusy => 'Conversation limit reached — 7 maximum';
-
-  @override
   String get channelNameLabel => 'Conversation name';
 
   @override

@@ -224,7 +224,6 @@
   "emojiLabel": "Emoji",
 
   "newChannelTitle": "New conversation",
-  "allSlotsBusy": "Conversation limit reached — 7 maximum",
   "channelNameLabel": "Conversation name",
   "channelNameHint": "Hiking group",
   "channelIconLabel": "Conversation icon",

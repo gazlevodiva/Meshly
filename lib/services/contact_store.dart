@@ -95,7 +95,7 @@ class ContactStore extends ChangeNotifier {
                   name: ch.name,
                   avatarEmoji: Value(ch.avatarEmoji),
                   psk: ch.psk,
-                  slotIndex: ch.slotIndex,
+                  slotIndex: _legacySlotIndex,
                   createdAt: DateTime.now(),
                 ),
               );
@@ -299,22 +299,45 @@ class ContactStore extends ChangeNotifier {
 
   // ── Channels ──────────────────────────────────────────────
 
+  // Колонка Channels.slotIndex в БД NOT NULL, но схему сознательно не меняем
+  // (см. отчёт спринта «отвязка бесед от слотов Meshtastic») — модель
+  // MeshChannel больше не хранит слот, поэтому сюда просто пишем константу.
+  static const _legacySlotIndex = 0;
+
+  // Сортировка по времени создания, а не по слоту — слот больше ни на что не
+  // влияет, а бесед теперь может быть сколько угодно. Для интерфейса
+  // (список бесед на экране).
   List<m.MeshChannel> get channels =>
-      _channels.values.toList()
-        ..sort((a, b) => a.slotIndex.compareTo(b.slotIndex));
+      channelsUnsorted.toList()
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+  // Несортированное представление — для перебора PSK на приёме
+  // (mesh_service.dart): порядок там не важен, а сортировка на каждый
+  // входящий broadcast-пакет (включая чужой трафик) была лишней работой на
+  // горячем пути.
+  //
+  // ВАЖНО: это обязан быть СНИМОК (List), а не живой `_channels.values`.
+  // Вызывающий код перебирает результат с `await` внутри цикла (расшифровка
+  // на каждый канал) — на await управление уходит в event loop, и если за
+  // это время пользователь создаст/удалит беседу, `_channels` изменится.
+  // Итерация по живому представлению Map в этот момент бросает
+  // `ConcurrentModificationError` (это Error, а не Exception — воспроизведено
+  // и учтено при разборе дефекта). Копирование List<Reference> из значений
+  // Map — дешёвая операция (только ссылки, без клонирования MeshChannel),
+  // так что здесь она ничего не стоит по сравнению с сортировкой, которую
+  // как раз и хотели убрать. Не заменять обратно на `_channels.values`.
+  List<m.MeshChannel> get channelsUnsorted => _channels.values.toList();
 
   m.MeshChannel? channelById(String id) => _channels[id];
 
   Future<m.MeshChannel> createChannel({
     required String name,
-    required int slotIndex,
     String? avatarEmoji,
     Uint8List? psk,
   }) async {
     final ch = m.MeshChannel(
       id: _uuid.v4(),
       name: name,
-      slotIndex: slotIndex,
       avatarEmoji: avatarEmoji,
       psk: psk ?? _generatePsk(),
     );
@@ -327,8 +350,8 @@ class ContactStore extends ChangeNotifier {
             name: ch.name,
             avatarEmoji: Value(ch.avatarEmoji),
             psk: ch.psk,
-            slotIndex: ch.slotIndex,
-            createdAt: DateTime.now(),
+            slotIndex: _legacySlotIndex,
+            createdAt: ch.createdAt,
           ),
         );
     await saveConversation(m.Conversation.channel(ch.id));
@@ -346,8 +369,8 @@ class ContactStore extends ChangeNotifier {
             name: ch.name,
             avatarEmoji: Value(ch.avatarEmoji),
             psk: ch.psk,
-            slotIndex: ch.slotIndex,
-            createdAt: DateTime.now(),
+            slotIndex: _legacySlotIndex,
+            createdAt: ch.createdAt,
           ),
         );
   }
@@ -367,15 +390,6 @@ class ContactStore extends ChangeNotifier {
   m.Conversation? conversationById(String id) => _conversations[id];
 
   m.Conversation? dmForNode(String nodeId) => _conversations['dm_$nodeId'];
-
-  m.Conversation? conversationForSlot(int slotIndex) {
-    for (final ch in _channels.values) {
-      if (ch.slotIndex == slotIndex) {
-        return _conversations['ch_${ch.id}'];
-      }
-    }
-    return null;
-  }
 
   Future<void> saveConversation(m.Conversation conv) async {
     _conversations[conv.id] = conv;
@@ -628,7 +642,7 @@ class ContactStore extends ChangeNotifier {
     name: row.name,
     avatarEmoji: row.avatarEmoji,
     psk: row.psk,
-    slotIndex: row.slotIndex,
+    createdAt: row.createdAt,
   );
 
   m.Conversation _toConversation(Conversation row) => m.Conversation(

@@ -1160,12 +1160,6 @@ abstract class AppLocalizations {
   /// **'Новая беседа'**
   String get newChannelTitle;
 
-  /// No description provided for @allSlotsBusy.
-  ///
-  /// In ru, this message translates to:
-  /// **'Достигнут лимит бесед — максимум 7'**
-  String get allSlotsBusy;
-
   /// No description provided for @channelNameLabel.
   ///
   /// In ru, this message translates to:

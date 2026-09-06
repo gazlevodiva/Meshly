@@ -584,9 +584,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get newChannelTitle => 'Новая беседа';
 
   @override
-  String get allSlotsBusy => 'Достигнут лимит бесед — максимум 7';
-
-  @override
   String get channelNameLabel => 'Название беседы';
 
   @override

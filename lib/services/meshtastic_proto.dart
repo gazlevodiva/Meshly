@@ -33,9 +33,11 @@ class MeshtasticProto {
   //   FromRadio.config = 5, Config.lora = 6, LoRaConfig.region = 7,
   //   AdminMessage.set_config = 34, begin_edit_settings = 64,
   //   commit_edit_settings = 65.
-  // Внимание: AdminMessage.set_channel — это 33, а НЕ 11 (см. encodeSetChannel
-  // ниже). У той функции неверны и номер поля, и поле from пакета — но это
-  // была не единственная и не главная беда: см. _adminPort ниже.
+  // Раньше здесь же был encodeSetChannel (AdminMessage.set_channel) — удалён
+  // в спринте отвязки бесед от слотов Meshtastic: у него были неверны и
+  // номер поля (writалось 11, а set_channel — это 33), и поле from пакета
+  // (было fromNode вместо требуемого прошивкой нуля), и — что было системной
+  // причиной обеих неудач — общий для всех админ-команд баг порта, см. ниже.
   //
   // НАЙДЕННАЯ ИСТИННАЯ ПРИЧИНА (2026-09): все админ-команды (и региона, и
   // канала) уходили с Data.portnum = 68. В meshtastic/protobufs
@@ -111,7 +113,8 @@ class MeshtasticProto {
       // узла она подставит сама. С ненулевым from команда считается удалённым
       // администрированием, требует сессионный ключ и молча отвергается
       // (AdminModule::handleReceivedProtobuf → "Ignore unauthorized admin
-      // payload"). Именно поэтому encodeSetChannel ниже никогда не работал.
+      // payload"). Именно поэтому запись канала в устройство (удалённый
+      // encodeSetChannel) никогда не работала.
       _fixed32field(1, 0),
       _fixed32field(2, fromNode), // адресовано самому устройству
       _varint(3, 0), // admin едет по первичному каналу
@@ -157,55 +160,6 @@ class MeshtasticProto {
     }
     out.addAll(_varint(field, value));
     return Uint8List.fromList(out);
-  }
-
-  // AdminMessage { set_channel: Channel } → записывает канал в девайс.
-  // НЕ ЧИНИТЬ (подлежит удалению в другом спринте) — но для истории: здесь
-  // как минимум ТРИ независимых бага одновременно: set_channel = 11 вместо
-  // 33, portnum = 68 (ZPS_APP) вместо 6 (ADMIN_APP, см. _adminPort выше —
-  // это и есть системная причина, из-за которой запись региона тоже не
-  // работала), и from = fromNode вместо 0 (прошивка требует from==0 для
-  // локальной команды без сессионного ключа). Любого одного из трёх уже
-  // достаточно, чтобы устройство молча проигнорировало пакет.
-  static Uint8List encodeSetChannel({
-    required int slotIndex,
-    required String name,
-    required Uint8List psk,
-    required int fromNode,
-  }) {
-    // ChannelSettings { psk(2), name(3) }
-    final settings = _buf([
-      _bytes(2, psk),
-      _bytes(3, Uint8List.fromList(utf8.encode(name))),
-    ]);
-
-    // Channel { index(1), settings(2), role(3)=SECONDARY(2) }
-    final channel = _buf([
-      _varint(1, slotIndex),
-      _msg(2, settings),
-      _varint(3, 2), // SECONDARY
-    ]);
-
-    // AdminMessage { set_channel(11) }
-    final admin = _buf([_msg(11, channel)]);
-
-    // Data { portnum(1)=ADMIN_APP(68), payload(2) }
-    final data = _buf([
-      _varint(1, 68),
-      _bytes(2, admin),
-    ]);
-
-    final msgId = DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF;
-    final packet = _buf([
-      _fixed32field(1, fromNode),
-      _fixed32field(2, fromNode), // unicast to self
-      _varint(3, 0), // primary channel (admin uses ch0)
-      _msg(4, data),
-      _fixed32field(6, msgId),
-      _varint(9, 1), // hop_limit=1 (local only)
-    ]);
-
-    return _buf([_msg(1, packet)]);
   }
 
   // `id` — наш packet id (MeshPacket.id, field 6). Радио использует его как есть,

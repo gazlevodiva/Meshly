@@ -6,29 +6,37 @@ class MeshChannel {
     required this.id,
     required this.name,
     required this.psk,
-    required this.slotIndex,
+    DateTime? createdAt,
     this.avatarEmoji,
-  });
+  }) : createdAt = createdAt ?? DateTime.now();
 
   factory MeshChannel.fromJson(Map<String, dynamic> j) => MeshChannel(
     id: j['id'] as String,
     name: j['name'] as String,
     avatarEmoji: j['avatarEmoji'] as String?,
     psk: base64Decode(j['psk'] as String),
-    slotIndex: j['slotIndex'] as int,
+    createdAt: j['createdAt'] != null
+        ? DateTime.parse(j['createdAt'] as String)
+        : null,
   );
 
-  final String id;        // локальный uuid
+  final String id; // локальный uuid
   String name;
   String? avatarEmoji;
-  Uint8List psk;          // 32 bytes
-  int slotIndex;          // 0–7, слот на девайсе
+  Uint8List psk; // 32 bytes
+  // Момент создания беседы — по нему сортируется список бесед. Аппаратного
+  // слота Meshtastic в модели больше нет: он и не настраивался в устройстве
+  // (encodeSetChannel был сломан), а беседа на приёме определяется перебором
+  // PSK (см. отчёт спринта «отвязка бесед от слотов»). Колонка
+  // Channels.slotIndex в БД осталась (NOT NULL, схему не меняем) — в неё
+  // теперь всегда пишется 0, см. ContactStore.createChannel.
+  final DateTime createdAt;
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
     if (avatarEmoji != null) 'avatarEmoji': avatarEmoji,
     'psk': base64Encode(psk),
-    'slotIndex': slotIndex,
+    'createdAt': createdAt.toIso8601String(),
   };
 }

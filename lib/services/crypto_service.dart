@@ -330,14 +330,48 @@ class CryptoService {
   // secrecy, and no member revocation without rotating the PSK.
   // ---------------------------------------------------------------------
 
+  // Кэш выведенных ключей беседы: PSK (base64) -> производный ключ.
+  //
+  // Раньше deriveChannelKey вызывался один раз на пакет (слот был известен
+  // заранее). После отвязки бесед от слотов приём перебирает PSK всех
+  // известных бесед на каждый входящий broadcast (см. mesh_service.dart) —
+  // без кэша это N вызовов HKDF на пакет вместо одного.
+  //
+  // Ключ кэша — байты самого PSK, а НЕ id беседы. Это принципиально: когда
+  // появится смена ключа беседы (например, исключение участника), PSK
+  // беседы поменяется, а id — нет. Кэш по id беседы в этот момент начал бы
+  // молча отдавать старый (протухший) ключ — расшифровка новых сообщений
+  // ломалась бы без единой ошибки в логе. Кэш по содержимому PSK такой
+  // ошибки не допускает по построению: новый PSK — это новый ключ кэша,
+  // старая запись просто больше не запрашивается (и постепенно вытесняется
+  // ниже, чтобы карта не росла безгранично).
+  final _channelKeyCache = <String, SecretKey>{};
+
+  // Простой предохранитель от неограниченного роста: на практике бесед у
+  // одного пользователя мало (десятки), но лимит есть на случай интенсивной
+  // ротации PSK за время жизни процесса.
+  static const _channelKeyCacheLimit = 256;
+
   /// Derives the symmetric channel key from a channel [psk] via HKDF-SHA256.
-  /// Deterministic: the same PSK always yields the same key.
+  /// Deterministic: the same PSK always yields the same key. Cached by the
+  /// PSK bytes themselves (see [_channelKeyCache]) so repeated calls with the
+  /// same PSK skip the HKDF computation.
   Future<SecretKey> deriveChannelKey(List<int> psk) async {
+    final cacheKey = base64Encode(psk);
+    final cached = _channelKeyCache[cacheKey];
+    if (cached != null) return cached;
+
     final hkdf = Hkdf(hmac: Hmac.sha256(), outputLength: 32);
-    return hkdf.deriveKey(
+    final key = await hkdf.deriveKey(
       secretKey: SecretKey(psk),
       info: utf8.encode('meshly-channel-v1'),
     );
+
+    if (_channelKeyCache.length >= _channelKeyCacheLimit) {
+      _channelKeyCache.remove(_channelKeyCache.keys.first);
+    }
+    _channelKeyCache[cacheKey] = key;
+    return key;
   }
 
   /// Encrypts [plaintext] for the channel whose pre-shared key is [psk].

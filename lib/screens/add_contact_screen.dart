@@ -132,7 +132,6 @@ class _AddContactScreenState extends State<AddContactScreen>
     if (confirmed == true) {
       await _store.createChannel(
         name: data.name,
-        slotIndex: data.slotIndex,
         avatarEmoji: data.avatarEmoji,
         psk: data.psk,
       );

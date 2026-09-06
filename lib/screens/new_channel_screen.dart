@@ -41,13 +41,6 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
     if (!mounted) return;
     setState(() => _loading = false);
 
-    if (ch == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.allSlotsBusy)),
-      );
-      return;
-    }
-
     Navigator.pop(context, ch);
   }
 

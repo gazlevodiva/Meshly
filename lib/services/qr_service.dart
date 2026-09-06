@@ -45,7 +45,12 @@ class QrService {
       path: '/${Uri.encodeComponent(ch.name)}',
       queryParameters: {
         'psk': base64Url.encode(ch.psk),
-        'slot': ch.slotIndex.toString(),
+        // Модель MeshChannel больше не хранит слот (см. отчёт спринта
+        // «отвязка бесед от слотов»), но старые версии приложения при
+        // декодировании ТРЕБУЮТ поле `slot`, поэтому печатаем фиксированную
+        // единицу ради совместимости с ними. Новые версии (см. decodeChannel
+        // ниже) это поле не требуют и не используют.
+        'slot': '1',
         if (ch.avatarEmoji != null) 'emoji': ch.avatarEmoji,
       },
     ).toString();
@@ -91,16 +96,15 @@ class QrService {
       if (uri.scheme != _scheme || uri.host != 'channel') return null;
       final name = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
       final pskStr = uri.queryParameters['psk'];
-      final slotStr = uri.queryParameters['slot'];
-      if (name == null || pskStr == null || slotStr == null) return null;
-      final slotIndex = int.tryParse(slotStr);
-      if (slotIndex == null || slotIndex < 1 || slotIndex > 7) return null;
+      if (name == null || pskStr == null) return null;
+      // `slot` теперь необязателен и никуда не декодируется: новые коды его
+      // не несут (см. encodeChannel), старые несут `slot=1` — оба читаются
+      // одинаково, значение просто игнорируется (см. отчёт спринта).
       final psk = base64Url.decode(pskStr);
       if (!_pskLengths.contains(psk.length)) return null;
       return ChannelQrData(
         name: name,
         psk: psk,
-        slotIndex: slotIndex,
         avatarEmoji: uri.queryParameters['emoji'],
       );
       // See decodeContact: nothing from a QR may escape, Error included.
@@ -144,12 +148,10 @@ class ChannelQrData {
   const ChannelQrData({
     required this.name,
     required this.psk,
-    required this.slotIndex,
     this.avatarEmoji,
   });
 
   final String name;
   final Uint8List psk;
-  final int slotIndex;
   final String? avatarEmoji;
 }

@@ -4,97 +4,55 @@ import 'dart:typed_data';
 import 'package:meshly/models/mesh_channel.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
-import 'package:meshly/services/meshtastic_proto.dart';
 
-// Prints are used for debug logging of BLE channel writes.
-// ignore_for_file: avoid_print
-
+/// Тонкая обёртка над [ContactStore.createChannel].
+///
+/// Раньше здесь же подбирался свободный аппаратный слот (1–7, слот 0 занят
+/// прошивкой) и канал писался в устройство (`MeshtasticProto.encodeSetChannel`
+/// — теперь удалён). Обе части ушли вместе с отвязкой бесед от слотов (см.
+/// отчёт спринта): запись в устройство никогда не работала (неверный номер
+/// поля и порт), а значит слот и не настраивался — беседа на приёме
+/// определяется перебором PSK, а не по слоту, и бесед теперь может быть
+/// сколько угодно.
+///
+/// Класс оставлен (не выродился в статическую функцию) намеренно: экраны
+/// (`new_channel_screen.dart`) вызывают `ChannelManager.instance.create(...)`
+/// напрямую, а по правилам спринта экраны трогать нельзя — сигнатура и точка
+/// входа должны остаться прежними.
 class ChannelManager {
   ChannelManager._();
   static final ChannelManager instance = ChannelManager._();
 
-  // Слоты 0 (Primary) зарезервирован устройством.
-  // Мы используем 1–7 для пользовательских каналов.
-  static const _minSlot = 1;
-  static const _maxSlot = 7;
-
-  // Следующий свободный слот
-  int nextFreeSlot(ContactStore store) {
-    final used = store.channels.map((c) => c.slotIndex).toSet();
-    for (var i = _minSlot; i <= _maxSlot; i++) {
-      if (!used.contains(i)) return i;
-    }
-    return -1; // все слоты заняты
-  }
-
-  // Создать канал: сохранить локально + записать в девайс если подключён
-  Future<MeshChannel?> create({
+  // Создать беседу: сохранить локально. Устройство больше не трогаем.
+  // ContactStore.createChannel всегда успешен (не бывает "все слоты заняты"
+  // — слотов больше нет), поэтому возврат непустой.
+  Future<MeshChannel> create({
     required String name,
     required String? avatarEmoji,
     required MeshService meshService,
   }) async {
     final store = ContactStore.instance;
-    final slot = nextFreeSlot(store);
-    if (slot == -1) return null;
-
     final psk = _randomPsk();
-
-    final ch = await store.createChannel(
+    return store.createChannel(
       name: name,
-      slotIndex: slot,
       avatarEmoji: avatarEmoji,
       psk: psk,
     );
-
-    // Записываем в девайс если подключён
-    await _writeToDevice(ch, meshService);
-
-    return ch;
   }
 
-  // Добавить канал полученный по QR (уже есть PSK и slot)
-  Future<MeshChannel?> addFromQr({
+  /// Добавить беседу, полученную по QR (уже есть PSK).
+  Future<MeshChannel> addFromQr({
     required String name,
     required Uint8List psk,
-    required int slotIndex,
     required String? avatarEmoji,
     required MeshService meshService,
   }) async {
-    if (slotIndex < _minSlot || slotIndex > _maxSlot) {
-      print('[ChannelMgr] addFromQr: invalid slotIndex $slotIndex, aborting');
-      return null;
-    }
     final store = ContactStore.instance;
-    final ch = await store.createChannel(
+    return store.createChannel(
       name: name,
-      slotIndex: slotIndex,
       avatarEmoji: avatarEmoji,
       psk: psk,
     );
-    await _writeToDevice(ch, meshService);
-    return ch;
-  }
-
-  Future<void> _writeToDevice(MeshChannel ch, MeshService meshService) async {
-    final nodeId = meshService.myNodeId;
-    if (nodeId == null || !meshService.isConnected) {
-      print('[ChannelMgr] not connected, skipping device write');
-      return;
-    }
-    final nodeNum = int.parse(nodeId.substring(1), radix: 16);
-    try {
-      await meshService.writeRaw(
-        MeshtasticProto.encodeSetChannel(
-          slotIndex: ch.slotIndex,
-          name: ch.name,
-          psk: ch.psk,
-          fromNode: nodeNum,
-        ),
-      );
-      print('[ChannelMgr] wrote channel "${ch.name}" to slot ${ch.slotIndex}');
-    } on Exception catch (e) {
-      print('[ChannelMgr] device write error: $e');
-    }
   }
 
   static Uint8List _randomPsk() {

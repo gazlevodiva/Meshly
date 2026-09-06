@@ -377,7 +377,7 @@ void main() {
       test(
         'channel send with no radio persists a failed message and clears input',
         () async {
-          final ch = await store.createChannel(name: 'Hikers', slotIndex: 1);
+          final ch = await store.createChannel(name: 'Hikers');
           final conv = Conversation.channel(ch.id);
 
           final service = newService();
@@ -391,6 +391,184 @@ void main() {
           expect(msgs.single.text, equals('are we there yet'));
           expect(msgs.single.isMe, isTrue);
           expect(msgs.single.status, equals(MessageStatus.failed));
+        },
+      );
+    });
+
+    // ── Беседы отвязаны от аппаратных слотов Meshtastic ─────────────
+    //
+    // Отправка всегда уходит на channel=0 (слот на устройстве никогда и не
+    // настраивался — encodeSetChannel был сломан), а на приёме беседа
+    // определяется перебором известных PSK: пробуем расшифровать конверт
+    // ключом каждой беседы, первая успешная расшифровка и есть искомая
+    // беседа. См. отчёт спринта «отвязка бесед от слотов Meshtastic».
+    group('channel messages are slot-free', () {
+      final store = ContactStore.instance;
+
+      setUp(() async {
+        SharedPreferences.setMockInitialValues({});
+        // Входящее сообщение беседы поднимает локальное уведомление, а
+        // flutter_local_notifications не имеет плагина под flutter_test.
+        await NotificationSettings.instance.setEnabled(value: false);
+        store.resetForTesting(newTestDb());
+        await store.init();
+      });
+
+      tearDown(NotificationSettings.instance.resetForTesting);
+
+      // Re-wraps ToRadio { field1: MeshPacket } as FromRadio { field2:
+      // MeshPacket } — same helper as the DM group below (duplicated here
+      // because that one is scoped to its own group).
+      List<int> toFromRadio(List<int> toRadioBytes) {
+        final bytes = List<int>.from(toRadioBytes);
+        var pos = 0;
+        List<int>? packetBytes;
+        while (pos < bytes.length) {
+          final tagByte = bytes[pos++];
+          final fieldNum = tagByte >> 3;
+          final wireType = tagByte & 7;
+          if (wireType != 2) break;
+          var len = 0;
+          var shift = 0;
+          while (true) {
+            final b = bytes[pos++];
+            len |= (b & 0x7F) << shift;
+            if ((b & 0x80) == 0) break;
+            shift += 7;
+          }
+          final chunk = bytes.sublist(pos, pos + len);
+          if (fieldNum == 1) packetBytes = chunk;
+          pos += len;
+        }
+        if (packetBytes == null) return [];
+        var len = packetBytes.length;
+        final lenBytes = <int>[];
+        while (len > 0x7F) {
+          lenBytes.add((len & 0x7F) | 0x80);
+          len >>= 7;
+        }
+        lenBytes.add(len);
+        return [18, ...lenBytes, ...packetBytes]; // tag: field 2, wire type 2
+      }
+
+      // A broadcast ToRadio frame carrying a raw (already-encrypted) payload
+      // on PRIVATE_APP — exactly the shape an incoming channel message has.
+      List<int> broadcastFrame(Uint8List payload) => toFromRadio(
+        MeshtasticProto.encodeTextMessage(
+          '',
+          portnum: MeshtasticProto.PRIVATE_APP,
+          rawPayload: payload,
+        ),
+      );
+
+      test(
+        'sendText for a conversation sends broadcast with channel = 0',
+        () async {
+          // Модель MeshChannel больше не хранит слот вовсе (см. отчёт
+          // спринта «отвязка бесед от слотов») — отправка broadcast'ит на
+          // channel = 0 независимо от беседы.
+          final ch = await store.createChannel(name: 'Hikers');
+          final conv = Conversation.channel(ch.id);
+
+          final service = newService();
+          final sent = <Uint8List>[];
+          service.debugRadioSink = sent.add;
+
+          final result = await service.sendText('идём в 9', conv);
+          expect(result, equals(SendResult.sent));
+          expect(sent, hasLength(1));
+
+          final packet = MeshtasticProto.decodeFromRadio(
+            toFromRadio(sent.single),
+          );
+          expect(packet.channel, equals(0));
+          expect(packet.isDm, isFalse, reason: 'still a broadcast');
+          expect(packet.portnum, equals(MeshtasticProto.PRIVATE_APP));
+        },
+      );
+
+      test(
+        'incoming broadcast is matched to the right conversation by trying '
+        'every known PSK',
+        () async {
+          final chA = await store.createChannel(name: 'A');
+          final chB = await store.createChannel(name: 'B');
+          final convA = Conversation.channel(chA.id);
+          final convB = Conversation.channel(chB.id);
+
+          final envelope = await CryptoService.instance.encryptForChannel(
+            psk: chB.psk,
+            plaintext: 'только для B',
+          );
+
+          final service = newService();
+          await service.handleIncomingBytes(broadcastFrame(envelope));
+
+          expect(store.messagesFor(convB.id), hasLength(1));
+          expect(
+            store.messagesFor(convB.id).single.text,
+            equals('только для B'),
+          );
+          expect(store.messagesFor(convA.id), isEmpty);
+        },
+      );
+
+      test(
+        'a broadcast encrypted with an unknown key is ignored, joins no '
+        'conversation',
+        () async {
+          final ch = await store.createChannel(name: 'A');
+          final conv = Conversation.channel(ch.id);
+          final unknownPsk = Uint8List.fromList(
+            List.generate(32, (i) => 255 - i),
+          );
+
+          final envelope = await CryptoService.instance.encryptForChannel(
+            psk: unknownPsk,
+            plaintext: 'чужая беседа',
+          );
+
+          final service = newService();
+          await service.handleIncomingBytes(broadcastFrame(envelope));
+
+          expect(store.messagesFor(conv.id), isEmpty);
+        },
+      );
+
+      test(
+        'a garbage broadcast is dropped by the cheap envelope check, never '
+        'reaches key trial',
+        () async {
+          // Хотя бы одна беседа должна существовать — иначе цикл по ключам и
+          // так пуст, и тест ничего не доказывает.
+          await store.createChannel(name: 'A');
+
+          final service = newService();
+
+          // Слишком короткий payload: version+nonce+mac требует минимум 41
+          // байт, тут меньше — дешёвая проверка обязана отбросить пакет ДО
+          // того, как код полезет проверять PSK.
+          await expectLater(
+            service.handleIncomingBytes(
+              broadcastFrame(
+                Uint8List.fromList([kMessageEnvelopeVersion, 1, 2, 3]),
+              ),
+            ),
+            completes,
+          );
+
+          // Неверный версионный байт при достаточной длине.
+          await expectLater(
+            service.handleIncomingBytes(
+              broadcastFrame(Uint8List.fromList(List.filled(41, 0x7f))),
+            ),
+            completes,
+          );
+
+          expect(
+            store.conversations.every((c) => c.lastMessage == null),
+            isTrue,
+          );
         },
       );
     });

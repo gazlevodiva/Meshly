@@ -229,6 +229,70 @@ void main() {
       );
     });
 
+    // ── Кэш выведенных ключей ────────────────────────────────
+    //
+    // Кэш ключей keyed по самому PSK (см. crypto_service.dart), а не по id
+    // беседы: главное свойство, которое он обязан сохранять при этом — не
+    // путать ключи разных PSK и не отдавать протухший ключ после смены PSK.
+    group('deriveChannelKey cache', () {
+      test(
+        'two derivations with the same PSK return an equal key (cache hit)',
+        () async {
+          final k1 = await crypto.deriveChannelKey(psk(11));
+          final k2 = await crypto.deriveChannelKey(psk(11));
+          expect(await k1.extractBytes(), equals(await k2.extractBytes()));
+        },
+      );
+
+      test(
+        'different PSKs never share a cached key, however many times each '
+        'is requested',
+        () async {
+          for (var i = 0; i < 3; i++) {
+            final kA = await crypto.deriveChannelKey(psk(21));
+            final kB = await crypto.deriveChannelKey(psk(22));
+            expect(
+              await kA.extractBytes(),
+              isNot(equals(await kB.extractBytes())),
+            );
+          }
+        },
+      );
+
+      test(
+        'channel key "rotation": decrypting after a PSK change uses the new '
+        'key, not a cached old one keyed by the same conversation',
+        () async {
+          final oldPsk = psk(31);
+          final newPsk = psk(32);
+
+          // Разогреваем кэш старым PSK — как будто беседа уже получала
+          // сообщения до смены ключа.
+          await crypto.deriveChannelKey(oldPsk);
+
+          final envelope = await crypto.encryptForChannel(
+            psk: newPsk,
+            plaintext: 'сообщение после смены ключа',
+          );
+
+          // Если бы кэш был keyed по id беседы, а не по PSK, здесь могла бы
+          // подставиться старая запись — расшифровка тихо сломалась бы.
+          final decrypted = await crypto.decryptForChannel(
+            psk: newPsk,
+            envelope: envelope,
+          );
+          expect(decrypted, equals('сообщение после смены ключа'));
+
+          // Старый ключ по-прежнему не читает новые сообщения.
+          final withOldKey = await crypto.decryptForChannel(
+            psk: oldPsk,
+            envelope: envelope,
+          );
+          expect(withOldKey, isNull);
+        },
+      );
+    });
+
     test('channel roundtrip: encrypt then decrypt with same PSK', () async {
       const plaintext = 'канал: Привіт! 🔒 group message';
       final envelope = await crypto.encryptForChannel(

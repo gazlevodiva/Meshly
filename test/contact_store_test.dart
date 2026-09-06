@@ -293,33 +293,78 @@ void main() {
     test('createChannel + channelById returns the channel', () async {
       final ch = await store.createChannel(
         name: 'семья',
-        slotIndex: 2,
         avatarEmoji: '🏠',
       );
 
       final found = store.channelById(ch.id);
       expect(found, isNotNull);
       expect(found!.name, equals('семья'));
-      expect(found.slotIndex, equals(2));
       expect(found.avatarEmoji, equals('🏠'));
     });
 
-    test('conversationForSlot returns correct Conversation', () async {
-      final ch = await store.createChannel(
-        name: 'gazchannel',
-        slotIndex: 3,
+    // Слот больше ни на что не влияет и в модели не хранится (см. отчёт
+    // спринта «отвязка бесед от слотов Meshtastic») — беседа на приёме
+    // определяется перебором PSK (см. mesh_service_test.dart). Список бесед
+    // сортируется по времени создания.
+    test('channels are sorted by createdAt', () async {
+      final first = await store.createChannel(name: 'первая');
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+      final second = await store.createChannel(name: 'вторая');
+
+      expect(store.channels.map((c) => c.id), [first.id, second.id]);
+    });
+
+    // channelsUnsorted — представление для перебора PSK на приёме
+    // (mesh_service.dart): не сортирует, но должно отдавать те же беседы,
+    // что и channels.
+    test('channelsUnsorted contains the same channels as channels', () async {
+      final first = await store.createChannel(name: 'первая');
+      final second = await store.createChannel(name: 'вторая');
+
+      expect(
+        store.channelsUnsorted.map((c) => c.id).toSet(),
+        {first.id, second.id},
       );
-
-      final conv = store.conversationForSlot(3);
-      expect(conv, isNotNull);
-      expect(conv!.isChannel, isTrue);
-      expect(conv.channelId, equals(ch.id));
     });
 
-    test('conversationForSlot returns null for unknown slot', () {
-      final conv = store.conversationForSlot(99);
-      expect(conv, isNull);
-    });
+    // Регрессия: mesh_service.dart перебирает channelsUnsorted с `await`
+    // внутри цикла (расшифровка на каждый канал). Раньше геттер отдавал живое
+    // представление `_channels.values`, и если за время await пользователь
+    // создавал/удалял беседу, Dart бросал ConcurrentModificationError при
+    // попытке продолжить перебор — входящее сообщение терялось, а проход
+    // чтения обрывался. Геттер обязан возвращать снимок (List), сделанный
+    // ДО начала перебора.
+    test(
+      'channelsUnsorted iteration survives a channel added mid-loop',
+      () async {
+        await store.createChannel(name: 'первая');
+
+        var iterations = 0;
+        Future<void> iterate() async {
+          for (final _ in store.channelsUnsorted) {
+            iterations++;
+            // Уступаем event loop, как это делает decryptForChannel в
+            // mesh_service.dart — именно здесь раньше происходил CME.
+            await Future<void>.delayed(Duration.zero);
+            if (iterations == 1) {
+              await store.createChannel(name: 'вторая');
+            }
+          }
+        }
+
+        await expectLater(iterate(), completes);
+        // Снимок сделан до появления второй беседы — перебор видит только ту,
+        // что существовала в момент вызова геттера.
+        expect(iterations, equals(1));
+      },
+    );
+
+    // ── deleteChannel ──────────────────────────────────────
+
+    // Regression: deleteChannel only removed the Channel row, leaving its
+    // `ch_<id>` conversation behind in memory and in the DB. HomeScreen then
+    // rendered it as a permanent, unremovable row (channelById returns null,
+    // so the UI fell back to showing the raw uuid).
 
     // ── addMessage atomicity ───────────────────────────────
 
@@ -449,6 +494,11 @@ void main() {
       await store.deleteContact('!99990000');
       expect(notified, isTrue);
     });
+
+    // Same orphan-messages defect as deleteChannel, but on the DM side:
+    // deleteContact already dropped the `dm_<id>` conversation, but its
+    // messages had no FK cascade (see app_database.dart) and stayed in the
+    // DB forever.
 
     test('addMessage notifies listeners', () async {
       final contact = Contact(nodeId: '!aaaabbbb', displayName: 'МессагНотиф');
