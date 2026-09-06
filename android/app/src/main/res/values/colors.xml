@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Launch-screen ground. Must equal ColorScheme.surface of the matching
+         Flutter theme (buildLightTheme in lib/theme/app_theme.dart), otherwise
+         the window visibly changes colour when the engine draws its first
+         frame. The platform default (?android:colorBackground) is pure white
+         in light mode and pure black in dark mode — neither matches. -->
+    <color name="splash_background">#FAF8FF</color>
+</resources>

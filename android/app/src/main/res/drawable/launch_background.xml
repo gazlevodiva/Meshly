@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Modify this file to customize your launch splash screen -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/white" />
+    <item android:drawable="@color/splash_background" />
 
     <!-- You can insert your own image assets here -->
     <!-- <item>
@@ -10,8 +10,9 @@
             android:src="@mipmap/launch_image" />
     </item> -->
 
-    <!-- Знак по центру заставки: фон оставляем прежним (светлый/системный),
-         знак синий — читается и на белом, и на тёмном. -->
+    <!-- The mark, centred. The ground is @color/splash_background, which
+         tracks the Flutter theme's surface colour in both light and dark, so
+         the launch window and the first rendered frame are the same colour. -->
     <item>
         <bitmap
             android:gravity="center"
