@@ -11,7 +11,10 @@ class NotificationService {
   void Function(String conversationId)? onNotificationTap;
 
   Future<void> init() async {
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    // Иконка уведомления — монохромный силуэт: Android рисует её по
+    // прозрачности, полностью игнорируя цвета. Полноцветная иконка
+    // приложения превращается здесь в сплошной белый прямоугольник.
+    const android = AndroidInitializationSettings('@drawable/ic_notification');
     const ios = DarwinInitializationSettings();
     await _plugin.initialize(
       const InitializationSettings(android: android, iOS: ios),

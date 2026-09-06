@@ -9,4 +9,12 @@
             android:gravity="center"
             android:src="@mipmap/launch_image" />
     </item> -->
+
+    <!-- Знак по центру заставки: фон оставляем прежним (светлый/системный),
+         знак синий — читается и на белом, и на тёмном. -->
+    <item>
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/splash_logo" />
+    </item>
 </layer-list>
