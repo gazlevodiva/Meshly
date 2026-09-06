@@ -60,10 +60,11 @@ class _EditContactScreenState extends State<EditContactScreen> {
   }
 
   Future<void> _save() async {
-    if (_name.trim().isEmpty) return;
+    final name = sanitizeDisplayName(_name);
+    if (name.isEmpty) return;
     setState(() => _saving = true);
     try {
-      widget.contact.displayName = _name.trim();
+      widget.contact.displayName = name;
       widget.contact.avatarEmoji = _selectedEmoji;
       await _store.saveContact(widget.contact);
       if (mounted) Navigator.pop(context, 'saved');

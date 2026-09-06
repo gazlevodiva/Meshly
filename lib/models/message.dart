@@ -83,7 +83,12 @@ String encodeSystemEvent(SystemEventKind kind, String displayName) {
   final sep = rest.indexOf(':');
   if (sep < 0) return null;
   final wireName = rest.substring(0, sep);
-  final name = rest.substring(sep + 1);
+  // Sanitized on the way in, not just on the way out: the sender is another
+  // device, so `encodeSystemEvent`'s capping and control-character flattening
+  // are no guarantee here — a modified client can put newlines or a 10 000-
+  // character name on the wire, and the system line renders centred, as if
+  // the app itself said it. Trust the limit only where it is enforced.
+  final name = sanitizeDisplayName(rest.substring(sep + 1));
   if (name.isEmpty) return null;
   for (final kind in SystemEventKind.values) {
     if (kind.wireName == wireName) return (kind: kind, name: name);

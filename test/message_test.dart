@@ -211,6 +211,28 @@ void main() {
       },
     );
 
+    test(
+      'an announced name is sanitized on decode, not trusted from the wire',
+      () {
+        // A modified client can put anything on the wire — encodeSystemEvent's
+        // capping only binds honest senders.
+        final decoded = decodeSystemEvent(
+          '\u0000meshly:v1:joined:Бо\nрис\tВ',
+        );
+        expect(decoded?.name, equals('Бо рис В'));
+
+        final long = 'x' * 200;
+        expect(
+          decodeSystemEvent('\u0000meshly:v1:left:$long')?.name,
+          hasLength(kDisplayNameMaxLength),
+        );
+      },
+    );
+
+    test('a name of only control characters decodes to nothing', () {
+      expect(decodeSystemEvent('\u0000meshly:v1:joined:\n\t  '), isNull);
+    });
+
     test('an unknown kind is ignored, not thrown', () {
       expect(decodeSystemEvent('meshly:v1:kicked:Boris'), isNull);
     });

@@ -58,6 +58,16 @@ class QrService {
 
   // ── Decode ────────────────────────────────────────────────
 
+  /// [sanitizeDisplayName] applied to a value that may be absent, returning
+  /// null when there is nothing left to store. Names on a QR code are written
+  /// by whoever generated it, so the app's own length and control-character
+  /// limits have to be re-applied on this side.
+  static String? _cleanName(String? raw) {
+    if (raw == null) return null;
+    final cleaned = sanitizeDisplayName(raw);
+    return cleaned.isEmpty ? null : cleaned;
+  }
+
   static ContactQrData? decodeContact(String raw) {
     try {
       final uri = Uri.parse(raw);
@@ -77,7 +87,12 @@ class QrService {
       }
       return ContactQrData(
         nodeId: nodeId,
-        displayName: uri.queryParameters['name'] ?? nodeId,
+        // Sanitized here, at the edge: the name comes off someone else's
+        // screen, so nothing has enforced the app's own limit on it. Without
+        // this it would land in the store, the chat header and a push
+        // notification title exactly as encoded. Falls back to the node id
+        // when sanitizing leaves nothing (a name of only control characters).
+        displayName: _cleanName(uri.queryParameters['name']) ?? nodeId,
         avatarEmoji: uri.queryParameters['emoji'],
         publicKey: publicKey,
       );
@@ -94,7 +109,9 @@ class QrService {
     try {
       final uri = Uri.parse(raw);
       if (uri.scheme != _scheme || uri.host != 'channel') return null;
-      final name = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
+      final name = uri.pathSegments.isNotEmpty
+          ? _cleanName(uri.pathSegments.first)
+          : null;
       final pskStr = uri.queryParameters['psk'];
       if (name == null || pskStr == null) return null;
       // `slot` is now optional and isn't decoded into anything: new codes

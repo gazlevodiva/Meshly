@@ -1143,6 +1143,12 @@ class _SystemEventLine extends StatelessWidget {
         child: Text(
           text,
           textAlign: TextAlign.center,
+          // Bounded on purpose: the announced name arrives from another
+          // device. It is sanitized on decode, but this line renders centred
+          // and unattributed — like the app speaking — so it must not be able
+          // to grow into a block that dominates the thread.
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: AppTextStyles.caption(context),
         ),
       ),

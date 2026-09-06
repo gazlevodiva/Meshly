@@ -257,5 +257,39 @@ void main() {
         hasLength(32),
       );
     });
+
+    test('a name from a QR code is sanitized, not stored as encoded', () {
+      final hostile = 'А' * 100;
+      final url = Uri.parse(
+        'mesh://contact/!1f8e42c9',
+      ).replace(queryParameters: {'name': '$hostile\nfake'}).toString();
+      final decoded = QrService.decodeContact(url);
+
+      expect(decoded?.displayName, hasLength(kDisplayNameMaxLength));
+      expect(decoded?.displayName, isNot(contains('\n')));
+    });
+
+    test('a QR name of only control characters falls back to the node id', () {
+      final url = Uri.parse(
+        'mesh://contact/!1f8e42c9',
+      ).replace(queryParameters: {'name': '\n\t  '}).toString();
+
+      expect(QrService.decodeContact(url)?.displayName, equals('!1f8e42c9'));
+    });
+
+    test('a channel name from a QR code is sanitized too', () {
+      final url =
+          Uri.parse(
+                'mesh://channel/${Uri.encodeComponent('Поход\nна\nсевер')}',
+              )
+              .replace(
+                queryParameters: {
+                  'psk': base64Url.encode(Uint8List(16)),
+                },
+              )
+              .toString();
+
+      expect(QrService.decodeChannel(url)?.name, equals('Поход на север'));
+    });
   });
 }
