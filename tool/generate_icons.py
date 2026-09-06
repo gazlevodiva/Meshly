@@ -244,6 +244,9 @@ def build_pngs(tmp, scale):
         _silhouette(ink_svg, f'{folder}/splash_logo.png',
                     round(96 * factor), _hex(BRAND), tmp)
 
+    # Image for the README: GitHub does not always render SVG in markdown.
+    _opaque('assets/logo/mark.svg', 'assets/logo/logo.png', 256, tmp)
+
     launch = 'ios/Runner/Assets.xcassets/LaunchImage.imageset'
     for name, factor in [('LaunchImage.png', 1), ('LaunchImage@2x.png', 2),
                          ('LaunchImage@3x.png', 3)]:

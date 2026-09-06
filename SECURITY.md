@@ -20,17 +20,22 @@ follow up with a fix or a plan before any public disclosure.
 ## Security posture
 
 Meshly is a hobby/personal-safety project, not a hardened secure
-messenger. Please read this section honestly before trusting it with
-sensitive communication — it mirrors the *Security & Privacy* section in
-`README.md`.
+messenger. This section is the full threat model and limitations list —
+`README.md` only summarizes it and links here.
 
 - **Channels are encrypted with Meshly's own AEAD**, not the firmware's
   channel crypto. The symmetric key is derived from the channel PSK
   (`HKDF-SHA256(psk, info="meshly-channel-v1")`) — the same PSK you exchange
   out-of-band via QR, so nothing about channel setup changes. Messages are
   encrypted with XChaCha20-Poly1305 (same envelope as DMs) and sent as a
-  `PRIVATE_APP`-portnum packet, so they are **opaque to the stock Meshtastic
-  app** even on the same slot/PSK. Meshly ignores any plaintext
+  `PRIVATE_APP`-portnum broadcast on hardware channel 0, so they are **opaque
+  to the stock Meshtastic app** even if it shares the same PSK. Every Meshly
+  conversation broadcasts on channel 0 — a receiving device tries the AEAD
+  key of each conversation it knows in turn and keeps whichever one
+  successfully decrypts — so there is no hardware channel-slot limit on how
+  many group conversations you can have, and (see *Metadata is not
+  protected* below) the slot no longer reveals which devices share a group.
+  Meshly ignores any plaintext
   (`TEXT_MESSAGE_APP`) traffic on channels, so the default public channel and
   other non-Meshly senders never appear. Group limits still apply:
   - **One shared key for the whole group.** Any member can decrypt every
@@ -46,27 +51,29 @@ sensitive communication — it mirrors the *Security & Privacy* section in
   and sent as a `PRIVATE_APP`-portnum packet, so they're opaque to anyone
   without the recipient's private key — including other Meshtastic nodes on
   the mesh. Be honest with yourself about the limits, though:
-  - **Metadata is not protected.** Who is talking to whom, when, and how
-    often is visible to anyone listening on the mesh (packet source/dest
-    node IDs, timing, size). Only the message content is encrypted.
+  - **Metadata is not protected.** For DMs: who is talking to whom, when, and
+    how often is visible to anyone listening on the mesh (packet source/dest
+    node IDs, timing, size). Only the message content is encrypted. For
+    channels: every packet is a broadcast, so which channel-conversation it
+    belongs to is not visible from routing alone — every conversation
+    broadcasts on the same hardware channel (0), so the channel slot no
+    longer tells an eavesdropper which devices share a group. Packet timing
+    and size are still visible for channel traffic too.
   - **No forward secrecy.** The scheme uses a static long-term key, not a
     ratchet — if a private key is ever compromised, past captured
     ciphertexts for that identity could be decrypted retroactively.
   - **Decrypted text is stored locally.** The local SQLite database holds
-    plaintext message history on the phone, same as before — device
-    compromise still exposes past conversations.
+    plaintext message history on the phone — device compromise exposes past
+    conversations.
   - **No interop with the stock Meshtastic app for DMs.** Encrypted DMs use
     a non-standard portnum (`PRIVATE_APP`) that other Meshtastic clients
     ignore; DMs only work between two Meshly installs that have exchanged
     keys via QR. If a contact's public key isn't known yet, Meshly will not
     silently fall back to sending the message in the clear.
-- **Channel messages are readable by anyone holding that channel's PSK.**
-  The PSK is a group secret, so confidentiality is only as good as the
-  weakest device it was shared with; there is no per-member key.
 - **PSKs are stored unencrypted** in the local SQLite database on the
   phone. Anyone with access to the device's app storage (e.g. a rooted
   device, a backup, or physical access with debugging enabled) can read
-  channel keys (and the decrypted DM history, per above).
+  channel keys and the decrypted DM history.
 - **Notifications leak content.** Incoming message text appears in local
   push notifications, including on the lock screen, unless the OS/user
   notification settings hide it.

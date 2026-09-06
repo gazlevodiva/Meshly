@@ -1,3 +1,5 @@
+<img src="assets/logo/logo.png" width="88" alt="Meshly">
+
 # Meshly
 
 [![CI](https://github.com/gazlevodiva/Meshly/actions/workflows/ci.yml/badge.svg)](https://github.com/gazlevodiva/Meshly/actions/workflows/ci.yml)
@@ -11,13 +13,50 @@ A simple messenger built on top of the [Meshtastic](https://meshtastic.org/) LoR
 ## Features
 
 - Connect to a Meshtastic device over BLE (Bluetooth Low Energy)
-- Group channel chat and direct messages (DM)
-- Add contacts via QR code or manual Node ID entry
-- Share your contact QR code with others
-- Online/offline indicator (based on last heard time)
-- Local push notifications for incoming messages
-- SQLite storage — data persists across sessions
+- Set the radio's LoRa region from inside the app — a factory-fresh board
+  stays silent on air until this is chosen, and Meshly no longer needs
+  another app to get you on the air
+- Direct chats, end-to-end encrypted per contact
+- Group conversations, as many as you like — they are not tied to the
+  radio's eight hardware channel slots
+- Add people by scanning their QR code (or by typing a device ID)
+- Detects when a chat's encryption breaks — a peer reinstalled the app, say
+  — explains it, and walks both sides through fixing it
+- Delivery marks that claim only what they can prove
+- Local notifications for incoming messages
+- Data persists across restarts
 - Android + iOS
+
+## How Meshly differs from the Meshtastic app
+
+Meshly is not a lighter skin over the official app — the two do not talk to
+each other, deliberately.
+
+**Meshly speaks only to Meshly.** Its traffic rides a private port that the
+stock app does not recognise and silently ignores, and Meshly ignores
+plaintext traffic in return. The default public channel that the official
+app opens on does not appear here at all.
+
+**Encryption is Meshly's own layer, above the radio.** Direct chats use a
+key pair per contact, exchanged by scanning a QR code in person; group
+conversations use their own key derived from the conversation's secret.
+None of it depends on how the radio is configured, so a misconfigured
+device cannot quietly downgrade it.
+
+**Conversations are not channel slots.** Meshtastic radios have eight
+channel slots, and the official app maps groups onto them. Meshly puts the
+conversation's identity in its own encrypted payload instead, so the number
+of conversations is limited by nothing, and which conversations you belong
+to no longer travels in the clear.
+
+**Everything else is missing on purpose.** No map, no node list, no
+telemetry, no waypoints, no MQTT, no mesh administration. Those are the
+reasons the official app exists and it does them well; this one is a
+messenger for people you already trust.
+
+What you give up: interoperability. Someone running the official app cannot
+read a Meshly message, and vice versa. Both apps can share the same radio
+hardware, but not the same conversation.
 
 ## Hardware
 
@@ -26,7 +65,7 @@ Tested with **Heltec MeshPocket** (ESP32 + LoRa). Should work with any Meshtasti
 ## Requirements
 
 - Flutter 3.x
-- Android 6.0+ (API 23) or iOS 16+
+- Android 7.0+ (API 24) or iOS 16+
 - A Meshtastic BLE device
 
 ## Getting Started
@@ -71,6 +110,9 @@ lib/
 ├── screens/         # UI screens
 ├── services/        # BLE, Meshtastic protocol, SQLite, notifications
 └── widgets/         # Reusable UI components
+
+assets/logo/         # the mark, and how it is generated (see its README)
+tool/                # generate_icons.py — builds every app icon from the SVGs
 ```
 
 ## Regenerating database code
@@ -107,6 +149,7 @@ If your device uses different UUIDs, update the constants in `lib/services/mesh_
 
 - ✅ Tested on Android (Samsung S901B, Android 16) and iOS (iPhone 14, iOS 26)
 - ✅ Tested with Heltec MeshPocket over BLE
+- ⚠️ Group conversations have no member list and nobody can be removed from one: everyone shares a single key, and the app cannot know who holds it (see [SECURITY.md](SECURITY.md) for why that's a hard limit, not a missing UI)
 - ⚠️ Push notifications work in foreground only — background BLE on iOS requires additional native setup
 - ⚠️ Protobuf encoding is implemented manually (no official Meshtastic Dart package exists)
 - ⚠️ iOS free developer certificate expires every 7 days — use Apple Developer Program ($99/yr) for permanent install
@@ -117,12 +160,15 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the data flow (BLE → protobuf → s
 
 ## Security & Privacy
 
-Be honest with yourself about what this protects. For how to report a vulnerability, see [SECURITY.md](SECURITY.md).
-
-- **Channels are encrypted with Meshly's own AEAD** (XChaCha20-Poly1305; the key is `HKDF-SHA256` of the channel PSK, exchanged via QR as before) and sent over a `PRIVATE_APP` portnum, so channel messages are invisible to the stock Meshtastic app even on the same slot/PSK. It's a *group* secret, though: everyone shares one key, so any member can read — and forge — messages, there's no forward secrecy, and removing a member means rotating the PSK. Meshly also ignores plaintext channel traffic, so the default public channel doesn't show up.
-- **Direct messages between Meshly users are end-to-end encrypted** (X25519 + XChaCha20-Poly1305, keys exchanged via QR, private key in the OS keychain/keystore). Metadata (who talks to whom, timing) is still visible on the mesh, there's no forward secrecy, and decrypted text is stored locally — see [SECURITY.md](SECURITY.md) for the full picture. Neither DMs nor channels interoperate with the stock Meshtastic app anymore.
-- **Channel PSKs** are stored unencrypted in the local SQLite database on the phone.
-- **Notifications**: incoming message text appears in local push notifications on the lock screen.
+Be honest with yourself about what this protects. Both direct chats and
+group conversations are encrypted with Meshly's own layer (not Meshtastic's), so
+message content is opaque to the stock Meshtastic app and to anyone else on
+the mesh. What that does *not* cover: metadata (who talks to whom, when),
+forward secrecy, and plaintext storage of message history and conversation keys
+on the phone itself. The full threat model, the secure-chat recovery
+mechanism, and how to report a vulnerability are in
+[SECURITY.md](SECURITY.md) — read it before trusting Meshly with anything
+sensitive.
 
 ## Contributing
 

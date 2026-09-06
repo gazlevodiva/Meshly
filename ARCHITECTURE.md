@@ -51,6 +51,38 @@ channel settings, acks). This is the most delicate part of the codebase:
 ToRadio, FromRadio, FromNum) and the connection lifecycle; it's the only
 place that should touch `flutter_blue_plus` directly.
 
+## Setting the LoRa region from the app
+
+A factory-fresh Meshtastic board ships with `LoRaConfig.region = UNSET` and
+transmits nothing until a region is chosen — previously that meant reaching
+for the official Meshtastic app just to get a new board on the air. Meshly
+now does this itself, entirely through the same `AdminMessage` channel used
+for other device configuration:
+
+- On connect, the device sends its current `Config` (including `LoRaConfig`)
+  unprompted as part of the `want_config` dump; `MeshService` decodes it
+  (`MeshtasticProto.decodeLoraConfig`) and exposes both the raw config bytes
+  and the parsed region as `loraRegion`/`hwModel` (`ValueNotifier`s).
+- Changing the region (`MeshService.setRegion`) sends three self-addressed
+  `AdminMessage` frames in sequence — `begin_edit_settings` (64) →
+  `set_config` (34, carrying the whole `LoRaConfig` with only the region
+  field patched) → `commit_edit_settings` (65) — built by
+  `MeshtasticProto.encodeSetRegion`. `set_config` replaces the *entire*
+  config, so it must start from the raw bytes the device actually sent, not
+  a value reconstructed field-by-field; that's why `setRegion` refuses to run
+  before a config has been received (`canSetRegion`).
+- `lib/services/lora_region.dart` (`LoraRegion`) is a static reference table
+  of Meshtastic's `RegionCode` enum plus two pieces of app-specific
+  reasoning: `suggestedFor(countryCode)` maps the phone's own country (via
+  its locale) to a sensible default so the picker can pre-select something
+  without ever choosing automatically, and `compatibleWith(currentRegion)`
+  narrows the list to regions sharing the same frequency band as whatever the
+  board is already set to — a European 868 MHz board's antenna cannot
+  usefully run at 433 MHz, so cross-band choices are filtered out rather than
+  offered and silently failing.
+- The region is deliberately never set without an explicit user choice: no
+  auto-detection writes to the device on its own.
+
 ## Meshly encryption (DMs and channels)
 
 Both direct messages and group channels between Meshly installs use Meshly's
@@ -95,21 +127,71 @@ key derivation differs (ECDH shared secret for DMs, HKDF-of-PSK for channels).
 - **Wire framing**: both DM and channel envelopes are sent as Meshtastic
   packets with `portnum = MeshtasticProto.PRIVATE_APP` (256) instead of the
   normal `TEXT_MESSAGE_APP` (DMs unicast to the peer, channels broadcast on
-  the channel's slot). This is intentional — the stock Meshtastic app and
-  other firmware clients don't recognize `PRIVATE_APP` and will ignore these
-  packets, so Meshly traffic no longer interoperates with non-Meshly clients.
-  `MeshService.sendText` returns `SendResult.needsKey` instead of sending in
-  the clear when a DM peer's public key isn't known yet. On receive
-  (`_onBytesReceived`): an incoming channel packet is only accepted if it is
-  `PRIVATE_APP` and decrypts under the channel PSK — anything else (plaintext
-  broadcast, wrong/unknown channel, auth failure) is silently dropped without
-  notifying. Unicast packets go through the DM path described below.
+  channel 0 — see *Conversations are not hardware channel slots* below for
+  why there is no per-conversation slot). This is intentional — the stock
+  Meshtastic app and other firmware clients don't recognize `PRIVATE_APP` and
+  will ignore these packets, so Meshly traffic no longer interoperates with
+  non-Meshly clients. `MeshService.sendText` returns `SendResult.needsKey`
+  instead of sending in the clear when a DM peer's public key isn't known
+  yet. On receive (`_onBytesReceived`): an incoming broadcast is only
+  accepted if it is `PRIVATE_APP` and decrypts under *some* known
+  conversation's key (see below) — anything else (plaintext broadcast,
+  unknown key, auth failure) is silently dropped without notifying. Unicast
+  packets go through the DM path described below.
 - **Service packets**: version bytes `0x02..0x04` on `PRIVATE_APP` are
   reserved for the secure-chat state machine and never carry user text —
   `[0x02]` is the bare "I cannot decrypt you" notice, `[0x03]`/`[0x04]` are
   the encrypted verify ping/ack. They are recognised by their version byte
   *before* any decryption attempt, so they never reach the message path. See
   `SECURITY.md` → *Secure-chat service packets* for the threat model.
+
+### Conversations are not hardware channel slots
+
+Meshtastic radios expose eight hardware channel slots (0 is the fixed
+primary/public channel; 1–7 are configurable). An earlier version of Meshly
+mapped each group conversation onto one of the free slots 1–7, which capped
+the app at seven conversations and meant `MeshtasticProto.encodeSetChannel`
+had to program the radio's channel table over `AdminMessage.set_channel`.
+That encoder had the wrong field number and port and never actually worked —
+the slot was never configured on the device in practice, group messages
+always rode the radio's default primary channel regardless of what the UI
+showed. `encodeSetChannel`, `ContactStore.conversationForSlot`, and
+`ChannelManager.nextFreeSlot` have all been removed, and `MeshChannel` no
+longer has a `slotIndex` field.
+
+Every conversation now sends broadcast on channel 0 and is identified purely
+by which Meshly-AEAD key decrypts it, not by which slot it arrived on:
+
+- **Send**: `MeshService.sendText` always broadcasts channel-conversation
+  packets on hardware channel 0, encrypted with the conversation's derived
+  channel key (`CryptoService.encryptForChannel`). There is no slot to pick
+  and thus no seven-conversation ceiling — `ChannelManager.create` never has
+  to fail with "all slots taken."
+- **Receive**: `_onBytesReceived` first does a cheap structural check on the
+  raw envelope — correct version byte and at least
+  `version(1) + nonce(24) + mac(16)` bytes — before touching any key, so a
+  garbage broadcast from any node in range costs one comparison instead of N
+  decrypt attempts. A payload that passes is then tried against every known
+  conversation's derived channel key in turn
+  (`CryptoService.deriveChannelKey`, cached by PSK) until one succeeds;
+  Poly1305 rejects the wrong key outright, so a "successful" decryption under
+  the wrong key cannot happen — the first one that authenticates is
+  unambiguously the right conversation. There is no cap on how many
+  conversations can be tried, so the number of group conversations is no
+  longer limited by hardware slots.
+- **Column left in place**: `Channels.slotIndex` still exists in the drift
+  schema (`NOT NULL`) because dropping a column means a `TableMigration`, and
+  this sprint deliberately kept the schema untouched; it is always written
+  as `0` and never read back. The QR channel-invite payload still emits
+  `slot=1` for compatibility with old app versions that require the field on
+  decode, but current versions ignore it entirely on both encode and decode.
+
+A side effect worth calling out for privacy: the slot number used to be
+visible in the air on every channel packet, and since the app assigned slots
+per conversation, an eavesdropper who saw two nodes both transmitting on slot
+3 learned that they were in the same group — without decrypting anything.
+Fixing every conversation to channel 0 removes that signal: the slot field no
+longer distinguishes one Meshly group from another.
 
 ## Secure chat state (DMs)
 
@@ -244,6 +326,14 @@ Notable points:
 - `Conversations` carries the two secure-chat facts (`iCanReadPeer`,
   `peerCanReadUs`), both defaulting to `true`, plus `write_anyway`
   (`writeAnyway`, default `false`) — the persisted "send anyway" override.
+- There is no FK cascade on `Messages` (see the schema), so `ContactStore`
+  deletes a conversation's messages explicitly wherever it deletes the
+  conversation itself: `deleteContact` and `deleteChannel` both remove the
+  contact/channel row, the associated `Conversations` row, and every
+  `Messages` row for that conversation id in one call — otherwise the
+  messages would stay behind as permanent orphans. `blockNode` only drops the
+  conversation (not the contact or its message history); `unblockNode`
+  recreates an empty conversation so the contact remains reachable.
 - Schema changes bump `schemaVersion` and add a step to `onUpgrade`; the
   generated `app_database.g.dart` is committed and regenerated via
   `dart run build_runner build --delete-conflicting-outputs`.
@@ -295,29 +385,30 @@ lib/
                  SheetDragHandle
 ```
 
+## Delivery status: what the second checkmark means
+
+`MessageStatus.acked` (`_onBytesReceived` in `mesh_service.dart`, via
+`MeshtasticProto.decodeRoutingAck` on `ROUTING_APP`) is a *transport* fact:
+for a unicast DM packet, the destination node's own radio has confirmed it
+received the packet at the Meshtastic routing layer — LoRa's mesh ACK, not
+an application-level read receipt. It says nothing about whether that device
+could decrypt the payload. For a channel broadcast there is no destination
+radio to ack in that sense; only our own node acknowledges, so a channel ack
+never reflects the peer at all.
+
+`Conversation.ackMeansDelivered` (`lib/models/conversation.dart`) is
+`isDm && !writeAnyway` — true only for a DM not currently forced through
+"send anyway". `_StatusIcon` (`lib/screens/chat_screen.dart`) reads that
+flag to choose between a single check (transmitted) and a double check
+(routing-confirmed by the peer's radio); it never claims proof that the
+message was decrypted or read. That proof-of-decryption signal is a separate
+mechanism — the verify ping/ack described in *Secure chat state* above — and
+does not feed into the checkmarks at all.
+
 ## Known limitations
 
-These are accepted trade-offs, not bugs — see `README.md` → *Security &
-Privacy* for the user-facing version:
-
-- **DM/channel content is encrypted, metadata is not.** Both DMs and channel
-  messages are encrypted by Meshly's own AEAD layer (see *Meshly encryption*
-  above and `SECURITY.md`) and never travel in the clear over the air. What
-  is *not* protected is metadata: source/destination node IDs, timing, packet
-  size, and which slot a channel packet rides on are all visible to anyone
-  listening on the mesh.
-- **No forward secrecy.** Both DMs (static X25519 ECDH) and channels
-  (HKDF-of-PSK) use static long-term keys, not a ratchet — a compromised key
-  can retroactively decrypt past captured ciphertexts.
-- **In-channel forgery.** A channel key is a single group secret, so any
-  member can decrypt every message and forge a message that appears to come
-  from any other member — there is no per-sender authentication within a
-  channel.
-- **Plaintext local storage.** Decrypted message history and channel PSKs are
-  stored unencrypted in the local SQLite database, so device compromise still
-  exposes past conversations and channel keys.
-- **Channel ACKs**: a delivery ack in a group channel is only ever observed
-  from the local radio's own transmission — there is no second "read by
-  peer" checkmark for channels the way there is for DMs.
-- Push notifications work in the foreground reliably; background BLE
-  wake-up on iOS needs additional native work.
+`SECURITY.md` is the single owner of the full limitations list and threat
+model — see its *Security posture* section. The points above that follow
+directly from how the wire protocol and storage are built (hardware-slot
+metadata, static keys, plaintext storage) are covered there in full; this
+document only explains the mechanisms that produce them.
