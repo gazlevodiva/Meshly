@@ -211,7 +211,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get onboardingText3 =>
-      'Обменяйтесь QR-кодами с теми, кому доверяете, и создайте общий канал для своих.';
+      'Обменяйтесь QR-кодами с теми, кому доверяете, и создайте общую беседу для своих.';
 
   @override
   String get onboardingSkip => 'Пропустить';
@@ -226,7 +226,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get addContact => 'Добавить контакт';
 
   @override
-  String get createChannel => 'Создать канал';
+  String get createChannel => 'Создать беседу';
 
   @override
   String get myContact => 'Мой контакт';
@@ -244,7 +244,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get emptyChatsTitle => 'Пока нет чатов';
 
   @override
-  String get emptyChatsSubtitle => 'Добавьте контакт или создайте канал';
+  String get emptyChatsSubtitle => 'Добавьте контакт или создайте беседу';
 
   @override
   String get contactsTitle => 'Контакты';
@@ -267,7 +267,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get editContactTooltip => 'Изменить контакт';
 
   @override
-  String get aboutChannelTooltip => 'О канале';
+  String get aboutChannelTooltip => 'О беседе';
 
   @override
   String get backTooltip => 'Назад';
@@ -381,10 +381,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsSectionBlocked => 'Заблокированные';
 
   @override
-  String get blockedNodesTile => 'Заблокированные ноды';
+  String get blockedNodesTile => 'Заблокированные устройства';
 
   @override
-  String get noBlockedNodes => 'Нет заблокированных нод';
+  String get noBlockedNodes => 'Нет заблокированных устройств';
 
   @override
   String blockedCount(int count) {
@@ -439,7 +439,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get directMessages => 'Личные сообщения';
 
   @override
-  String get channelsLabel => 'Каналы';
+  String get channelsLabel => 'Беседы';
 
   @override
   String get mutedSection => 'Замьюченные';
@@ -467,7 +467,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get blockNodeWarning =>
-      'Нода больше не будет отображаться в мессенджере. Сообщения от неё будут игнорироваться.';
+      'Устройство больше не будет отображаться в мессенджере. Сообщения от него будут игнорироваться.';
 
   @override
   String get blockAction => 'Заблокировать';
@@ -491,7 +491,10 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get additionalInfoSubtitle =>
-      'Node ID, время последнего соединения и другая информация';
+      'ID устройства, время последнего соединения и другая информация';
+
+  @override
+  String get deviceIdLabel => 'ID устройства';
 
   @override
   String get addedLabel => 'Добавлен';
@@ -520,11 +523,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get doneButton => 'Готово';
 
   @override
-  String slotN(int slot) {
-    return 'Слот $slot';
-  }
-
-  @override
   String get shareQrToInvite =>
       'Поделитесь QR-кодом чтобы пригласить участника';
 
@@ -533,20 +531,24 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get encryptionValue =>
-      'Сквозное шифрование, свой ключ у каждого канала';
+      'Сквозное шифрование, свой ключ у каждой беседы';
 
   @override
-  String get pskLabel => 'Ключ (PSK)';
+  String get pskLabel => 'Ключ шифрования';
 
   @override
-  String get deleteChannelAction => 'Удалить канал';
+  String get channelMembersInfo =>
+      'Списка участников нет: в беседе состоит любой, у кого есть её ключ, — приложение не может это отследить.';
 
   @override
-  String get deleteChannelQuestion => 'Удалить канал?';
+  String get deleteChannelAction => 'Удалить беседу';
+
+  @override
+  String get deleteChannelQuestion => 'Удалить беседу?';
 
   @override
   String deleteChannelWarning(String name) {
-    return 'Канал \"$name\" будет удалён локально. Другие участники продолжат его видеть.';
+    return 'Беседа \"$name\" будет удалена локально. Другие участники продолжат её видеть.';
   }
 
   @override
@@ -567,35 +569,35 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get pointCameraAtQr => 'Наведите камеру на QR-код контакта или канала';
+  String get pointCameraAtQr => 'Наведите камеру на QR-код контакта или беседы';
 
   @override
   String get addContactQuestion => 'Добавить контакт?';
 
   @override
-  String get addChannelQuestion => 'Добавить канал?';
+  String get addChannelQuestion => 'Добавить беседу?';
 
   @override
   String get emojiLabel => 'Эмодзи';
 
   @override
-  String get newChannelTitle => 'Новый канал';
+  String get newChannelTitle => 'Новая беседа';
 
   @override
-  String get allSlotsBusy => 'Все слоты заняты (максимум 7 каналов)';
+  String get allSlotsBusy => 'Достигнут лимит бесед — максимум 7';
 
   @override
-  String get channelNameLabel => 'Название канала';
+  String get channelNameLabel => 'Название беседы';
 
   @override
   String get channelNameHint => 'Горная группа';
 
   @override
-  String get channelIconLabel => 'Иконка канала';
+  String get channelIconLabel => 'Иконка беседы';
 
   @override
   String get channelCreateInfo =>
-      'Канал создастся с уникальным ключом шифрования. Поделитесь QR-кодом канала с теми кого хотите добавить.';
+      'Беседа создастся с уникальным ключом шифрования. Поделитесь QR-кодом с теми, кого хотите добавить. Учтите: убрать кого-то из беседы нельзя — ключ общий для всех и не меняется.';
 
   @override
   String get chooseIconTitle => 'Выберите иконку';

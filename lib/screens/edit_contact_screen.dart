@@ -210,7 +210,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
             Text(ctx.l10n.additionalInfoTitle,
                 style: Theme.of(ctx).textTheme.titleLarge),
             const SizedBox(height: AppSpacing.s20),
-            _InfoRow(label: 'Node ID', value: nodeId),
+            _InfoRow(label: ctx.l10n.deviceIdLabel, value: nodeId),
             const SizedBox(height: AppSpacing.s12),
             _InfoRow(
               label: ctx.l10n.addedLabel,

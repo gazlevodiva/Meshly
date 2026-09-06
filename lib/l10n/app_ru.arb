@@ -183,7 +183,7 @@
   "onboardingTitle2": "Нужен Meshtastic-девайс",
   "onboardingText2": "Включите девайс и держите его рядом с телефоном. Приложение само подключится к нему по Bluetooth.",
   "onboardingTitle3": "Люди, которым\nвы доверяете",
-  "onboardingText3": "Обменяйтесь QR-кодами с теми, кому доверяете, и создайте общий канал для своих.",
+  "onboardingText3": "Обменяйтесь QR-кодами с теми, кому доверяете, и создайте общую беседу для своих.",
   "onboardingSkip": "Пропустить",
   "onboardingNext": "Далее",
   "onboardingStart": "Начать",
@@ -192,7 +192,7 @@
   "@addContact": {
     "description": "Add-options sheet item, empty-state button and add-contact dialog title"
   },
-  "createChannel": "Создать канал",
+  "createChannel": "Создать беседу",
   "myContact": "Мой контакт",
   "@myContact": {
     "description": "Add-options sheet item that opens the user's own QR card"
@@ -207,7 +207,7 @@
     "description": "Status pill: auto-reconnecting after a BLE drop"
   },
   "emptyChatsTitle": "Пока нет чатов",
-  "emptyChatsSubtitle": "Добавьте контакт или создайте канал",
+  "emptyChatsSubtitle": "Добавьте контакт или создайте беседу",
 
   "contactsTitle": "Контакты",
   "noContactsHint": "Нет контактов. Добавьте через +",
@@ -231,7 +231,7 @@
     }
   },
   "editContactTooltip": "Изменить контакт",
-  "aboutChannelTooltip": "О канале",
+  "aboutChannelTooltip": "О беседе",
   "backTooltip": "Назад",
   "messageHint": "Сообщение...",
   "@messageHint": {
@@ -335,8 +335,8 @@
   "@settingsSectionBlocked": {
     "description": "Settings section title and the blocked-nodes screen title"
   },
-  "blockedNodesTile": "Заблокированные ноды",
-  "noBlockedNodes": "Нет заблокированных нод",
+  "blockedNodesTile": "Заблокированные устройства",
+  "noBlockedNodes": "Нет заблокированных устройств",
   "blockedCount": "Заблокировано: {count}",
   "@blockedCount": {
     "description": "Subtitle of the blocked-nodes tile when there is at least one blocked node",
@@ -378,7 +378,7 @@
   "masterSwitchSubtitle": "Главный переключатель",
   "sourcesSection": "Источники",
   "directMessages": "Личные сообщения",
-  "channelsLabel": "Каналы",
+  "channelsLabel": "Беседы",
   "mutedSection": "Замьюченные",
   "unmuteButton": "Включить",
   "@unmuteButton": {
@@ -395,7 +395,7 @@
   "copyLinkButton": "Скопировать ссылку",
   "linkCopied": "Ссылка скопирована",
   "blockNodeQuestion": "Заблокировать?",
-  "blockNodeWarning": "Нода больше не будет отображаться в мессенджере. Сообщения от неё будут игнорироваться.",
+  "blockNodeWarning": "Устройство больше не будет отображаться в мессенджере. Сообщения от него будут игнорироваться.",
   "blockAction": "Заблокировать",
   "@blockAction": {
     "description": "Danger-zone tile and the confirm button in the block dialog"
@@ -416,7 +416,11 @@
   },
   "deleteContactAction": "Удалить контакт",
   "additionalInfoTitle": "Дополнительно",
-  "additionalInfoSubtitle": "Node ID, время последнего соединения и другая информация",
+  "additionalInfoSubtitle": "ID устройства, время последнего соединения и другая информация",
+  "deviceIdLabel": "ID устройства",
+  "@deviceIdLabel": {
+    "description": "Label for the Meshtastic device identifier (e.g. !1f8e42c9) shown in contact info and typed manually in the add-contact form"
+  },
   "addedLabel": "Добавлен",
   "@addedLabel": {
     "description": "Info-row label: when the contact was added"
@@ -438,23 +442,17 @@
   "emojiInputHint": "Введите любой эмодзи...",
   "doneButton": "Готово",
 
-  "slotN": "Слот {slot}",
-  "@slotN": {
-    "description": "Meshtastic channel slot index (0–7)",
-    "placeholders": {
-      "slot": {
-        "type": "int",
-        "example": "3"
-      }
-    }
-  },
   "shareQrToInvite": "Поделитесь QR-кодом чтобы пригласить участника",
   "encryptionLabel": "Шифрование",
-  "encryptionValue": "Сквозное шифрование, свой ключ у каждого канала",
-  "pskLabel": "Ключ (PSK)",
-  "deleteChannelAction": "Удалить канал",
-  "deleteChannelQuestion": "Удалить канал?",
-  "deleteChannelWarning": "Канал \"{name}\" будет удалён локально. Другие участники продолжат его видеть.",
+  "encryptionValue": "Сквозное шифрование, свой ключ у каждой беседы",
+  "pskLabel": "Ключ шифрования",
+  "channelMembersInfo": "Списка участников нет: в беседе состоит любой, у кого есть её ключ, — приложение не может это отследить.",
+  "@channelMembersInfo": {
+    "description": "Explains why the channel/conversation info screen has no member list — technically impossible, not an oversight"
+  },
+  "deleteChannelAction": "Удалить беседу",
+  "deleteChannelQuestion": "Удалить беседу?",
+  "deleteChannelWarning": "Беседа \"{name}\" будет удалена локально. Другие участники продолжат её видеть.",
   "@deleteChannelWarning": {
     "placeholders": {
       "name": {
@@ -480,17 +478,17 @@
       }
     }
   },
-  "pointCameraAtQr": "Наведите камеру на QR-код контакта или канала",
+  "pointCameraAtQr": "Наведите камеру на QR-код контакта или беседы",
   "addContactQuestion": "Добавить контакт?",
-  "addChannelQuestion": "Добавить канал?",
+  "addChannelQuestion": "Добавить беседу?",
   "emojiLabel": "Эмодзи",
 
-  "newChannelTitle": "Новый канал",
-  "allSlotsBusy": "Все слоты заняты (максимум 7 каналов)",
-  "channelNameLabel": "Название канала",
+  "newChannelTitle": "Новая беседа",
+  "allSlotsBusy": "Достигнут лимит бесед — максимум 7",
+  "channelNameLabel": "Название беседы",
   "channelNameHint": "Горная группа",
-  "channelIconLabel": "Иконка канала",
-  "channelCreateInfo": "Канал создастся с уникальным ключом шифрования. Поделитесь QR-кодом канала с теми кого хотите добавить.",
+  "channelIconLabel": "Иконка беседы",
+  "channelCreateInfo": "Беседа создастся с уникальным ключом шифрования. Поделитесь QR-кодом с теми, кого хотите добавить. Учтите: убрать кого-то из беседы нельзя — ключ общий для всех и не меняется.",
   "chooseIconTitle": "Выберите иконку",
 
   "defaultMyName": "Я",

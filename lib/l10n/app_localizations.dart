@@ -467,7 +467,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingText3.
   ///
   /// In ru, this message translates to:
-  /// **'Обменяйтесь QR-кодами с теми, кому доверяете, и создайте общий канал для своих.'**
+  /// **'Обменяйтесь QR-кодами с теми, кому доверяете, и создайте общую беседу для своих.'**
   String get onboardingText3;
 
   /// No description provided for @onboardingSkip.
@@ -497,7 +497,7 @@ abstract class AppLocalizations {
   /// No description provided for @createChannel.
   ///
   /// In ru, this message translates to:
-  /// **'Создать канал'**
+  /// **'Создать беседу'**
   String get createChannel;
 
   /// Add-options sheet item that opens the user's own QR card
@@ -533,7 +533,7 @@ abstract class AppLocalizations {
   /// No description provided for @emptyChatsSubtitle.
   ///
   /// In ru, this message translates to:
-  /// **'Добавьте контакт или создайте канал'**
+  /// **'Добавьте контакт или создайте беседу'**
   String get emptyChatsSubtitle;
 
   /// No description provided for @contactsTitle.
@@ -575,7 +575,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutChannelTooltip.
   ///
   /// In ru, this message translates to:
-  /// **'О канале'**
+  /// **'О беседе'**
   String get aboutChannelTooltip;
 
   /// No description provided for @backTooltip.
@@ -791,13 +791,13 @@ abstract class AppLocalizations {
   /// No description provided for @blockedNodesTile.
   ///
   /// In ru, this message translates to:
-  /// **'Заблокированные ноды'**
+  /// **'Заблокированные устройства'**
   String get blockedNodesTile;
 
   /// No description provided for @noBlockedNodes.
   ///
   /// In ru, this message translates to:
-  /// **'Нет заблокированных нод'**
+  /// **'Нет заблокированных устройств'**
   String get noBlockedNodes;
 
   /// Subtitle of the blocked-nodes tile when there is at least one blocked node
@@ -899,7 +899,7 @@ abstract class AppLocalizations {
   /// No description provided for @channelsLabel.
   ///
   /// In ru, this message translates to:
-  /// **'Каналы'**
+  /// **'Беседы'**
   String get channelsLabel;
 
   /// No description provided for @mutedSection.
@@ -953,7 +953,7 @@ abstract class AppLocalizations {
   /// No description provided for @blockNodeWarning.
   ///
   /// In ru, this message translates to:
-  /// **'Нода больше не будет отображаться в мессенджере. Сообщения от неё будут игнорироваться.'**
+  /// **'Устройство больше не будет отображаться в мессенджере. Сообщения от него будут игнорироваться.'**
   String get blockNodeWarning;
 
   /// Danger-zone tile and the confirm button in the block dialog
@@ -995,8 +995,14 @@ abstract class AppLocalizations {
   /// No description provided for @additionalInfoSubtitle.
   ///
   /// In ru, this message translates to:
-  /// **'Node ID, время последнего соединения и другая информация'**
+  /// **'ID устройства, время последнего соединения и другая информация'**
   String get additionalInfoSubtitle;
+
+  /// Label for the Meshtastic device identifier (e.g. !1f8e42c9) shown in contact info and typed manually in the add-contact form
+  ///
+  /// In ru, this message translates to:
+  /// **'ID устройства'**
+  String get deviceIdLabel;
 
   /// Info-row label: when the contact was added
   ///
@@ -1046,12 +1052,6 @@ abstract class AppLocalizations {
   /// **'Готово'**
   String get doneButton;
 
-  /// Meshtastic channel slot index (0–7)
-  ///
-  /// In ru, this message translates to:
-  /// **'Слот {slot}'**
-  String slotN(int slot);
-
   /// No description provided for @shareQrToInvite.
   ///
   /// In ru, this message translates to:
@@ -1067,31 +1067,37 @@ abstract class AppLocalizations {
   /// No description provided for @encryptionValue.
   ///
   /// In ru, this message translates to:
-  /// **'Сквозное шифрование, свой ключ у каждого канала'**
+  /// **'Сквозное шифрование, свой ключ у каждой беседы'**
   String get encryptionValue;
 
   /// No description provided for @pskLabel.
   ///
   /// In ru, this message translates to:
-  /// **'Ключ (PSK)'**
+  /// **'Ключ шифрования'**
   String get pskLabel;
+
+  /// Explains why the channel/conversation info screen has no member list — technically impossible, not an oversight
+  ///
+  /// In ru, this message translates to:
+  /// **'Списка участников нет: в беседе состоит любой, у кого есть её ключ, — приложение не может это отследить.'**
+  String get channelMembersInfo;
 
   /// No description provided for @deleteChannelAction.
   ///
   /// In ru, this message translates to:
-  /// **'Удалить канал'**
+  /// **'Удалить беседу'**
   String get deleteChannelAction;
 
   /// No description provided for @deleteChannelQuestion.
   ///
   /// In ru, this message translates to:
-  /// **'Удалить канал?'**
+  /// **'Удалить беседу?'**
   String get deleteChannelQuestion;
 
   /// No description provided for @deleteChannelWarning.
   ///
   /// In ru, this message translates to:
-  /// **'Канал \"{name}\" будет удалён локально. Другие участники продолжат его видеть.'**
+  /// **'Беседа \"{name}\" будет удалена локально. Другие участники продолжат её видеть.'**
   String deleteChannelWarning(String name);
 
   /// Add-contact screen title
@@ -1127,7 +1133,7 @@ abstract class AppLocalizations {
   /// No description provided for @pointCameraAtQr.
   ///
   /// In ru, this message translates to:
-  /// **'Наведите камеру на QR-код контакта или канала'**
+  /// **'Наведите камеру на QR-код контакта или беседы'**
   String get pointCameraAtQr;
 
   /// No description provided for @addContactQuestion.
@@ -1139,7 +1145,7 @@ abstract class AppLocalizations {
   /// No description provided for @addChannelQuestion.
   ///
   /// In ru, this message translates to:
-  /// **'Добавить канал?'**
+  /// **'Добавить беседу?'**
   String get addChannelQuestion;
 
   /// No description provided for @emojiLabel.
@@ -1151,19 +1157,19 @@ abstract class AppLocalizations {
   /// No description provided for @newChannelTitle.
   ///
   /// In ru, this message translates to:
-  /// **'Новый канал'**
+  /// **'Новая беседа'**
   String get newChannelTitle;
 
   /// No description provided for @allSlotsBusy.
   ///
   /// In ru, this message translates to:
-  /// **'Все слоты заняты (максимум 7 каналов)'**
+  /// **'Достигнут лимит бесед — максимум 7'**
   String get allSlotsBusy;
 
   /// No description provided for @channelNameLabel.
   ///
   /// In ru, this message translates to:
-  /// **'Название канала'**
+  /// **'Название беседы'**
   String get channelNameLabel;
 
   /// No description provided for @channelNameHint.
@@ -1175,13 +1181,13 @@ abstract class AppLocalizations {
   /// No description provided for @channelIconLabel.
   ///
   /// In ru, this message translates to:
-  /// **'Иконка канала'**
+  /// **'Иконка беседы'**
   String get channelIconLabel;
 
   /// No description provided for @channelCreateInfo.
   ///
   /// In ru, this message translates to:
-  /// **'Канал создастся с уникальным ключом шифрования. Поделитесь QR-кодом канала с теми кого хотите добавить.'**
+  /// **'Беседа создастся с уникальным ключом шифрования. Поделитесь QR-кодом с теми, кого хотите добавить. Учтите: убрать кого-то из беседы нельзя — ключ общий для всех и не меняется.'**
   String get channelCreateInfo;
 
   /// No description provided for @chooseIconTitle.

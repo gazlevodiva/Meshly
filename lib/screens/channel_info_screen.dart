@@ -39,7 +39,8 @@ class ChannelInfoScreen extends StatelessWidget {
           ),
           TextButton(
             style: TextButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.error),
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
             onPressed: () => Navigator.pop(context, true),
             child: Text(context.l10n.deleteAction),
           ),
@@ -91,11 +92,6 @@ class ChannelInfoScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.s12),
                 Text(channel.name, style: AppTextStyles.headline),
-                const SizedBox(height: AppSpacing.s2),
-                Text(
-                  context.l10n.slotN(channel.slotIndex),
-                  style: AppTextStyles.secondary(context),
-                ),
               ],
             ),
             const SizedBox(height: AppSpacing.s24),
@@ -128,6 +124,31 @@ class ChannelInfoScreen extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.s12),
 
+            // Почему нет списка участников
+            SectionCard(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.s14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: AppIconSizes.info,
+                      color: context.appColors.iconSecondary,
+                    ),
+                    const SizedBox(width: AppSpacing.s10),
+                    Expanded(
+                      child: Text(
+                        context.l10n.channelMembersInfo,
+                        style: AppTextStyles.subtitle(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s12),
+
             // Уведомления
             SectionCard(
               child: ListenableBuilder(
@@ -137,9 +158,11 @@ class ChannelInfoScreen extends StatelessWidget {
                   final settings = NotificationSettings.instance;
                   final muted = settings.isMuted(convId);
                   return SwitchListTile(
-                    secondary: Icon(muted
-                        ? Icons.notifications_off_outlined
-                        : Icons.notifications_outlined),
+                    secondary: Icon(
+                      muted
+                          ? Icons.notifications_off_outlined
+                          : Icons.notifications_outlined,
+                    ),
                     title: Text(context.l10n.notificationsTitle),
                     value: !muted,
                     onChanged: (v) async {
@@ -159,7 +182,9 @@ class ChannelInfoScreen extends StatelessWidget {
             SectionCard(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.s16, vertical: AppSpacing.s8),
+                  horizontal: AppSpacing.s16,
+                  vertical: AppSpacing.s8,
+                ),
                 child: Column(
                   children: [
                     _InfoRow(
@@ -182,8 +207,10 @@ class ChannelInfoScreen extends StatelessWidget {
             // Опасная зона
             SectionCard(
               child: ListTile(
-                leading: Icon(Icons.delete_outline,
-                    color: Theme.of(context).colorScheme.error),
+                leading: Icon(
+                  Icons.delete_outline,
+                  color: Theme.of(context).colorScheme.error,
+                ),
                 title: Text(
                   context.l10n.deleteChannelAction,
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
@@ -222,8 +249,11 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
       child: Row(
         children: [
-          Icon(icon,
-              size: AppIconSizes.info, color: context.appColors.iconSecondary),
+          Icon(
+            icon,
+            size: AppIconSizes.info,
+            color: context.appColors.iconSecondary,
+          ),
           const SizedBox(width: AppSpacing.s12),
           Expanded(
             child: Column(

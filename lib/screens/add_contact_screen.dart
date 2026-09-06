@@ -367,11 +367,6 @@ class _ConfirmChannelDialog extends StatelessWidget {
             '${data.avatarEmoji ?? '📡'} ${data.name}',
             style: AppTextStyles.title,
           ),
-          const SizedBox(height: AppSpacing.s4),
-          Text(
-            context.l10n.slotN(data.slotIndex),
-            style: AppTextStyles.secondary(context),
-          ),
         ],
       ),
       actions: [
@@ -466,8 +461,8 @@ class _ManualInputTabState extends State<_ManualInputTab> {
                 children: [
                   TextField(
                     controller: _nodeIdCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Node ID',
+                    decoration: InputDecoration(
+                      labelText: context.l10n.deviceIdLabel,
                       hintText: '!1f8e42c9',
                       prefixText: '',
                     ),

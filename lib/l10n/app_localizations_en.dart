@@ -211,7 +211,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingText3 =>
-      'Exchange QR codes with people you trust and create a shared channel for your circle.';
+      'Exchange QR codes with people you trust and create a shared conversation for your circle.';
 
   @override
   String get onboardingSkip => 'Skip';
@@ -226,7 +226,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addContact => 'Add contact';
 
   @override
-  String get createChannel => 'Create channel';
+  String get createChannel => 'Create conversation';
 
   @override
   String get myContact => 'My contact';
@@ -244,7 +244,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emptyChatsTitle => 'No chats yet';
 
   @override
-  String get emptyChatsSubtitle => 'Add a contact or create a channel';
+  String get emptyChatsSubtitle => 'Add a contact or create a conversation';
 
   @override
   String get contactsTitle => 'Contacts';
@@ -267,7 +267,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editContactTooltip => 'Edit contact';
 
   @override
-  String get aboutChannelTooltip => 'About channel';
+  String get aboutChannelTooltip => 'About conversation';
 
   @override
   String get backTooltip => 'Back';
@@ -380,10 +380,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSectionBlocked => 'Blocked';
 
   @override
-  String get blockedNodesTile => 'Blocked nodes';
+  String get blockedNodesTile => 'Blocked devices';
 
   @override
-  String get noBlockedNodes => 'No blocked nodes';
+  String get noBlockedNodes => 'No blocked devices';
 
   @override
   String blockedCount(int count) {
@@ -438,7 +438,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get directMessages => 'Direct messages';
 
   @override
-  String get channelsLabel => 'Channels';
+  String get channelsLabel => 'Conversations';
 
   @override
   String get mutedSection => 'Muted';
@@ -462,11 +462,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get linkCopied => 'Link copied';
 
   @override
-  String get blockNodeQuestion => 'Block this node?';
+  String get blockNodeQuestion => 'Block this device?';
 
   @override
   String get blockNodeWarning =>
-      'The node will no longer appear in the messenger. Messages from it will be ignored.';
+      'The device will no longer appear in the messenger. Messages from it will be ignored.';
 
   @override
   String get blockAction => 'Block';
@@ -490,7 +490,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get additionalInfoSubtitle =>
-      'Node ID, last connection time and other info';
+      'Device ID, last connection time and other info';
+
+  @override
+  String get deviceIdLabel => 'Device ID';
 
   @override
   String get addedLabel => 'Added';
@@ -519,11 +522,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get doneButton => 'Done';
 
   @override
-  String slotN(int slot) {
-    return 'Slot $slot';
-  }
-
-  @override
   String get shareQrToInvite => 'Share this QR code to invite a member';
 
   @override
@@ -531,20 +529,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get encryptionValue =>
-      'End-to-end encrypted, a unique key per channel';
+      'End-to-end encrypted, a unique key per conversation';
 
   @override
-  String get pskLabel => 'Key (PSK)';
+  String get pskLabel => 'Encryption key';
 
   @override
-  String get deleteChannelAction => 'Delete channel';
+  String get channelMembersInfo =>
+      'There\'s no member list: anyone with this key is part of the conversation, and the app has no way to track who that is.';
 
   @override
-  String get deleteChannelQuestion => 'Delete channel?';
+  String get deleteChannelAction => 'Delete conversation';
+
+  @override
+  String get deleteChannelQuestion => 'Delete conversation?';
 
   @override
   String deleteChannelWarning(String name) {
-    return 'The channel \"$name\" will be deleted locally. Other members will still see it.';
+    return 'The conversation \"$name\" will be deleted locally. Other members will still see it.';
   }
 
   @override
@@ -566,35 +568,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pointCameraAtQr =>
-      'Point the camera at a contact or channel QR code';
+      'Point the camera at a contact or conversation QR code';
 
   @override
   String get addContactQuestion => 'Add contact?';
 
   @override
-  String get addChannelQuestion => 'Add channel?';
+  String get addChannelQuestion => 'Add conversation?';
 
   @override
   String get emojiLabel => 'Emoji';
 
   @override
-  String get newChannelTitle => 'New channel';
+  String get newChannelTitle => 'New conversation';
 
   @override
-  String get allSlotsBusy => 'All slots are taken (7 channels max)';
+  String get allSlotsBusy => 'Conversation limit reached — 7 maximum';
 
   @override
-  String get channelNameLabel => 'Channel name';
+  String get channelNameLabel => 'Conversation name';
 
   @override
   String get channelNameHint => 'Hiking group';
 
   @override
-  String get channelIconLabel => 'Channel icon';
+  String get channelIconLabel => 'Conversation icon';
 
   @override
   String get channelCreateInfo =>
-      'The channel will be created with a unique encryption key. Share the channel QR code with the people you want to add.';
+      'The conversation will be created with a unique encryption key. Share the QR code with the people you want to add. Keep in mind: you can\'t remove anyone from a conversation later — the key is shared by everyone and never changes.';
 
   @override
   String get chooseIconTitle => 'Choose an icon';
