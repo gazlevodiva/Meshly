@@ -188,9 +188,12 @@ sqlite3.Database _buildSecureChatEraDb(int version) {
       if (peerId == null) 'NULL' else "'$peerId'",
       if (channelId == null) 'NULL' else "'$channelId'",
       '$unread',
-      if (version >= 6) broken ? '$seconds' : 'NULL',
-      if (version >= 7) broken ? "x'$_keyHex'" : 'NULL',
-      if (version >= 8) broken ? '$seconds' : 'NULL',
+      if (version >= 6)
+        if (broken) '$seconds' else 'NULL',
+      if (version >= 7)
+        if (broken) "x'$_keyHex'" else 'NULL',
+      if (version >= 8)
+        if (broken) '$seconds' else 'NULL',
       '$now',
     ];
     return 'INSERT INTO conversations ($names) VALUES (${values.join(', ')})';
@@ -990,7 +993,11 @@ void main() {
                   .toSet();
           expect(
             convColumns,
-            containsAll(['i_can_read_peer', 'peer_can_read_us', 'write_anyway']),
+            containsAll([
+              'i_can_read_peer',
+              'peer_can_read_us',
+              'write_anyway',
+            ]),
           );
           expect(
             convColumns,
@@ -1056,7 +1063,10 @@ void main() {
           .customSelect('SELECT node_id, public_key FROM contacts')
           .get();
       expect(contacts, hasLength(1));
-      expect(contacts.first.data['public_key'], equals(List<int>.filled(32, 3)));
+      expect(
+        contacts.first.data['public_key'],
+        equals(List<int>.filled(32, 3)),
+      );
     });
   });
 }

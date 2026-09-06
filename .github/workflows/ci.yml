@@ -13,7 +13,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
+          # Зафиксировано на версии, на которой реально ведётся разработка
+          # (см. `flutter --version` у мейнтейнера). Без явной версии
+          # `channel: stable` подтягивает свежий SDK автоматически и может
+          # внезапно завести новые правила анализатора, которых нет в
+          # локальном окружении (см. очередь на 2026-09-05: 3.47.2 ловил
+          # unnecessary_unawaited для мест, где very_good_analysis того же
+          # проекта на 3.44.2 требует discarded_futures — правила
+          # конфликтуют, а значит "просто обновить CI" не вариант).
+          # Апгрейд Flutter — осознанное решение: сначала обновить локальный
+          # SDK, прогнать analyze/test, разобрать конфликт линтов, и только
+          # затем поднять версию здесь.
           channel: stable
+          flutter-version: 3.44.2
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test --coverage
