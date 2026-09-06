@@ -92,6 +92,16 @@ class Conversation {
   /// hint, the send block) derives from this — nothing re-derives it.
   bool get secureOk => iCanReadPeer && peerCanReadUs;
 
+  /// Whether a routing-ack for a message in this conversation actually means
+  /// "the peer received it". `MessageStatus.acked` itself is just a transport
+  /// fact (the radio got a ROUTING_APP confirmation) — in a channel that
+  /// confirmation comes from our own radio (broadcast, no peer involved), and
+  /// in a broken DM kept open via `writeAnyway` the peer likely can't even
+  /// decrypt what we send. Only a healthy DM lets an ack stand for delivery,
+  /// so this is the single place that decides whether the UI may show a
+  /// second checkmark — nothing else should re-derive it.
+  bool get ackMeansDelivered => isDm && !writeAnyway;
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'type': type.name,

@@ -909,4 +909,137 @@ void main() {
       mesh.dispose();
     },
   );
+
+  // The second checkmark must mean "the peer got it". A routing-ack is a
+  // radio-level fact, not a peer-level one, so what it may draw as depends on
+  // the conversation it landed in.
+  group('delivery checkmark only claims what the ack actually confirms', () {
+    testWidgets(
+      'a healthy DM shows the double checkmark on an acked message',
+      (tester) async {
+        await store.saveContact(
+          Contact(nodeId: '!ack0001', displayName: 'Олег', publicKey: key(20)),
+        );
+        final conv = await seedBrokenDm(
+          '!ack0001',
+          iCanReadPeer: true,
+          peerCanReadUs: true,
+        );
+        await store.addMessage(
+          Message(
+            meshId: 500,
+            fromNodeId: '!local',
+            conversationId: conv.id,
+            text: 'привет',
+            time: DateTime.now(),
+            isMe: true,
+            status: MessageStatus.acked,
+          ),
+        );
+
+        final mesh = await pumpChat(tester, conversation: conv);
+
+        expect(find.byIcon(Icons.done_all), findsOneWidget);
+        expect(find.byIcon(Icons.check), findsNothing);
+
+        await tester.pumpWidget(const SizedBox());
+        mesh.dispose();
+      },
+    );
+
+    testWidgets(
+      'a channel shows only a single checkmark on an acked message: the ack '
+      'is our own radio, not the group',
+      (tester) async {
+        final conv = Conversation.channel('general');
+        await store.saveConversation(conv);
+        await store.addMessage(
+          Message(
+            meshId: 501,
+            fromNodeId: '!local',
+            conversationId: conv.id,
+            text: 'всем привет',
+            time: DateTime.now(),
+            isMe: true,
+            status: MessageStatus.acked,
+          ),
+        );
+
+        final mesh = await pumpChat(tester, conversation: conv);
+
+        expect(find.byIcon(Icons.done_all), findsNothing);
+        expect(find.byIcon(Icons.check), findsOneWidget);
+
+        await tester.pumpWidget(const SizedBox());
+        mesh.dispose();
+      },
+    );
+
+    testWidgets(
+      'a DM kept open via "write anyway" shows only a single checkmark on '
+      'an acked message: the peer likely cannot even decrypt it',
+      (tester) async {
+        final conv = await seedBrokenDm('!ack0002');
+        await store.setWriteAnyway(conv.id, value: true);
+        await store.addMessage(
+          Message(
+            meshId: 502,
+            fromNodeId: '!local',
+            conversationId: conv.id,
+            text: 'пишу всё равно',
+            time: DateTime.now(),
+            isMe: true,
+            status: MessageStatus.acked,
+          ),
+        );
+
+        final mesh = await pumpChat(tester, conversation: conv);
+
+        expect(find.byIcon(Icons.done_all), findsNothing);
+        expect(find.byIcon(Icons.check), findsOneWidget);
+
+        await tester.pumpWidget(const SizedBox());
+        mesh.dispose();
+      },
+    );
+
+    testWidgets(
+      '"sending" and "failed" statuses are unaffected by the conversation '
+      'type',
+      (tester) async {
+        final conv = Conversation.channel('general2');
+        await store.saveConversation(conv);
+        await store.addMessage(
+          Message(
+            meshId: 503,
+            fromNodeId: '!local',
+            conversationId: conv.id,
+            text: 'в процессе',
+            time: DateTime.now(),
+            isMe: true,
+          ),
+        );
+        await store.addMessage(
+          Message(
+            meshId: 504,
+            fromNodeId: '!local',
+            conversationId: conv.id,
+            text: 'не ушло',
+            time: DateTime.now(),
+            isMe: true,
+            status: MessageStatus.failed,
+          ),
+        );
+
+        final mesh = await pumpChat(tester, conversation: conv);
+
+        expect(find.byIcon(Icons.access_time), findsOneWidget);
+        expect(find.byIcon(Icons.error_outline), findsOneWidget);
+        expect(find.byIcon(Icons.done_all), findsNothing);
+
+        await tester.pumpWidget(const SizedBox());
+        mesh.dispose();
+      },
+    );
+  });
 }

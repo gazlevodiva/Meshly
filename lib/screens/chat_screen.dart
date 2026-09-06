@@ -413,6 +413,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                     msg: msg,
                                     store: _store,
                                     inChannel: conv.isChannel,
+                                    ackMeansDelivered: conv.ackMeansDelivered,
                                     showSender: showSender,
                                     onRetry: _retry,
                                   ),
@@ -1088,6 +1089,7 @@ class _MessageBubble extends StatelessWidget {
     required this.msg,
     required this.store,
     required this.inChannel,
+    required this.ackMeansDelivered,
     required this.showSender,
     required this.onRetry,
   });
@@ -1095,6 +1097,11 @@ class _MessageBubble extends StatelessWidget {
   final Message msg;
   final ContactStore store;
   final bool inChannel;
+
+  /// Whether a routing-ack in this conversation means the peer actually got
+  /// the message (see `Conversation.ackMeansDelivered`) — decides whether
+  /// `MessageStatus.acked` may draw as a second checkmark.
+  final bool ackMeansDelivered;
 
   /// Show the sender avatar + name (channels only; collapsed for consecutive
   /// messages from the same sender).
@@ -1133,7 +1140,7 @@ class _MessageBubble extends StatelessWidget {
         ),
         if (isMe) ...[
           const SizedBox(width: AppSpacing.s4),
-          _StatusIcon(status: msg.status),
+          _StatusIcon(status: msg.status, ackMeansDelivered: ackMeansDelivered),
         ],
       ],
     );
@@ -1228,10 +1235,18 @@ class _MessageBubble extends StatelessWidget {
 }
 
 /// Delivery status icon drawn on the accent-colored outgoing bubble.
+///
+/// `MessageStatus.acked` is only a transport fact — the radio got a
+/// ROUTING_APP confirmation. Whether that confirmation actually means the
+/// peer received the message depends on the conversation (see
+/// `Conversation.ackMeansDelivered`), so the caller passes that decision in
+/// rather than this widget re-deriving it from conversation state it doesn't
+/// have.
 class _StatusIcon extends StatelessWidget {
-  const _StatusIcon({required this.status});
+  const _StatusIcon({required this.status, required this.ackMeansDelivered});
 
   final MessageStatus status;
+  final bool ackMeansDelivered;
 
   @override
   Widget build(BuildContext context) {
@@ -1249,6 +1264,13 @@ class _StatusIcon extends StatelessWidget {
       case MessageStatus.sent:
         return Icon(Icons.check, size: AppIconSizes.status, color: dimmed);
       case MessageStatus.acked:
+        // A routing-ack that doesn't mean the peer got it (channel
+        // broadcast, or a DM kept open via writeAnyway) is only worth
+        // "left the antenna" — the same single checkmark as `sent`, never a
+        // second one implying delivery that was never confirmed.
+        if (!ackMeansDelivered) {
+          return Icon(Icons.check, size: AppIconSizes.status, color: dimmed);
+        }
         return Icon(
           Icons.done_all,
           size: AppIconSizes.status,
