@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:meshly/l10n/l10n.dart';
 import 'package:meshly/screens/main_screen.dart';
+import 'package:meshly/screens/onboarding_screen.dart';
+import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
 import 'package:meshly/theme/app_theme.dart';
 import 'package:meshly/widgets/sheet_drag_handle.dart';
@@ -55,11 +57,34 @@ bool isLikelyMeshtasticDevice({
   return _meshtasticNamePatterns.any(lower.contains);
 }
 
+/// Where to land right after a successful connect: [MainScreen] when a
+/// self-contact already exists — a returning user, or a reconnect — and
+/// [NameStepScreen] the one time it doesn't. The node id (and therefore
+/// whether a self-contact exists) is only known once a device is actually
+/// connected, which is exactly why the name step lives here rather than in
+/// onboarding — see [NameStepScreen]'s doc comment.
+///
+/// A plain top-level function (not inlined in `_connectDevice`) so this
+/// decision can be tested without a real [BluetoothDevice].
+Widget postConnectDestination(
+  MeshService meshService, {
+  bool askForName = false,
+}) {
+  if (!askForName) return MainScreen(meshService: meshService);
+  final nodeId = meshService.myNodeId;
+  final hasSelfContact =
+      nodeId != null && ContactStore.instance.contactByNodeId(nodeId) != null;
+  return hasSelfContact
+      ? MainScreen(meshService: meshService)
+      : NameStepScreen(meshService: meshService);
+}
+
 class ScanScreen extends StatefulWidget {
   const ScanScreen({
     required this.meshService,
     this.isReconnect = false,
     this.autoConnect = true,
+    this.askForName = false,
     super.key,
   });
 
@@ -72,6 +97,14 @@ class ScanScreen extends StatefulWidget {
   // (last_device_id is kept for the next launch, but a reconnect isn't
   // wanted right now).
   final bool autoConnect;
+
+  /// Whether to offer the name step once the radio is connected.
+  ///
+  /// Only the first run sets this. Without it, skipping the step would not
+  /// skip anything: with no self-contact saved, the screen would come back
+  /// on every reconnect. A person who declined is not asked again — the
+  /// name lives in Settings, where the profile row now says so.
+  final bool askForName;
 
   @override
   State<ScanScreen> createState() => _ScanScreenState();
@@ -297,7 +330,10 @@ class _ScanScreenState extends State<ScanScreen> {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (_) => MainScreen(meshService: widget.meshService),
+                builder: (_) => postConnectDestination(
+                  widget.meshService,
+                  askForName: widget.askForName,
+                ),
               ),
             ),
           );
