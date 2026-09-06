@@ -17,8 +17,9 @@ void main() {
     await store.init();
     await store.saveContact(Contact(nodeId: '!00000001', displayName: 'Мама'));
     await store.saveContact(Contact(nodeId: '!00000002', displayName: 'Папа'));
-    await store
-        .saveContact(Contact(nodeId: '!00000003', displayName: 'Сестра'));
+    await store.saveContact(
+      Contact(nodeId: '!00000003', displayName: 'Сестра'),
+    );
   });
 
   Future<void> pumpContacts(WidgetTester tester) async {
@@ -51,8 +52,9 @@ void main() {
     expect(find.text('Сестра'), findsNothing);
   });
 
-  testWidgets('search shows empty state and close restores list',
-      (tester) async {
+  testWidgets('search shows empty state and close restores list', (
+    tester,
+  ) async {
     await pumpContacts(tester);
 
     await tester.tap(find.byIcon(Icons.search));

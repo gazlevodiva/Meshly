@@ -26,8 +26,18 @@ void main() {
 
     test('covers all months', () {
       final months = [
-        'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-        'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
+        'января',
+        'февраля',
+        'марта',
+        'апреля',
+        'мая',
+        'июня',
+        'июля',
+        'августа',
+        'сентября',
+        'октября',
+        'ноября',
+        'декабря',
       ];
       for (var i = 1; i <= 12; i++) {
         final result = absoluteDate(ru, DateTime(2026, i, 15));
@@ -47,15 +57,21 @@ void main() {
     final fixedNow = DateTime(2026, 7, 4, 15, 30);
 
     test('same day → Сегодня', () {
-      expect(chatDate(ru, DateTime(2026, 7, 4, 0, 1), now: fixedNow),
-          'Сегодня');
-      expect(chatDate(ru, DateTime(2026, 7, 4, 23, 59), now: fixedNow),
-          'Сегодня');
+      expect(
+        chatDate(ru, DateTime(2026, 7, 4, 0, 1), now: fixedNow),
+        'Сегодня',
+      );
+      expect(
+        chatDate(ru, DateTime(2026, 7, 4, 23, 59), now: fixedNow),
+        'Сегодня',
+      );
     });
 
     test('previous day → Вчера', () {
       expect(
-          chatDate(ru, DateTime(2026, 7, 3, 23, 59), now: fixedNow), 'Вчера');
+        chatDate(ru, DateTime(2026, 7, 3, 23, 59), now: fixedNow),
+        'Вчера',
+      );
       expect(chatDate(ru, DateTime(2026, 7, 3, 0, 1), now: fixedNow), 'Вчера');
     });
 
@@ -70,10 +86,11 @@ void main() {
     });
 
     test('other year → full absolute date', () {
-      expect(chatDate(ru, DateTime(2025, 12, 31), now: fixedNow),
-          '31 декабря 2025');
       expect(
-          chatDate(ru, DateTime(2024, 3, 8), now: fixedNow), '8 марта 2024');
+        chatDate(ru, DateTime(2025, 12, 31), now: fixedNow),
+        '31 декабря 2025',
+      );
+      expect(chatDate(ru, DateTime(2024, 3, 8), now: fixedNow), '8 марта 2024');
     });
 
     test('defaults to DateTime.now()', () {
@@ -87,44 +104,62 @@ void main() {
     test('today / yesterday / same year / other year', () {
       expect(chatDate(en, DateTime(2026, 7, 4, 10), now: fixedNow), 'Today');
       expect(
-          chatDate(en, DateTime(2026, 7, 3, 10), now: fixedNow), 'Yesterday');
+        chatDate(en, DateTime(2026, 7, 3, 10), now: fixedNow),
+        'Yesterday',
+      );
       expect(chatDate(en, DateTime(2026, 5, 2), now: fixedNow), '2 May');
-      expect(chatDate(en, DateTime(2025, 12, 31), now: fixedNow),
-          '31 December 2025');
+      expect(
+        chatDate(en, DateTime(2025, 12, 31), now: fixedNow),
+        '31 December 2025',
+      );
     });
   });
 
   group('formatAdded (ru)', () {
     test('today returns "сегодня"', () {
-      expect(formatAdded(ru, now.subtract(const Duration(hours: 2))),
-          'сегодня');
-      expect(formatAdded(ru, now.subtract(const Duration(minutes: 30))),
-          'сегодня');
+      expect(
+        formatAdded(ru, now.subtract(const Duration(hours: 2))),
+        'сегодня',
+      );
+      expect(
+        formatAdded(ru, now.subtract(const Duration(minutes: 30))),
+        'сегодня',
+      );
     });
 
     test('1 day ago', () {
-      expect(formatAdded(ru, now.subtract(const Duration(days: 1))),
-          '1 день назад');
+      expect(
+        formatAdded(ru, now.subtract(const Duration(days: 1))),
+        '1 день назад',
+      );
     });
 
     test('2 days ago (2 дня)', () {
-      expect(formatAdded(ru, now.subtract(const Duration(days: 2))),
-          '2 дня назад');
+      expect(
+        formatAdded(ru, now.subtract(const Duration(days: 2))),
+        '2 дня назад',
+      );
     });
 
     test('5 days ago (5 дней)', () {
-      expect(formatAdded(ru, now.subtract(const Duration(days: 5))),
-          '5 дней назад');
+      expect(
+        formatAdded(ru, now.subtract(const Duration(days: 5))),
+        '5 дней назад',
+      );
     });
 
     test('11 days ago (11 дней — teens exception)', () {
-      expect(formatAdded(ru, now.subtract(const Duration(days: 11))),
-          '11 дней назад');
+      expect(
+        formatAdded(ru, now.subtract(const Duration(days: 11))),
+        '11 дней назад',
+      );
     });
 
     test('21 days ago (21 день)', () {
-      expect(formatAdded(ru, now.subtract(const Duration(days: 21))),
-          '21 день назад');
+      expect(
+        formatAdded(ru, now.subtract(const Duration(days: 21))),
+        '21 день назад',
+      );
     });
 
     test('29 days ago — still relative', () {
@@ -148,19 +183,27 @@ void main() {
   group('formatAdded (en)', () {
     test('today / 1 day ago / 5 days ago', () {
       expect(formatAdded(en, now.subtract(const Duration(hours: 2))), 'today');
-      expect(formatAdded(en, now.subtract(const Duration(days: 1))),
-          '1 day ago');
-      expect(formatAdded(en, now.subtract(const Duration(days: 5))),
-          '5 days ago');
+      expect(
+        formatAdded(en, now.subtract(const Duration(days: 1))),
+        '1 day ago',
+      );
+      expect(
+        formatAdded(en, now.subtract(const Duration(days: 5))),
+        '5 days ago',
+      );
     });
   });
 
   group('formatLastHeard (ru)', () {
     test('less than 1 minute — "только что"', () {
-      expect(formatLastHeard(ru, now.subtract(const Duration(seconds: 30))),
-          'только что');
-      expect(formatLastHeard(ru, now.subtract(const Duration(seconds: 59))),
-          'только что');
+      expect(
+        formatLastHeard(ru, now.subtract(const Duration(seconds: 30))),
+        'только что',
+      );
+      expect(
+        formatLastHeard(ru, now.subtract(const Duration(seconds: 59))),
+        'только что',
+      );
     });
 
     test('1 minute ago', () {
@@ -255,20 +298,34 @@ void main() {
 
   group('formatLastHeard (en)', () {
     test('just now / minutes / hours / days', () {
-      expect(formatLastHeard(en, now.subtract(const Duration(seconds: 30))),
-          'just now');
-      expect(formatLastHeard(en, now.subtract(const Duration(minutes: 1))),
-          '1 minute ago');
-      expect(formatLastHeard(en, now.subtract(const Duration(minutes: 5))),
-          '5 minutes ago');
-      expect(formatLastHeard(en, now.subtract(const Duration(hours: 1))),
-          '1 hour ago');
-      expect(formatLastHeard(en, now.subtract(const Duration(hours: 5))),
-          '5 hours ago');
-      expect(formatLastHeard(en, now.subtract(const Duration(days: 1))),
-          '1 day ago');
-      expect(formatLastHeard(en, now.subtract(const Duration(days: 5))),
-          '5 days ago');
+      expect(
+        formatLastHeard(en, now.subtract(const Duration(seconds: 30))),
+        'just now',
+      );
+      expect(
+        formatLastHeard(en, now.subtract(const Duration(minutes: 1))),
+        '1 minute ago',
+      );
+      expect(
+        formatLastHeard(en, now.subtract(const Duration(minutes: 5))),
+        '5 minutes ago',
+      );
+      expect(
+        formatLastHeard(en, now.subtract(const Duration(hours: 1))),
+        '1 hour ago',
+      );
+      expect(
+        formatLastHeard(en, now.subtract(const Duration(hours: 5))),
+        '5 hours ago',
+      );
+      expect(
+        formatLastHeard(en, now.subtract(const Duration(days: 1))),
+        '1 day ago',
+      );
+      expect(
+        formatLastHeard(en, now.subtract(const Duration(days: 5))),
+        '5 days ago',
+      );
     });
   });
 

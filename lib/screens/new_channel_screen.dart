@@ -21,9 +21,27 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
   bool _loading = false;
 
   static const _emojis = [
-    '📡', '🏕️', '🏠', '🏔️', '⛵', '🚀', '🎯',
-    '🔥', '❤️', '⭐', '💎', '🎸', '🛡️', '🌲',
-    '👨‍👩‍👧', '👨‍👩‍👦', '🐕', '🐈', '🎉', '📻', '🗺️',
+    '📡',
+    '🏕️',
+    '🏠',
+    '🏔️',
+    '⛵',
+    '🚀',
+    '🎯',
+    '🔥',
+    '❤️',
+    '⭐',
+    '💎',
+    '🎸',
+    '🛡️',
+    '🌲',
+    '👨‍👩‍👧',
+    '👨‍👩‍👦',
+    '🐕',
+    '🐈',
+    '🎉',
+    '📻',
+    '🗺️',
   ];
 
   bool get _valid => _nameCtrl.text.trim().isNotEmpty;
@@ -81,11 +99,13 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
                       onTap: _pickEmoji,
                       child: CircleAvatar(
                         radius: AppSizes.avatarList / 2,
-                        backgroundColor:
-                            Theme.of(context).colorScheme.primaryContainer,
-                        child: Text(_emoji,
-                            style: const TextStyle(
-                                fontSize: AppSizes.emojiLarge)),
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.primaryContainer,
+                        child: Text(
+                          _emoji,
+                          style: const TextStyle(fontSize: AppSizes.emojiLarge),
+                        ),
                       ),
                     ),
                     const SizedBox(width: AppSpacing.s16),
@@ -115,33 +135,46 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(context.l10n.channelIconLabel,
-                        style: AppTextStyles.subtitle(context)),
+                    Text(
+                      context.l10n.channelIconLabel,
+                      style: AppTextStyles.subtitle(context),
+                    ),
                     const SizedBox(height: AppSpacing.s8),
                     Wrap(
                       spacing: AppSpacing.s8,
                       runSpacing: AppSpacing.s8,
-                      children: _emojis.map((e) => GestureDetector(
-                        onTap: () => setState(() => _emoji = e),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          width: AppSizes.emojiCellLarge,
-                          height: AppSizes.emojiCellLarge,
-                          decoration: BoxDecoration(
-                            color: e == _emoji
-                                ? Theme.of(context).colorScheme.primaryContainer
-                                : Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(AppRadius.card),
-                          ),
-                          child: Center(
-                            child: Text(e,
-                                style: const TextStyle(
-                                    fontSize: AppSizes.emojiMedium)),
-                          ),
-                        ),
-                      )).toList(),
+                      children: _emojis
+                          .map(
+                            (e) => GestureDetector(
+                              onTap: () => setState(() => _emoji = e),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                width: AppSizes.emojiCellLarge,
+                                height: AppSizes.emojiCellLarge,
+                                decoration: BoxDecoration(
+                                  color: e == _emoji
+                                      ? Theme.of(
+                                          context,
+                                        ).colorScheme.primaryContainer
+                                      : Theme.of(
+                                          context,
+                                        ).colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.card,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    e,
+                                    style: const TextStyle(
+                                      fontSize: AppSizes.emojiMedium,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
                     ),
                   ],
                 ),
@@ -156,9 +189,11 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline,
-                        size: AppIconSizes.info,
-                        color: context.appColors.iconSecondary),
+                    Icon(
+                      Icons.info_outline,
+                      size: AppIconSizes.info,
+                      color: context.appColors.iconSecondary,
+                    ),
                     const SizedBox(width: AppSpacing.s10),
                     Expanded(
                       child: Text(
@@ -181,8 +216,9 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
                         width: AppSizes.spinnerSmall,
                         height: AppSizes.spinnerSmall,
                         child: CircularProgressIndicator(
-                            strokeWidth: AppSizes.spinnerStroke,
-                            color: context.appColors.onAccent),
+                          strokeWidth: AppSizes.spinnerStroke,
+                          color: context.appColors.onAccent,
+                        ),
                       )
                     : const Icon(Icons.add),
                 label: Text(context.l10n.createChannel),
@@ -204,17 +240,23 @@ class _NewChannelScreenState extends State<NewChannelScreen> {
           child: Wrap(
             spacing: AppSpacing.s8,
             runSpacing: AppSpacing.s8,
-            children: _emojis.map((e) => GestureDetector(
-              onTap: () => Navigator.pop(context, e),
-              child: SizedBox(
-                width: AppSizes.emojiCell,
-                height: AppSizes.emojiCell,
-                child: Center(
-                  child: Text(e,
-                      style: const TextStyle(fontSize: AppSizes.emojiLarge)),
-                ),
-              ),
-            )).toList(),
+            children: _emojis
+                .map(
+                  (e) => GestureDetector(
+                    onTap: () => Navigator.pop(context, e),
+                    child: SizedBox(
+                      width: AppSizes.emojiCell,
+                      height: AppSizes.emojiCell,
+                      child: Center(
+                        child: Text(
+                          e,
+                          style: const TextStyle(fontSize: AppSizes.emojiLarge),
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
           ),
         ),
       ),

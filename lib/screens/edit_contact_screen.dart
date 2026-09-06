@@ -36,8 +36,20 @@ class _EditContactScreenState extends State<EditContactScreen> {
   bool _saving = false;
 
   static const _emojis = [
-    '😊', '👩', '👨', '👵', '👴', '👦', '👧',
-    '🐕', '🐈', '🏕️', '🏠', '❤️', '⭐', '🔥',
+    '😊',
+    '👩',
+    '👨',
+    '👵',
+    '👴',
+    '👦',
+    '👧',
+    '🐕',
+    '🐈',
+    '🏕️',
+    '🏠',
+    '❤️',
+    '⭐',
+    '🔥',
   ];
 
   @override
@@ -63,58 +75,66 @@ class _EditContactScreenState extends State<EditContactScreen> {
   Future<void> _shareContact() async {
     final qrUrl = QrService.encodeContact(widget.contact);
     if (!mounted) return;
-    unawaited(showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: AppShapes.bottomSheet,
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(
-            AppSpacing.s24, AppSpacing.s20, AppSpacing.s24, AppSpacing.s40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SheetDragHandle(),
-            Text(
-              context.l10n.shareContact,
-              style: Theme.of(ctx).textTheme.titleLarge,
-            ),
-            const SizedBox(height: AppSpacing.s20),
-            QrCard(data: qrUrl),
-            const SizedBox(height: AppSpacing.s16),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.s12, vertical: AppSpacing.s8),
-              decoration: BoxDecoration(
-                color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(AppRadius.chip),
+    unawaited(
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: AppShapes.bottomSheet,
+        builder: (ctx) => Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.s24,
+            AppSpacing.s20,
+            AppSpacing.s24,
+            AppSpacing.s40,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SheetDragHandle(),
+              Text(
+                context.l10n.shareContact,
+                style: Theme.of(ctx).textTheme.titleLarge,
               ),
-              child: Text(
-                qrUrl,
-                style: AppTextStyles.monoLabel,
-                textAlign: TextAlign.center,
+              const SizedBox(height: AppSpacing.s20),
+              QrCard(data: qrUrl),
+              const SizedBox(height: AppSpacing.s16),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.s12,
+                  vertical: AppSpacing.s8,
+                ),
+                decoration: BoxDecoration(
+                  color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(AppRadius.chip),
+                ),
+                child: Text(
+                  qrUrl,
+                  style: AppTextStyles.monoLabel,
+                  textAlign: TextAlign.center,
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.s16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                icon: const Icon(Icons.copy),
-                label: Text(context.l10n.copyLinkButton),
-                onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: qrUrl));
-                  if (!ctx.mounted) return;
-                  Navigator.pop(ctx);
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(context.l10n.linkCopied)),
-                  );
-                },
+              const SizedBox(height: AppSpacing.s16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.copy),
+                  label: Text(context.l10n.copyLinkButton),
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: qrUrl));
+                    if (!ctx.mounted) return;
+                    Navigator.pop(ctx);
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(context.l10n.linkCopied)),
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ));
+    );
   }
 
   Future<void> _blockNode() async {
@@ -150,7 +170,8 @@ class _EditContactScreenState extends State<EditContactScreen> {
       builder: (ctx) => AlertDialog(
         title: Text(ctx.l10n.deleteContactQuestion),
         content: Text(
-            ctx.l10n.deleteContactWarning(widget.contact.displayName)),
+          ctx.l10n.deleteContactWarning(widget.contact.displayName),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -196,37 +217,45 @@ class _EditContactScreenState extends State<EditContactScreen> {
     final nodeId = widget.contact.nodeId;
     final lastHeard = widget.meshService.lastHeardFor(nodeId);
 
-    unawaited(showModalBottomSheet<void>(
-      context: context,
-      shape: AppShapes.bottomSheet,
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(
-            AppSpacing.s24, AppSpacing.s20, AppSpacing.s24, AppSpacing.s40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SheetDragHandle(),
-            Text(ctx.l10n.additionalInfoTitle,
-                style: Theme.of(ctx).textTheme.titleLarge),
-            const SizedBox(height: AppSpacing.s20),
-            _InfoRow(label: ctx.l10n.deviceIdLabel, value: nodeId),
-            const SizedBox(height: AppSpacing.s12),
-            _InfoRow(
-              label: ctx.l10n.addedLabel,
-              value: formatAdded(ctx.l10n, widget.contact.addedAt),
-            ),
-            if (lastHeard != null) ...[
+    unawaited(
+      showModalBottomSheet<void>(
+        context: context,
+        shape: AppShapes.bottomSheet,
+        builder: (ctx) => Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.s24,
+            AppSpacing.s20,
+            AppSpacing.s24,
+            AppSpacing.s40,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SheetDragHandle(),
+              Text(
+                ctx.l10n.additionalInfoTitle,
+                style: Theme.of(ctx).textTheme.titleLarge,
+              ),
+              const SizedBox(height: AppSpacing.s20),
+              _InfoRow(label: ctx.l10n.deviceIdLabel, value: nodeId),
               const SizedBox(height: AppSpacing.s12),
               _InfoRow(
-                label: ctx.l10n.lastHeardLabel,
-                value: formatLastHeard(ctx.l10n, lastHeard),
+                label: ctx.l10n.addedLabel,
+                value: formatAdded(ctx.l10n, widget.contact.addedAt),
               ),
+              if (lastHeard != null) ...[
+                const SizedBox(height: AppSpacing.s12),
+                _InfoRow(
+                  label: ctx.l10n.lastHeardLabel,
+                  value: formatLastHeard(ctx.l10n, lastHeard),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
-    ));
+    );
   }
 
   Widget _buildHeader(BuildContext context) {
@@ -259,9 +288,11 @@ class _EditContactScreenState extends State<EditContactScreen> {
                   color: Theme.of(context).colorScheme.primary,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.edit,
-                    size: AppIconSizes.banner,
-                    color: context.appColors.onAccent),
+                child: Icon(
+                  Icons.edit,
+                  size: AppIconSizes.banner,
+                  color: context.appColors.onAccent,
+                ),
               ),
             ],
           ),
@@ -295,8 +326,9 @@ class _EditContactScreenState extends State<EditContactScreen> {
         ),
         const SizedBox(height: AppSpacing.s4),
         Text(
-          context.l10n
-              .addedOn(formatAdded(context.l10n, widget.contact.addedAt)),
+          context.l10n.addedOn(
+            formatAdded(context.l10n, widget.contact.addedAt),
+          ),
           style: AppTextStyles.caption(context),
         ),
       ],
@@ -342,9 +374,11 @@ class _EditContactScreenState extends State<EditContactScreen> {
                   final settings = NotificationSettings.instance;
                   final muted = settings.isMuted(convId);
                   return SwitchListTile(
-                    secondary: Icon(muted
-                        ? Icons.notifications_off_outlined
-                        : Icons.notifications_outlined),
+                    secondary: Icon(
+                      muted
+                          ? Icons.notifications_off_outlined
+                          : Icons.notifications_outlined,
+                    ),
                     title: Text(context.l10n.notificationsTitle),
                     value: !muted,
                     onChanged: (v) async {
@@ -387,8 +421,10 @@ class _EditContactScreenState extends State<EditContactScreen> {
               child: Column(
                 children: [
                   ListTile(
-                    leading:
-                        Icon(Icons.block, color: context.appColors.warning),
+                    leading: Icon(
+                      Icons.block,
+                      color: context.appColors.warning,
+                    ),
                     title: Text(
                       context.l10n.blockAction,
                       style: TextStyle(color: context.appColors.warning),
@@ -397,12 +433,15 @@ class _EditContactScreenState extends State<EditContactScreen> {
                   ),
                   const Divider(height: 1),
                   ListTile(
-                    leading: Icon(Icons.delete,
-                        color: Theme.of(context).colorScheme.error),
+                    leading: Icon(
+                      Icons.delete,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                     title: Text(
                       context.l10n.deleteContactAction,
                       style: TextStyle(
-                          color: Theme.of(context).colorScheme.error),
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                     ),
                     onTap: _deleteContact,
                   ),
@@ -432,8 +471,8 @@ class _InfoRow extends StatelessWidget {
           child: Text(
             label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: context.appColors.textSecondary,
-                ),
+              color: context.appColors.textSecondary,
+            ),
           ),
         ),
         Expanded(
@@ -557,8 +596,7 @@ class _EditNameEmojiSheetState extends State<_EditNameEmojiSheet> {
                   child: Center(
                     child: Text(
                       e,
-                      style:
-                          const TextStyle(fontSize: AppSizes.emojiMedium),
+                      style: const TextStyle(fontSize: AppSizes.emojiMedium),
                     ),
                   ),
                 ),

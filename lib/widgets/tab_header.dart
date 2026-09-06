@@ -135,8 +135,7 @@ class TabSearchRow extends StatelessWidget {
         Expanded(
           child: Container(
             height: AppSizes.headerButton,
-            padding:
-                const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
             decoration: BoxDecoration(
               color: scheme.surfaceContainer,
               borderRadius: BorderRadius.circular(AppRadius.pill),

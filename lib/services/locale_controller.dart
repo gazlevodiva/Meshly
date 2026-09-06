@@ -44,8 +44,7 @@ class LocaleController extends ChangeNotifier {
     // so in-memory and on-disk state stay consistent.
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-          _keyLocale, locale?.languageCode ?? _systemValue);
+      await prefs.setString(_keyLocale, locale?.languageCode ?? _systemValue);
     } on Exception catch (_) {
       _locale = previous;
       return;
