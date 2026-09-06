@@ -1471,6 +1471,17 @@ class $MessagesTable extends Messages with TableInfo<$MessagesTable, Message> {
       'CHECK ("is_me" IN (0, 1))',
     ),
   );
+  static const VerificationMeta _eventKindMeta = const VerificationMeta(
+    'eventKind',
+  );
+  @override
+  late final GeneratedColumn<String> eventKind = GeneratedColumn<String>(
+    'event_kind',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1481,6 +1492,7 @@ class $MessagesTable extends Messages with TableInfo<$MessagesTable, Message> {
     time,
     status,
     isMe,
+    eventKind,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1559,6 +1571,12 @@ class $MessagesTable extends Messages with TableInfo<$MessagesTable, Message> {
     } else if (isInserting) {
       context.missing(_isMeMeta);
     }
+    if (data.containsKey('event_kind')) {
+      context.handle(
+        _eventKindMeta,
+        eventKind.isAcceptableOrUnknown(data['event_kind']!, _eventKindMeta),
+      );
+    }
     return context;
   }
 
@@ -1600,6 +1618,10 @@ class $MessagesTable extends Messages with TableInfo<$MessagesTable, Message> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_me'],
       )!,
+      eventKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}event_kind'],
+      ),
     );
   }
 
@@ -1618,6 +1640,7 @@ class Message extends DataClass implements Insertable<Message> {
   final DateTime time;
   final String status;
   final bool isMe;
+  final String? eventKind;
   const Message({
     required this.id,
     required this.meshId,
@@ -1627,6 +1650,7 @@ class Message extends DataClass implements Insertable<Message> {
     required this.time,
     required this.status,
     required this.isMe,
+    this.eventKind,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1639,6 +1663,9 @@ class Message extends DataClass implements Insertable<Message> {
     map['time'] = Variable<DateTime>(time);
     map['status'] = Variable<String>(status);
     map['is_me'] = Variable<bool>(isMe);
+    if (!nullToAbsent || eventKind != null) {
+      map['event_kind'] = Variable<String>(eventKind);
+    }
     return map;
   }
 
@@ -1652,6 +1679,9 @@ class Message extends DataClass implements Insertable<Message> {
       time: Value(time),
       status: Value(status),
       isMe: Value(isMe),
+      eventKind: eventKind == null && nullToAbsent
+          ? const Value.absent()
+          : Value(eventKind),
     );
   }
 
@@ -1669,6 +1699,7 @@ class Message extends DataClass implements Insertable<Message> {
       time: serializer.fromJson<DateTime>(json['time']),
       status: serializer.fromJson<String>(json['status']),
       isMe: serializer.fromJson<bool>(json['isMe']),
+      eventKind: serializer.fromJson<String?>(json['eventKind']),
     );
   }
   @override
@@ -1683,6 +1714,7 @@ class Message extends DataClass implements Insertable<Message> {
       'time': serializer.toJson<DateTime>(time),
       'status': serializer.toJson<String>(status),
       'isMe': serializer.toJson<bool>(isMe),
+      'eventKind': serializer.toJson<String?>(eventKind),
     };
   }
 
@@ -1695,6 +1727,7 @@ class Message extends DataClass implements Insertable<Message> {
     DateTime? time,
     String? status,
     bool? isMe,
+    Value<String?> eventKind = const Value.absent(),
   }) => Message(
     id: id ?? this.id,
     meshId: meshId ?? this.meshId,
@@ -1704,6 +1737,7 @@ class Message extends DataClass implements Insertable<Message> {
     time: time ?? this.time,
     status: status ?? this.status,
     isMe: isMe ?? this.isMe,
+    eventKind: eventKind.present ? eventKind.value : this.eventKind,
   );
   Message copyWithCompanion(MessagesCompanion data) {
     return Message(
@@ -1721,6 +1755,7 @@ class Message extends DataClass implements Insertable<Message> {
       time: data.time.present ? data.time.value : this.time,
       status: data.status.present ? data.status.value : this.status,
       isMe: data.isMe.present ? data.isMe.value : this.isMe,
+      eventKind: data.eventKind.present ? data.eventKind.value : this.eventKind,
     );
   }
 
@@ -1734,7 +1769,8 @@ class Message extends DataClass implements Insertable<Message> {
           ..write('messageText: $messageText, ')
           ..write('time: $time, ')
           ..write('status: $status, ')
-          ..write('isMe: $isMe')
+          ..write('isMe: $isMe, ')
+          ..write('eventKind: $eventKind')
           ..write(')'))
         .toString();
   }
@@ -1749,6 +1785,7 @@ class Message extends DataClass implements Insertable<Message> {
     time,
     status,
     isMe,
+    eventKind,
   );
   @override
   bool operator ==(Object other) =>
@@ -1761,7 +1798,8 @@ class Message extends DataClass implements Insertable<Message> {
           other.messageText == this.messageText &&
           other.time == this.time &&
           other.status == this.status &&
-          other.isMe == this.isMe);
+          other.isMe == this.isMe &&
+          other.eventKind == this.eventKind);
 }
 
 class MessagesCompanion extends UpdateCompanion<Message> {
@@ -1773,6 +1811,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
   final Value<DateTime> time;
   final Value<String> status;
   final Value<bool> isMe;
+  final Value<String?> eventKind;
   const MessagesCompanion({
     this.id = const Value.absent(),
     this.meshId = const Value.absent(),
@@ -1782,6 +1821,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
     this.time = const Value.absent(),
     this.status = const Value.absent(),
     this.isMe = const Value.absent(),
+    this.eventKind = const Value.absent(),
   });
   MessagesCompanion.insert({
     this.id = const Value.absent(),
@@ -1792,6 +1832,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
     required DateTime time,
     required String status,
     required bool isMe,
+    this.eventKind = const Value.absent(),
   }) : meshId = Value(meshId),
        conversationId = Value(conversationId),
        fromNodeId = Value(fromNodeId),
@@ -1808,6 +1849,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
     Expression<DateTime>? time,
     Expression<String>? status,
     Expression<bool>? isMe,
+    Expression<String>? eventKind,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1818,6 +1860,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
       if (time != null) 'time': time,
       if (status != null) 'status': status,
       if (isMe != null) 'is_me': isMe,
+      if (eventKind != null) 'event_kind': eventKind,
     });
   }
 
@@ -1830,6 +1873,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
     Value<DateTime>? time,
     Value<String>? status,
     Value<bool>? isMe,
+    Value<String?>? eventKind,
   }) {
     return MessagesCompanion(
       id: id ?? this.id,
@@ -1840,6 +1884,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
       time: time ?? this.time,
       status: status ?? this.status,
       isMe: isMe ?? this.isMe,
+      eventKind: eventKind ?? this.eventKind,
     );
   }
 
@@ -1870,6 +1915,9 @@ class MessagesCompanion extends UpdateCompanion<Message> {
     if (isMe.present) {
       map['is_me'] = Variable<bool>(isMe.value);
     }
+    if (eventKind.present) {
+      map['event_kind'] = Variable<String>(eventKind.value);
+    }
     return map;
   }
 
@@ -1883,7 +1931,8 @@ class MessagesCompanion extends UpdateCompanion<Message> {
           ..write('messageText: $messageText, ')
           ..write('time: $time, ')
           ..write('status: $status, ')
-          ..write('isMe: $isMe')
+          ..write('isMe: $isMe, ')
+          ..write('eventKind: $eventKind')
           ..write(')'))
         .toString();
   }
@@ -2777,6 +2826,7 @@ typedef $$MessagesTableCreateCompanionBuilder =
       required DateTime time,
       required String status,
       required bool isMe,
+      Value<String?> eventKind,
     });
 typedef $$MessagesTableUpdateCompanionBuilder =
     MessagesCompanion Function({
@@ -2788,6 +2838,7 @@ typedef $$MessagesTableUpdateCompanionBuilder =
       Value<DateTime> time,
       Value<String> status,
       Value<bool> isMe,
+      Value<String?> eventKind,
     });
 
 class $$MessagesTableFilterComposer
@@ -2836,6 +2887,11 @@ class $$MessagesTableFilterComposer
 
   ColumnFilters<bool> get isMe => $composableBuilder(
     column: $table.isMe,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get eventKind => $composableBuilder(
+    column: $table.eventKind,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2888,6 +2944,11 @@ class $$MessagesTableOrderingComposer
     column: $table.isMe,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get eventKind => $composableBuilder(
+    column: $table.eventKind,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$MessagesTableAnnotationComposer
@@ -2928,6 +2989,9 @@ class $$MessagesTableAnnotationComposer
 
   GeneratedColumn<bool> get isMe =>
       $composableBuilder(column: $table.isMe, builder: (column) => column);
+
+  GeneratedColumn<String> get eventKind =>
+      $composableBuilder(column: $table.eventKind, builder: (column) => column);
 }
 
 class $$MessagesTableTableManager
@@ -2966,6 +3030,7 @@ class $$MessagesTableTableManager
                 Value<DateTime> time = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<bool> isMe = const Value.absent(),
+                Value<String?> eventKind = const Value.absent(),
               }) => MessagesCompanion(
                 id: id,
                 meshId: meshId,
@@ -2975,6 +3040,7 @@ class $$MessagesTableTableManager
                 time: time,
                 status: status,
                 isMe: isMe,
+                eventKind: eventKind,
               ),
           createCompanionCallback:
               ({
@@ -2986,6 +3052,7 @@ class $$MessagesTableTableManager
                 required DateTime time,
                 required String status,
                 required bool isMe,
+                Value<String?> eventKind = const Value.absent(),
               }) => MessagesCompanion.insert(
                 id: id,
                 meshId: meshId,
@@ -2995,6 +3062,7 @@ class $$MessagesTableTableManager
                 time: time,
                 status: status,
                 isMe: isMe,
+                eventKind: eventKind,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

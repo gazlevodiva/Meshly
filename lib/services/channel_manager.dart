@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:meshly/models/mesh_channel.dart';
+import 'package:meshly/models/message.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/mesh_service.dart';
 
@@ -41,7 +42,15 @@ class ChannelManager {
     );
   }
 
-  /// Add a conversation received via QR (PSK already known).
+  /// Add a conversation received via QR (PSK already known). Scanning the QR
+  /// is how the user *joins* an existing conversation (as opposed to
+  /// [create], which starts a brand new one nobody else knows about yet), so
+  /// this also broadcasts a "joined" announcement and records the same event
+  /// in our own history — our own broadcast never comes back to us over the
+  /// air, so without a local record the very first entry in a conversation
+  /// we join would silently be missing. The broadcast is best effort (see
+  /// [MeshService.announceChannelEvent]): a disconnected radio still leaves
+  /// the conversation usable, just without the announcement.
   Future<MeshChannel> addFromQr({
     required String name,
     required Uint8List psk,
@@ -49,11 +58,29 @@ class ChannelManager {
     required MeshService meshService,
   }) async {
     final store = ContactStore.instance;
-    return store.createChannel(
+    final channel = await store.createChannel(
       name: name,
       avatarEmoji: avatarEmoji,
       psk: psk,
     );
+    await meshService.announceChannelEvent(channel, SystemEventKind.joined);
+    // Skip the local record when we do not know our own name yet, for the
+    // same reason announceChannelEvent skips the broadcast: an empty name
+    // would render as a line that starts with the verb and no subject.
+    final conv = store.conversationById('ch_${channel.id}');
+    if (conv != null && meshService.myAnnouncedName.isNotEmpty) {
+      await store.addMessage(
+        Message.systemEvent(
+          kind: SystemEventKind.joined,
+          announcedName: meshService.myAnnouncedName,
+          fromNodeId: meshService.myNodeId ?? '!00000000',
+          conversationId: conv.id,
+          time: DateTime.now(),
+          isMe: true,
+        ),
+      );
+    }
+    return channel;
   }
 
   static Uint8List _randomPsk() {

@@ -13,6 +13,21 @@ import 'package:meshly/services/meshtastic_proto.dart';
 import 'package:meshly/services/notification_settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// FromRadio { my_info: MyNodeInfo { my_node_num } } — the first frame the
+// radio sends after want_config. A service that has not seen it does not
+// know its own node id.
+List<int> announceNodeInfoFrame(int nodeNum) {
+  final numVarint = <int>[];
+  var v = nodeNum;
+  while (v > 0x7F) {
+    numVarint.add((v & 0x7F) | 0x80);
+    v >>>= 7;
+  }
+  numVarint.add(v);
+  final myInfo = <int>[0x08, ...numVarint]; // field 1, varint
+  return [26, myInfo.length, ...myInfo]; // field 3, wire type 2
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -572,6 +587,199 @@ void main() {
             store.conversations.every((c) => c.lastMessage == null),
             isTrue,
           );
+        },
+      );
+    });
+
+    // ── Join/leave announcements: control plaintext inside an ordinary
+    // channel broadcast (see models/message.dart's encodeSystemEvent) ──────
+    group('conversation join/leave announcements', () {
+      final store = ContactStore.instance;
+
+      setUp(() async {
+        SharedPreferences.setMockInitialValues({});
+        await NotificationSettings.instance.setEnabled(value: false);
+        store.resetForTesting(newTestDb());
+        await store.init();
+      });
+
+      tearDown(NotificationSettings.instance.resetForTesting);
+
+      List<int> toFromRadio(List<int> toRadioBytes) {
+        final bytes = List<int>.from(toRadioBytes);
+        var pos = 0;
+        List<int>? packetBytes;
+        while (pos < bytes.length) {
+          final tagByte = bytes[pos++];
+          final fieldNum = tagByte >> 3;
+          final wireType = tagByte & 7;
+          if (wireType != 2) break;
+          var len = 0;
+          var shift = 0;
+          while (true) {
+            final b = bytes[pos++];
+            len |= (b & 0x7F) << shift;
+            if ((b & 0x80) == 0) break;
+            shift += 7;
+          }
+          final chunk = bytes.sublist(pos, pos + len);
+          if (fieldNum == 1) packetBytes = chunk;
+          pos += len;
+        }
+        if (packetBytes == null) return [];
+        var len = packetBytes.length;
+        final lenBytes = <int>[];
+        while (len > 0x7F) {
+          lenBytes.add((len & 0x7F) | 0x80);
+          len >>= 7;
+        }
+        lenBytes.add(len);
+        return [18, ...lenBytes, ...packetBytes];
+      }
+
+      List<int> broadcastFrame(Uint8List payload) => toFromRadio(
+        MeshtasticProto.encodeTextMessage(
+          '',
+          portnum: MeshtasticProto.PRIVATE_APP,
+          rawPayload: payload,
+        ),
+      );
+
+      test(
+        'announceChannelEvent broadcasts an encrypted "joined" announcement',
+        () async {
+          final ch = await store.createChannel(name: 'Hikers');
+
+          final service = newService();
+          // Tell the service who it is: the announced name falls back to the
+          // node id, and without MyNodeInfo there is nothing to announce.
+          await service.handleIncomingBytes(announceNodeInfoFrame(0x1f8e42c9));
+          final sent = <Uint8List>[];
+          service.debugRadioSink = sent.add;
+
+          await service.announceChannelEvent(ch, SystemEventKind.joined);
+          expect(sent, hasLength(1));
+
+          final packet = MeshtasticProto.decodeFromRadio(
+            toFromRadio(sent.single),
+          );
+          expect(packet.portnum, equals(MeshtasticProto.PRIVATE_APP));
+          final plaintext = await CryptoService.instance.decryptForChannel(
+            psk: ch.psk,
+            envelope: packet.rawPayload!,
+          );
+          final event = decodeSystemEvent(plaintext!);
+          expect(event, isNotNull);
+          expect(event!.kind, equals(SystemEventKind.joined));
+
+          // Announcing does not touch local storage — that's the caller's
+          // job (ChannelManager.addFromQr records "joined" separately).
+          expect(store.messagesFor(Conversation.channel(ch.id).id), isEmpty);
+        },
+      );
+
+      test('announceChannelEvent is a silent no-op with no radio', () async {
+        final ch = await store.createChannel(name: 'Hikers');
+        final service = newService();
+        expect(service.isConnected, isFalse);
+
+        await expectLater(
+          service.announceChannelEvent(ch, SystemEventKind.left),
+          completes,
+        );
+      });
+
+      test(
+        'an incoming "joined" announcement is stored as a system event, '
+        'raises no notification and does not bump the unread count',
+        () async {
+          final ch = await store.createChannel(name: 'Hikers');
+          final conv = Conversation.channel(ch.id);
+
+          final envelope = await CryptoService.instance.encryptForChannel(
+            psk: ch.psk,
+            plaintext: encodeSystemEvent(SystemEventKind.joined, 'Boris'),
+          );
+
+          final service = newService();
+          await service.handleIncomingBytes(broadcastFrame(envelope));
+
+          final messages = store.messagesFor(conv.id);
+          expect(messages, hasLength(1));
+          expect(messages.single.isSystemEvent, isTrue);
+          expect(messages.single.eventKind, equals(SystemEventKind.joined));
+          expect(messages.single.text, equals('Boris'));
+          expect(messages.single.isMe, isFalse);
+
+          // Not a message from a person: the unread badge must not move.
+          expect(store.conversationById(conv.id)!.unreadCount, equals(0));
+        },
+      );
+
+      test(
+        'an incoming "left" announcement in an unknown conversation is '
+        'dropped like any other undecryptable broadcast',
+        () async {
+          final ch = await store.createChannel(name: 'Hikers');
+          final conv = Conversation.channel(ch.id);
+          final unknownPsk = Uint8List.fromList(
+            List.generate(32, (i) => 200 - i),
+          );
+          final envelope = await CryptoService.instance.encryptForChannel(
+            psk: unknownPsk,
+            plaintext: encodeSystemEvent(SystemEventKind.left, 'Boris'),
+          );
+
+          final service = newService();
+          await service.handleIncomingBytes(broadcastFrame(envelope));
+
+          expect(store.messagesFor(conv.id), isEmpty);
+        },
+      );
+
+      test(
+        'leaveChannelConversation announces "left" and deletes the '
+        'conversation locally',
+        () async {
+          final ch = await store.createChannel(name: 'Hikers');
+          final conv = Conversation.channel(ch.id);
+
+          final service = newService();
+          await service.handleIncomingBytes(announceNodeInfoFrame(0x1f8e42c9));
+          final sent = <Uint8List>[];
+          service.debugRadioSink = sent.add;
+
+          await service.leaveChannelConversation(ch);
+
+          expect(sent, hasLength(1));
+          final packet = MeshtasticProto.decodeFromRadio(
+            toFromRadio(sent.single),
+          );
+          final plaintext = await CryptoService.instance.decryptForChannel(
+            psk: ch.psk,
+            envelope: packet.rawPayload!,
+          );
+          expect(
+            decodeSystemEvent(plaintext!)!.kind,
+            equals(SystemEventKind.left),
+          );
+
+          expect(store.channelById(ch.id), isNull);
+          expect(store.conversationById(conv.id), isNull);
+        },
+      );
+
+      test(
+        'leaveChannelConversation still deletes the conversation when the '
+        'radio is not connected (best effort announcement)',
+        () async {
+          final ch = await store.createChannel(name: 'Hikers');
+          final service = newService();
+          expect(service.isConnected, isFalse);
+
+          await service.leaveChannelConversation(ch);
+
+          expect(store.channelById(ch.id), isNull);
         },
       );
     });

@@ -85,5 +85,144 @@ void main() {
       expect(copy.status, equals(MessageStatus.failed));
       expect(original.status, equals(MessageStatus.sending));
     });
+
+    test('copyWith preserves eventKind', () {
+      final event = Message.systemEvent(
+        kind: SystemEventKind.joined,
+        announcedName: 'Boris',
+        fromNodeId: '!aabbccdd',
+        conversationId: 'ch_x',
+        time: DateTime(2024),
+        isMe: false,
+      );
+      final copy = event.copyWith(status: MessageStatus.failed);
+      expect(copy.eventKind, equals(SystemEventKind.joined));
+      expect(copy.isSystemEvent, isTrue);
+      expect(original.isSystemEvent, isFalse);
+    });
+  });
+
+  group('Message.systemEvent / isSystemEvent', () {
+    test('systemEvent is always acked and stores the name in text', () {
+      final event = Message.systemEvent(
+        kind: SystemEventKind.left,
+        announcedName: 'Алиса',
+        fromNodeId: '!aabbccdd',
+        conversationId: 'ch_x',
+        time: DateTime(2024),
+        isMe: false,
+      );
+      expect(event.status, equals(MessageStatus.acked));
+      expect(event.text, equals('Алиса'));
+      expect(event.eventKind, equals(SystemEventKind.left));
+      expect(event.isSystemEvent, isTrue);
+    });
+
+    test('an ordinary Message has no eventKind', () {
+      final msg = Message(
+        meshId: 1,
+        fromNodeId: '!aabbccdd',
+        conversationId: 'ch_x',
+        text: 'hi',
+        time: DateTime(2024),
+        isMe: false,
+      );
+      expect(msg.eventKind, isNull);
+      expect(msg.isSystemEvent, isFalse);
+    });
+
+    test('toJson/fromJson round-trips eventKind', () {
+      final event = Message.systemEvent(
+        kind: SystemEventKind.joined,
+        announcedName: 'Boris',
+        fromNodeId: '!aabbccdd',
+        conversationId: 'ch_x',
+        time: DateTime(2024),
+        isMe: true,
+      );
+      final back = Message.fromJson(event.toJson());
+      expect(back.eventKind, equals(SystemEventKind.joined));
+      expect(back.text, equals('Boris'));
+    });
+
+    test('toJson omits eventKind for an ordinary message', () {
+      final msg = Message(
+        meshId: 1,
+        fromNodeId: '!aabbccdd',
+        conversationId: 'ch_x',
+        text: 'hi',
+        time: DateTime(2024),
+        isMe: false,
+      );
+      expect(msg.toJson(), isNot(contains('eventKind')));
+    });
+  });
+
+  group('encodeSystemEvent / decodeSystemEvent', () {
+    test('a valid announcement round-trips', () {
+      final plaintext = encodeSystemEvent(SystemEventKind.joined, 'Boris');
+      expect(plaintext, equals('\u0000meshly:v1:joined:Boris'));
+      final decoded = decodeSystemEvent(plaintext);
+      expect(decoded, isNotNull);
+      expect(decoded!.kind, equals(SystemEventKind.joined));
+      expect(decoded.name, equals('Boris'));
+    });
+
+    test('both kinds encode with their own literal', () {
+      expect(
+        encodeSystemEvent(SystemEventKind.left, 'Алиса'),
+        equals('\u0000meshly:v1:left:Алиса'),
+      );
+    });
+
+    test('the display name is capped at kSystemEventNameMaxLength code '
+        'points, without splitting a surrogate pair', () {
+      // 40 emoji, each a surrogate pair in UTF-16 (2 code units) but a
+      // single rune/code point — a naive substring(0, 32) on the UTF-16
+      // string would cut one in half and produce an unpaired surrogate.
+      final longName = '🐧' * 40;
+      final plaintext = encodeSystemEvent(SystemEventKind.joined, longName);
+      final decoded = decodeSystemEvent(plaintext)!;
+      expect(decoded.name.runes.length, equals(kSystemEventNameMaxLength));
+      expect(decoded.name, equals('🐧' * kSystemEventNameMaxLength));
+    });
+
+    test(
+      'an ordinary message that merely resembles an announcement does not '
+      'parse',
+      () {
+        expect(
+          decodeSystemEvent('meshly:v1:joinedBoris'),
+          isNull,
+          reason: 'no separator between kind and name',
+        );
+        expect(
+          decodeSystemEvent(
+            'this looks like meshly:v1:joined:Boris but '
+            "isn't at the start",
+          ),
+          isNull,
+        );
+        expect(
+          decodeSystemEvent('an ordinary message about meshly'),
+          isNull,
+        );
+      },
+    );
+
+    test('an unknown kind is ignored, not thrown', () {
+      expect(decodeSystemEvent('meshly:v1:kicked:Boris'), isNull);
+    });
+
+    test('a truncated or malformed announcement is ignored, not thrown', () {
+      expect(decodeSystemEvent(''), isNull);
+      expect(decodeSystemEvent('meshly:v1:'), isNull);
+      expect(decodeSystemEvent('meshly:v1:joined'), isNull);
+      expect(
+        decodeSystemEvent('meshly:v1:joined:'),
+        isNull,
+        reason: 'empty name',
+      );
+    });
   });
 }

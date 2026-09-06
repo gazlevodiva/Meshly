@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:meshly/models/conversation.dart';
+import 'package:meshly/models/mesh_channel.dart';
 import 'package:meshly/models/message.dart';
 import 'package:meshly/services/contact_store.dart';
 import 'package:meshly/services/crypto_service.dart';
@@ -664,6 +665,96 @@ class MeshService {
     return SendResult.sent;
   }
 
+  // ── Conversation join/leave announcements ───────────────────
+  //
+  // See models/message.dart (encodeSystemEvent/decodeSystemEvent) for why
+  // this rides as plaintext inside an ordinary encrypted broadcast rather
+  // than a distinct packet type, and CLAUDE.md's sprint brief for why it
+  // never carries a public key.
+
+  /// The name this device announces when joining or leaving a conversation.
+  ///
+  /// Public so a caller recording a "joined" event locally (see
+  /// `ChannelManager.addFromQr`) uses the exact same name that went out over
+  /// the air, instead of recomputing it and risking the two drifting apart.
+  ///
+  /// Falls back to the node id rather than to any wording: the announcement
+  /// travels as data, so the receiver cannot localize it. A word like "Me"
+  /// would also read from the wrong side — everyone else would see "Me
+  /// joined". The self-contact only exists once the user has opened their
+  /// own card and saved a name, and a conversation can be joined before
+  /// that, so this fallback is a normal case rather than an edge one.
+  String get myAnnouncedName {
+    final id = myNodeId;
+    final saved = id == null
+        ? null
+        : ContactStore.instance.contactByNodeId(id)?.displayName;
+    return saved ?? id ?? '';
+  }
+
+  /// Broadcasts a join/leave announcement on [channel]. Best effort and
+  /// fire-and-forget, exactly like [sendKeyMismatchNotice]: if the radio
+  /// isn't connected there is nothing to retry (one broadcast, no
+  /// acknowledgement — see the sprint brief's "log of what this device saw,
+  /// not a roster"), so this silently does nothing rather than queuing
+  /// anything.
+  ///
+  /// Does not touch local storage — callers decide separately whether to
+  /// also record the event for themselves (see `ChannelManager.addFromQr`
+  /// for "joined", and [leaveChannelConversation] for why "left" does not).
+  Future<void> announceChannelEvent(
+    MeshChannel channel,
+    SystemEventKind kind,
+  ) async {
+    if (!_canTransmit) return;
+    final name = myAnnouncedName;
+    // Nothing meaningful to announce yet: this happens in the window between
+    // connecting and MyNodeInfo arriving, when we do not even know our own
+    // node id. Sending an empty name would spend airtime on a packet no
+    // receiver can parse.
+    if (name.isEmpty) {
+      debugPrint('[Mesh] channel event not announced: own name unknown');
+      return;
+    }
+    final plaintext = encodeSystemEvent(kind, name);
+    final rawPayload = await CryptoService.instance.encryptForChannel(
+      psk: channel.psk,
+      plaintext: plaintext,
+    );
+    final encoded = MeshtasticProto.encodeTextMessage(
+      plaintext,
+      // Broadcast, channel = 0 — same as every conversation send, see
+      // sendText above.
+      fromNode: _myNodeNum,
+      portnum: MeshtasticProto.PRIVATE_APP,
+      rawPayload: rawPayload,
+    );
+    await _write(
+      encoded,
+      what: 'announce ${kind.wireName} → ${channel.id}',
+    );
+  }
+
+  /// Leaves a group conversation: announces "left" to the mesh (best
+  /// effort — deletion proceeds even if the radio isn't connected) and then
+  /// deletes it locally, same as a bare [ContactStore.deleteChannel] call
+  /// did before this sprint. UI code that lets the user delete a
+  /// conversation they are a member of should call this instead of
+  /// `ContactStore.instance.deleteChannel` directly, so the mesh hears about
+  /// it before the local record disappears.
+  Future<void> leaveChannelConversation(MeshChannel channel) async {
+    // The goodbye is best effort; the deletion is not. _write already
+    // swallows radio failures, but encryption and packet building sit
+    // outside it, and a user who pressed "delete" must not be left with the
+    // conversation still in their list because the farewell failed.
+    try {
+      await announceChannelEvent(channel, SystemEventKind.left);
+    } on Object catch (e) {
+      debugPrint('[Mesh] leave announcement failed, deleting anyway: $e');
+    }
+    await ContactStore.instance.deleteChannel(channel.id);
+  }
+
   // ── Incoming packet dispatch ───────────────────────────────
 
   Future<void> _drainFromRadio() async {
@@ -865,6 +956,18 @@ class MeshService {
       );
       if (text == null) continue;
 
+      final event = decodeSystemEvent(text);
+      if (event != null) {
+        await _storeSystemEvent(
+          conv: conv,
+          fromNodeId: fromNodeId,
+          meshId: decoded.meshId,
+          kind: event.kind,
+          announcedName: event.name,
+        );
+        return;
+      }
+
       await _storeIncoming(
         conv: conv,
         fromNodeId: fromNodeId,
@@ -1020,6 +1123,37 @@ class MeshService {
         conversationId: conv.id,
       );
     }
+  }
+
+  /// Persists an incoming join/leave announcement as a system-event row.
+  ///
+  /// Deliberately does NOT call [NotificationService] and relies on
+  /// [ContactStore.addMessage] to skip the unread-count bump for a
+  /// [Message.isSystemEvent] row — it is not a message from a person, see
+  /// the sprint brief. Still pushed onto [_incomingController] like a real
+  /// message so a chat screen already open updates live.
+  Future<void> _storeSystemEvent({
+    required Conversation conv,
+    required String fromNodeId,
+    required int? meshId,
+    required SystemEventKind kind,
+    required String announcedName,
+  }) async {
+    final msg = Message.systemEvent(
+      kind: kind,
+      announcedName: announcedName,
+      fromNodeId: fromNodeId,
+      conversationId: conv.id,
+      time: DateTime.now(),
+      isMe: false,
+      meshId: meshId ?? 0,
+    );
+    await ContactStore.instance.addMessage(msg);
+    _incomingController.add(msg.copyWith());
+    debugPrint(
+      '[Mesh] system event ${kind.wireName} in ${conv.id} from '
+      '$fromNodeId: $announcedName',
+    );
   }
 
   /// Handles an incoming verify ping/ack ([kKeyVerifyPingVersion] /

@@ -329,7 +329,7 @@ void main() {
         // Force the DB to actually open / run migrations.
         await db.customSelect('SELECT 1').getSingle();
 
-        expect(db.schemaVersion, equals(10));
+        expect(db.schemaVersion, equals(11));
 
         final tableNames =
             (await db
@@ -363,6 +363,14 @@ void main() {
           (row) => row.data['name'] == 'mesh_id',
         );
         expect(meshIdCol.data['pk'], equals(0));
+
+        // v11 messages schema: event_kind column present and nullable — a
+        // join/leave system event shares the messages table instead of a
+        // separate "members" table (see the sprint brief).
+        final eventKindCol = messagesInfo.firstWhere(
+          (row) => row.data['name'] == 'event_kind',
+        );
+        expect(eventKindCol.data['notnull'], equals(0));
 
         // v4 contacts schema: public_key column present and nullable.
         final contactsInfo = await db
@@ -1068,5 +1076,106 @@ void main() {
         equals(List<int>.filled(32, 3)),
       );
     });
+
+    test(
+      'v10 -> v11: event_kind added to messages, existing rows preserved '
+      'with a null event_kind (they are ordinary messages, not system '
+      'events)',
+      () async {
+        // Hand-build a v10 database: the current schema everywhere except
+        // messages, which still lacks event_kind.
+        final now = DateTime.now().millisecondsSinceEpoch;
+        final raw = sqlite3.sqlite3.openInMemory()
+          ..execute('''
+            CREATE TABLE contacts (
+              node_id TEXT NOT NULL,
+              display_name TEXT NOT NULL,
+              avatar_emoji TEXT NULL,
+              public_key BLOB NULL,
+              added_at INTEGER NOT NULL,
+              PRIMARY KEY (node_id)
+            );
+          ''')
+          ..execute('''
+            CREATE TABLE channels (
+              id TEXT NOT NULL,
+              name TEXT NOT NULL,
+              avatar_emoji TEXT NULL,
+              psk BLOB NOT NULL,
+              slot_index INTEGER NOT NULL,
+              created_at INTEGER NOT NULL,
+              PRIMARY KEY (id)
+            );
+          ''')
+          ..execute('''
+            CREATE TABLE conversations (
+              id TEXT NOT NULL,
+              type TEXT NOT NULL,
+              peer_id TEXT NULL,
+              channel_id TEXT NULL,
+              unread_count INTEGER NOT NULL DEFAULT 0,
+              i_can_read_peer INTEGER NOT NULL DEFAULT 1
+                CHECK (i_can_read_peer IN (0, 1)),
+              peer_can_read_us INTEGER NOT NULL DEFAULT 1
+                CHECK (peer_can_read_us IN (0, 1)),
+              write_anyway INTEGER NOT NULL DEFAULT 0
+                CHECK (write_anyway IN (0, 1)),
+              updated_at INTEGER NOT NULL,
+              PRIMARY KEY (id)
+            );
+          ''')
+          ..execute('''
+            CREATE TABLE blocked_nodes (
+              node_id TEXT NOT NULL,
+              PRIMARY KEY (node_id)
+            );
+          ''')
+          ..execute('''
+            CREATE TABLE messages (
+              id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+              mesh_id INTEGER NOT NULL,
+              conversation_id TEXT NOT NULL,
+              from_node_id TEXT NOT NULL,
+              text TEXT NOT NULL,
+              time INTEGER NOT NULL,
+              status TEXT NOT NULL,
+              is_me INTEGER NOT NULL
+            );
+          ''')
+          ..execute('PRAGMA user_version = 10;')
+          ..execute(
+            'INSERT INTO conversations '
+            '(id, type, peer_id, channel_id, unread_count, updated_at) '
+            "VALUES ('ch_ch-uuid-1', 'channel', NULL, 'ch-uuid-1', 0, $now)",
+          )
+          ..execute(
+            'INSERT INTO messages '
+            '(mesh_id, conversation_id, from_node_id, text, time, status, '
+            'is_me) '
+            "VALUES (0, 'ch_ch-uuid-1', '!f00dcafe', 'привет', $now, "
+            "'received', 0)",
+          );
+
+        final db = AppDatabase.forTesting(NativeDatabase.opened(raw));
+        addTearDown(db.close);
+
+        await db.customSelect('SELECT 1').getSingle();
+
+        final messagesInfo = await db
+            .customSelect('PRAGMA table_info(messages)')
+            .get();
+        final eventKindCol = messagesInfo.firstWhere(
+          (row) => row.data['name'] == 'event_kind',
+        );
+        expect(eventKindCol.data['notnull'], equals(0));
+
+        final messages = await db
+            .customSelect('SELECT text, event_kind FROM messages')
+            .get();
+        expect(messages, hasLength(1));
+        expect(messages.single.data['text'], equals('привет'));
+        expect(messages.single.data['event_kind'], isNull);
+      },
+    );
   });
 }

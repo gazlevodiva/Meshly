@@ -66,6 +66,15 @@ class Messages extends Table {
   DateTimeColumn get time => dateTime()();
   TextColumn get status => text()();
   BoolColumn get isMe => boolean()();
+  // Null for an ordinary message from a person. Non-null ('joined' / 'left')
+  // marks this row as a conversation system event instead — a member
+  // announced joining or leaving. There is deliberately no separate "members"
+  // table (see the sprint brief: this is a log of what this device saw, not a
+  // roster) — an event is just another row in this table, so it sorts and
+  // loads inline with regular messages for free. The announced display name
+  // is stored in [messageText] itself; there's nothing else it could mean
+  // when this column is set. See models/message.dart's SystemEventKind.
+  TextColumn get eventKind => text().nullable()();
 }
 
 class BlockedNodes extends Table {
@@ -83,7 +92,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -167,6 +176,19 @@ class AppDatabase extends _$AppDatabase {
       // it twice fails with "duplicate column name".
       if (from >= 9 && from < 10) {
         await m.addColumn(conversations, conversations.writeAnyway);
+      }
+      // Join/leave system events reuse the messages table (see its
+      // eventKind doc comment) instead of a new table.
+      //
+      // Guard is `from >= 3`, not just `from < 11`: the `from < 3` branch
+      // above rebuilds messages with `m.createTable(messages)`, which always
+      // builds from the *current* table definition — eventKind already
+      // exists on that fresh table, so addColumn-ing it again here would
+      // fail with "duplicate column name" (the same trap writeAnyway's v10
+      // step avoids above). From v3 on, messages is untouched by every
+      // migration until now, so a plain addColumn is safe for any of them.
+      if (from >= 3 && from < 11) {
+        await m.addColumn(messages, messages.eventKind);
       }
     },
   );

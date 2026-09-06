@@ -561,6 +561,13 @@ class ContactStore extends ChangeNotifier {
 
   // ── Messages ──────────────────────────────────────────────
 
+  /// Everything recorded for a conversation, in chronological order:
+  /// person-to-person messages AND system events (a member joining or
+  /// leaving — see `m.Message.isSystemEvent`/`eventKind`) interleaved as one
+  /// timeline. There is no separate API for system events — they are rows in
+  /// the same table, ordered the same way — so a caller that wants to render
+  /// them inline just filters/switches on `isSystemEvent` while walking this
+  /// list.
   List<m.Message> messagesFor(String conversationId) =>
       List.unmodifiable(_messages[conversationId] ?? []);
 
@@ -587,11 +594,16 @@ class ContactStore extends ChangeNotifier {
               time: msg.time,
               status: msg.status.name,
               isMe: msg.isMe,
+              eventKind: Value(msg.eventKind?.name),
             ),
           );
 
       if (conv != null) {
-        if (!msg.isMe) conv.unreadCount++;
+        // A system event (someone joined/left) is not a message from a
+        // person — it must not inflate the unread badge. It still updates
+        // lastMessage/updatedAt below so the conversation list can surface
+        // it and sort by it; only the count driving the badge is skipped.
+        if (!msg.isMe && !msg.isSystemEvent) conv.unreadCount++;
         conv
           ..lastMessage = msg
           ..updatedAt = msg.time;
@@ -690,6 +702,9 @@ class ContactStore extends ChangeNotifier {
     time: row.time,
     status: m.MessageStatus.values.byName(row.status),
     isMe: row.isMe,
+    eventKind: row.eventKind == null
+        ? null
+        : m.SystemEventKind.values.byName(row.eventKind!),
   );
 
   // ── Generate random 32-byte PSK ───────────────────────────
