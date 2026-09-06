@@ -68,10 +68,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get helpTipBluetoothOn => 'Bluetooth включён на телефоне';
 
   @override
-  String get helpTipKeepClose => 'Держите девайс ближе к телефону';
+  String get helpTipKeepClose => 'Держите устройство ближе к телефону';
 
   @override
-  String get helpTipRestart => 'Перезагрузите девайс';
+  String get helpTipRestart => 'Перезагрузите устройство';
 
   @override
   String get searchAgain => 'Искать снова';
@@ -200,11 +200,11 @@ class AppLocalizationsRu extends AppLocalizations {
       'Сообщения идут напрямую между устройствами Meshtastic по радио. Никаких тарифов и вышек — связь работает даже там, где нет сети.';
 
   @override
-  String get onboardingTitle2 => 'Нужен Meshtastic-девайс';
+  String get onboardingTitle2 => 'Нужно устройство Meshtastic';
 
   @override
   String get onboardingText2 =>
-      'Включите девайс и держите его рядом с телефоном. Приложение само подключится к нему по Bluetooth.';
+      'Включите устройство и держите его рядом с телефоном. Приложение само подключится к нему по Bluetooth.';
 
   @override
   String get onboardingTitle3 => 'Люди, которым\nвы доверяете';
@@ -485,7 +485,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get blockNodeWarning =>
-      'Устройство больше не будет отображаться в мессенджере. Сообщения от него будут игнорироваться.';
+      'Устройство больше не будет отображаться в приложении. Сообщения от него будут игнорироваться.';
 
   @override
   String get blockAction => 'Заблокировать';

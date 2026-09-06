@@ -50,8 +50,8 @@
   },
   "helpTipPoweredOn": "Девайс включён и заряжен",
   "helpTipBluetoothOn": "Bluetooth включён на телефоне",
-  "helpTipKeepClose": "Держите девайс ближе к телефону",
-  "helpTipRestart": "Перезагрузите девайс",
+  "helpTipKeepClose": "Держите устройство ближе к телефону",
+  "helpTipRestart": "Перезагрузите устройство",
   "searchAgain": "Искать снова",
   "connectToDeviceTitle": "Подключитесь к устройству",
   "connectToDeviceHint": "Включите Bluetooth и держите устройство рядом",
@@ -180,8 +180,8 @@
 
   "onboardingTitle1": "Общайтесь без интернета\nи сотовой связи",
   "onboardingText1": "Сообщения идут напрямую между устройствами Meshtastic по радио. Никаких тарифов и вышек — связь работает даже там, где нет сети.",
-  "onboardingTitle2": "Нужен Meshtastic-девайс",
-  "onboardingText2": "Включите девайс и держите его рядом с телефоном. Приложение само подключится к нему по Bluetooth.",
+  "onboardingTitle2": "Нужно устройство Meshtastic",
+  "onboardingText2": "Включите устройство и держите его рядом с телефоном. Приложение само подключится к нему по Bluetooth.",
   "onboardingTitle3": "Люди, которым\nвы доверяете",
   "onboardingText3": "Обменяйтесь QR-кодами с теми, кому доверяете, и создайте общую беседу для своих.",
   "onboardingSkip": "Пропустить",
@@ -417,7 +417,7 @@
   "copyLinkButton": "Скопировать ссылку",
   "linkCopied": "Ссылка скопирована",
   "blockNodeQuestion": "Заблокировать?",
-  "blockNodeWarning": "Устройство больше не будет отображаться в мессенджере. Сообщения от него будут игнорироваться.",
+  "blockNodeWarning": "Устройство больше не будет отображаться в приложении. Сообщения от него будут игнорироваться.",
   "blockAction": "Заблокировать",
   "@blockAction": {
     "description": "Danger-zone tile and the confirm button in the block dialog"

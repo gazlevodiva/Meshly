@@ -215,13 +215,13 @@ abstract class AppLocalizations {
   /// No description provided for @helpTipKeepClose.
   ///
   /// In ru, this message translates to:
-  /// **'Держите девайс ближе к телефону'**
+  /// **'Держите устройство ближе к телефону'**
   String get helpTipKeepClose;
 
   /// No description provided for @helpTipRestart.
   ///
   /// In ru, this message translates to:
-  /// **'Перезагрузите девайс'**
+  /// **'Перезагрузите устройство'**
   String get helpTipRestart;
 
   /// No description provided for @searchAgain.
@@ -449,13 +449,13 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingTitle2.
   ///
   /// In ru, this message translates to:
-  /// **'Нужен Meshtastic-девайс'**
+  /// **'Нужно устройство Meshtastic'**
   String get onboardingTitle2;
 
   /// No description provided for @onboardingText2.
   ///
   /// In ru, this message translates to:
-  /// **'Включите девайс и держите его рядом с телефоном. Приложение само подключится к нему по Bluetooth.'**
+  /// **'Включите устройство и держите его рядом с телефоном. Приложение само подключится к нему по Bluetooth.'**
   String get onboardingText2;
 
   /// No description provided for @onboardingTitle3.
@@ -977,7 +977,7 @@ abstract class AppLocalizations {
   /// No description provided for @blockNodeWarning.
   ///
   /// In ru, this message translates to:
-  /// **'Устройство больше не будет отображаться в мессенджере. Сообщения от него будут игнорироваться.'**
+  /// **'Устройство больше не будет отображаться в приложении. Сообщения от него будут игнорироваться.'**
   String get blockNodeWarning;
 
   /// Danger-zone tile and the confirm button in the block dialog
