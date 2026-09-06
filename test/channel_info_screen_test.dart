@@ -177,7 +177,7 @@ void main() {
       final sent = <Uint8List>[];
       mesh.debugRadioSink = sent.add;
 
-      final deleteFinder = find.text('Удалить беседу');
+      final deleteFinder = find.text('Выйти из беседы');
       await tester.scrollUntilVisible(
         deleteFinder,
         400,
@@ -185,7 +185,7 @@ void main() {
       );
       await tester.tap(deleteFinder);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Удалить'));
+      await tester.tap(find.text('Выйти'));
       await tester.pumpAndSettle();
 
       // The announcement went out (best-effort broadcast)...

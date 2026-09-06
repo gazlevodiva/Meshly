@@ -1307,7 +1307,7 @@ void main() {
 
         // "Delete channel" sits at the bottom of a ListView, below the fold
         // at the test surface's default size — not built until scrolled in.
-        final deleteFinder = find.text('Удалить беседу');
+        final deleteFinder = find.text('Выйти из беседы');
         await tester.scrollUntilVisible(
           deleteFinder,
           400,
@@ -1317,7 +1317,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(deleteFinder);
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Удалить'));
+        await tester.tap(find.text('Выйти'));
         await tester.pumpAndSettle();
 
         // Both the card and the chat are gone; only the list remains.

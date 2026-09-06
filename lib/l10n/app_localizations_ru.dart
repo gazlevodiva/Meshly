@@ -559,14 +559,17 @@ class AppLocalizationsRu extends AppLocalizations {
       'Списка участников нет: в беседе состоит любой, у кого есть её ключ, — приложение не может это отследить.';
 
   @override
-  String get deleteChannelAction => 'Удалить беседу';
+  String get leaveChannelConfirmAction => 'Выйти';
 
   @override
-  String get deleteChannelQuestion => 'Удалить беседу?';
+  String get deleteChannelAction => 'Выйти из беседы';
+
+  @override
+  String get deleteChannelQuestion => 'Выйти из беседы?';
 
   @override
   String deleteChannelWarning(String name) {
-    return 'Беседа \"$name\" будет удалена локально. Другие участники продолжат её видеть.';
+    return 'Беседа \"$name\" исчезнет с этого устройства вместе с перепиской. Остальные участники увидят, что вы вышли.';
   }
 
   @override

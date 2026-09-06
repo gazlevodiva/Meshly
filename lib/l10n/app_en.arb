@@ -213,9 +213,10 @@
   "@channelMembersInfo": {
     "description": "Explains why the channel/conversation info screen has no member list — technically impossible, not an oversight"
   },
-  "deleteChannelAction": "Delete conversation",
-  "deleteChannelQuestion": "Delete conversation?",
-  "deleteChannelWarning": "The conversation \"{name}\" will be deleted locally. Other members will still see it.",
+  "leaveChannelConfirmAction": "Leave",
+  "deleteChannelAction": "Leave conversation",
+  "deleteChannelQuestion": "Leave conversation?",
+  "deleteChannelWarning": "The conversation \"{name}\" and its messages will be removed from this device. The other members will see that you left.",
   "channelEventsTitle": "Joins and leaves",
   "channelEventsNote": "This is not a member list, just a history of joins and leaves this device happened to notice — some announcements never arrive. Entries come from other members and aren't verified.",
   "channelEventsEmpty": "No joins or leaves seen yet",

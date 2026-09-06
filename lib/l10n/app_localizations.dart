@@ -1106,22 +1106,28 @@ abstract class AppLocalizations {
   /// **'Списка участников нет: в беседе состоит любой, у кого есть её ключ, — приложение не может это отследить.'**
   String get channelMembersInfo;
 
+  /// Confirm button in the leave-conversation dialog
+  ///
+  /// In ru, this message translates to:
+  /// **'Выйти'**
+  String get leaveChannelConfirmAction;
+
   /// No description provided for @deleteChannelAction.
   ///
   /// In ru, this message translates to:
-  /// **'Удалить беседу'**
+  /// **'Выйти из беседы'**
   String get deleteChannelAction;
 
   /// No description provided for @deleteChannelQuestion.
   ///
   /// In ru, this message translates to:
-  /// **'Удалить беседу?'**
+  /// **'Выйти из беседы?'**
   String get deleteChannelQuestion;
 
   /// No description provided for @deleteChannelWarning.
   ///
   /// In ru, this message translates to:
-  /// **'Беседа \"{name}\" будет удалена локально. Другие участники продолжат её видеть.'**
+  /// **'Беседа \"{name}\" исчезнет с этого устройства вместе с перепиской. Остальные участники увидят, что вы вышли.'**
   String deleteChannelWarning(String name);
 
   /// Heading of the join/leave history section on the channel info screen. Deliberately not called a member list — see channelEventsNote

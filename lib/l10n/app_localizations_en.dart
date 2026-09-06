@@ -557,14 +557,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'There\'s no member list: anyone with this key is part of the conversation, and the app has no way to track who that is.';
 
   @override
-  String get deleteChannelAction => 'Delete conversation';
+  String get leaveChannelConfirmAction => 'Leave';
 
   @override
-  String get deleteChannelQuestion => 'Delete conversation?';
+  String get deleteChannelAction => 'Leave conversation';
+
+  @override
+  String get deleteChannelQuestion => 'Leave conversation?';
 
   @override
   String deleteChannelWarning(String name) {
-    return 'The conversation \"$name\" will be deleted locally. Other members will still see it.';
+    return 'The conversation \"$name\" and its messages will be removed from this device. The other members will see that you left.';
   }
 
   @override

@@ -55,7 +55,7 @@ class ChannelInfoScreen extends StatelessWidget {
               foregroundColor: Theme.of(context).colorScheme.error,
             ),
             onPressed: () => Navigator.pop(context, true),
-            child: Text(context.l10n.deleteAction),
+            child: Text(context.l10n.leaveChannelConfirmAction),
           ),
         ],
       ),

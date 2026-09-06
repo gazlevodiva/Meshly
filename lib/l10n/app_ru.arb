@@ -472,9 +472,13 @@
   "@channelMembersInfo": {
     "description": "Explains why the channel/conversation info screen has no member list — technically impossible, not an oversight"
   },
-  "deleteChannelAction": "Удалить беседу",
-  "deleteChannelQuestion": "Удалить беседу?",
-  "deleteChannelWarning": "Беседа \"{name}\" будет удалена локально. Другие участники продолжат её видеть.",
+  "leaveChannelConfirmAction": "Выйти",
+  "@leaveChannelConfirmAction": {
+    "description": "Confirm button in the leave-conversation dialog"
+  },
+  "deleteChannelAction": "Выйти из беседы",
+  "deleteChannelQuestion": "Выйти из беседы?",
+  "deleteChannelWarning": "Беседа \"{name}\" исчезнет с этого устройства вместе с перепиской. Остальные участники увидят, что вы вышли.",
   "@deleteChannelWarning": {
     "placeholders": {
       "name": {
