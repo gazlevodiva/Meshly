@@ -7,6 +7,12 @@ class NotificationService {
 
   final _plugin = FlutterLocalNotificationsPlugin();
 
+  /// Whether [init] has run. The plugin throws a `LateError` from every entry
+  /// point before it is initialized, and [requestPermissions] is now called
+  /// from a screen (`MainScreen`), which widget tests build without going
+  /// through `main()`.
+  bool _initialized = false;
+
   /// Callback for navigation on notification tap.
   void Function(String conversationId)? onNotificationTap;
 
@@ -23,9 +29,14 @@ class NotificationService {
         if (convId != null) onNotificationTap?.call(convId);
       },
     );
+    _initialized = true;
   }
 
   Future<void> requestPermissions() async {
+    if (!_initialized) {
+      debugPrint('[Notifications] requestPermissions before init — skipped');
+      return;
+    }
     await _plugin
         .resolvePlatformSpecificImplementation<
           IOSFlutterLocalNotificationsPlugin

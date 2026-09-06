@@ -25,7 +25,9 @@ void main() async {
   await ThemeController.instance.load();
   await LocaleController.instance.load();
   await NotificationService.instance.init();
-  await NotificationService.instance.requestPermissions();
+  // The permission itself is requested from MainScreen, once a device is
+  // connected and notifications have a reason to exist — not here, in front
+  // of someone who has not seen the app yet.
   final prefs = await SharedPreferences.getInstance();
   final onboardingDone = prefs.getBool('onboarding_done_v1') ?? false;
   runApp(MeshlyApp(onboardingDone: onboardingDone));
