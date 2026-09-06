@@ -1445,8 +1445,19 @@ void main() {
         await store.setPeerCanReadUs('dm_$aId', value: false);
 
         final serviceA = newService();
+        // Reporting a MyNodeInfo now also tells ContactStore which node id
+        // is "us" (see ContactStore.setMyNodeId), which purges any stored
+        // DM conversation keyed by that id — correct for one radio/one
+        // database, but this harness swaps one shared ContactStore between
+        // two databases, so each side must be active in the store before
+        // its own MyNodeInfo is processed. Otherwise A's id would be
+        // reported while B's database is still active, and the store would
+        // (wrongly) delete B's real conversation with A as if it were a
+        // self-conversation.
+        await activate(dbA, aPriv, aPub);
         await serviceA.handleIncomingBytes(myNodeInfoFrame(aNum));
         final serviceB = newService();
+        await activate(dbB, bPriv, bPub);
         await serviceB.handleIncomingBytes(myNodeInfoFrame(bNum));
 
         // The air: each entry is (destination, ToRadio bytes).

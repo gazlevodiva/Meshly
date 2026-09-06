@@ -30,6 +30,15 @@ class ContactStore extends ChangeNotifier {
   final Map<String, List<m.Message>> _messages = {};
   final Set<String> _blocked = {};
 
+  // Which node id is "us". This store has no way to know that on its own —
+  // [MeshService] tells it via [setMyNodeId] as soon as the radio reports a
+  // node id (see mesh_service.dart's handling of MyNodeInfo). Everything
+  // that must keep the user out of their own contact/chat list reads this
+  // one field, rather than each call site trying to work it out itself —
+  // that seam (a filter applied in one list but forgotten in the other) is
+  // exactly what caused the "chat with yourself" bug in the first place.
+  String? _myNodeId;
+
   /// For unit tests only: replaces the db instance and clears in-memory state.
   void resetForTesting(AppDatabase db) {
     _db = db;
@@ -39,6 +48,40 @@ class ContactStore extends ChangeNotifier {
     _conversations.clear();
     _messages.clear();
     _blocked.clear();
+    _myNodeId = null;
+  }
+
+  /// Learns which node id is "us". Idempotent (a no-op when the id hasn't
+  /// changed) since `MeshService` calls this on every connect/reconnect, not
+  /// just the first time.
+  ///
+  /// An install that already has a stale self-DM conversation from before
+  /// this existed (the "chat with yourself" bug: saving a name for yourself
+  /// used to create a conversation with yourself) gets it purged for good
+  /// here, the moment the id becomes known — this is the only place able to
+  /// recognize that a stored conversation is actually a self-conversation,
+  /// so it doubles as the one-time cleanup for existing installs. The
+  /// self-contact itself is NOT removed: the QR code and profile screen
+  /// (`my_card_screen.dart`) legitimately read it via [contactByNodeId].
+  Future<void> setMyNodeId(String? nodeId) async {
+    if (_myNodeId == nodeId) return;
+    _myNodeId = nodeId;
+    if (nodeId != null) {
+      final dmId = 'dm_$nodeId';
+      if (_conversations.containsKey(dmId)) {
+        _conversations.remove(dmId);
+        await (_db.delete(
+          _db.conversations,
+        )..where((t) => t.id.equals(dmId))).go();
+        // No FK cascade on Messages (see app_database.dart) — drop its
+        // messages explicitly, or they stay behind as orphans forever.
+        _messages.remove(dmId);
+        await (_db.delete(
+          _db.messages,
+        )..where((t) => t.conversationId.equals(dmId))).go();
+      }
+    }
+    notifyListeners();
   }
 
   Future<void> init() async {
@@ -201,8 +244,10 @@ class ContactStore extends ChangeNotifier {
 
   // ── Contacts ──────────────────────────────────────────────
 
+  // The self-contact is excluded here (not just left out of the DB) so the
+  // user never appears in their own contact list — see [setMyNodeId].
   List<m.Contact> get contacts =>
-      _contacts.values.toList()
+      _contacts.values.where((c) => c.nodeId != _myNodeId).toList()
         ..sort((a, b) => a.displayName.compareTo(b.displayName));
 
   m.Contact? contactByNodeId(String nodeId) => _contacts[nodeId];
@@ -232,9 +277,14 @@ class ContactStore extends ChangeNotifier {
             addedAt: c.addedAt,
           ),
         );
-    // Create DM conversation if not exists
+    // Create DM conversation if not exists — except for the self-contact:
+    // a conversation with yourself makes no sense, and this is the only
+    // place a self-contact is ever saved from (onboarding's name step,
+    // "Мой контакт"), so refusing it here is enough to stop new ones from
+    // being created. See [setMyNodeId] for cleaning up ones that already
+    // exist from before this check was added.
     final dmId = 'dm_${c.nodeId}';
-    if (!_conversations.containsKey(dmId)) {
+    if (c.nodeId != _myNodeId && !_conversations.containsKey(dmId)) {
       await saveConversation(m.Conversation.dm(c.nodeId));
     }
     notifyListeners();
@@ -407,8 +457,16 @@ class ContactStore extends ChangeNotifier {
 
   // ── Conversations ─────────────────────────────────────────
 
+  // Belt-and-suspenders alongside the guard in [saveContact]: even if a
+  // self-DM conversation exists in storage (a stale one not yet cleaned up
+  // by [setMyNodeId], or one written by some future code path this getter
+  // knows nothing about), it never surfaces in the UI. Screens (home_screen,
+  // contacts_screen) both read only this getter, never the raw map, so one
+  // filter here covers both rather than needing to be re-applied per screen.
   List<m.Conversation> get conversations =>
-      _conversations.values.toList()
+      _conversations.values
+          .where((c) => !(c.isDm && c.peerId == _myNodeId))
+          .toList()
         ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
   m.Conversation? conversationById(String id) => _conversations[id];

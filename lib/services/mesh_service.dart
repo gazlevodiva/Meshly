@@ -811,6 +811,10 @@ class MeshService {
     if (myNum != null) {
       _myNodeNum = myNum;
       debugPrint('[Mesh] my node = $myNodeId');
+      // Tells ContactStore which node id is "us" — it has no way to know
+      // otherwise, and needs it to keep the user out of their own contact
+      // and chat lists. See ContactStore.setMyNodeId.
+      unawaited(store.setMyNodeId(myNodeId));
     }
 
     // Config.lora → radio region

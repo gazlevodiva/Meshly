@@ -1057,5 +1057,121 @@ void main() {
         },
       );
     });
+
+    group('self-contact / self-conversation (setMyNodeId)', () {
+      // Regression: saving a name for yourself used to create a DM
+      // conversation with yourself, and the self-contact showed up in the
+      // ordinary contact list — nobody noticed because almost nobody used
+      // to set their own name. See the sprint's "chat with yourself" bug.
+      const myId = '!5e1f0000';
+
+      test(
+        'saving the self-contact does not create a self-conversation',
+        () async {
+          await store.setMyNodeId(myId);
+          await store.saveContact(Contact(nodeId: myId, displayName: 'Я'));
+
+          expect(store.dmForNode(myId), isNull);
+        },
+      );
+
+      test('the self-contact does not appear in the contact list', () async {
+        await store.setMyNodeId(myId);
+        await store.saveContact(Contact(nodeId: myId, displayName: 'Я'));
+        await store.saveContact(
+          Contact(nodeId: '!aabbccdd', displayName: 'Друг'),
+        );
+
+        expect(store.contacts.map((c) => c.nodeId), isNot(contains(myId)));
+        expect(store.contacts.map((c) => c.nodeId), contains('!aabbccdd'));
+      });
+
+      // The self-contact itself must still exist and be reachable by id —
+      // my_card_screen.dart and MeshService.myAnnouncedName both depend on
+      // contactByNodeId for the profile screen and the QR code.
+      test(
+        'the self-contact is still reachable via contactByNodeId',
+        () async {
+          await store.setMyNodeId(myId);
+          await store.saveContact(Contact(nodeId: myId, displayName: 'Я'));
+
+          expect(store.contactByNodeId(myId)?.displayName, equals('Я'));
+        },
+      );
+
+      test(
+        'saving an ordinary contact still creates its DM conversation',
+        () async {
+          await store.setMyNodeId(myId);
+          await store.saveContact(
+            Contact(nodeId: '!aabbccdd', displayName: 'Друг'),
+          );
+
+          final conv = store.dmForNode('!aabbccdd');
+          expect(conv, isNotNull);
+          expect(conv!.isDm, isTrue);
+        },
+      );
+
+      // One-time cleanup for installs that already had the bug: a
+      // self-conversation saved before setMyNodeId ever ran must be purged
+      // — not merely hidden — the moment the id becomes known.
+      test(
+        'setMyNodeId purges a pre-existing self-conversation and its messages',
+        () async {
+          final db = openTestDb();
+          store.resetForTesting(db);
+          await store.init();
+
+          // Simulates a pre-fix install: the self-contact and a DM
+          // conversation with it already exist, saved before setMyNodeId
+          // was ever called (as saveContact used to do unconditionally).
+          await store.saveContact(Contact(nodeId: myId, displayName: 'Я'));
+          await store.addMessage(
+            Message(
+              meshId: 1,
+              fromNodeId: myId,
+              conversationId: 'dm_$myId',
+              text: 'заметка себе',
+              time: DateTime.now(),
+              isMe: true,
+            ),
+          );
+          expect(store.dmForNode(myId), isNotNull);
+
+          await store.setMyNodeId(myId);
+
+          expect(store.dmForNode(myId), isNull);
+          expect(store.messagesFor('dm_$myId'), isEmpty);
+          // The contact itself is not the bug — only the conversation is.
+          expect(store.contactByNodeId(myId), isNotNull);
+
+          // And it stays gone after a reload — this was an actual DB
+          // purge, not just an in-memory filter.
+          store.resetForTesting(db);
+          await store.init();
+          expect(store.conversationById('dm_$myId'), isNull);
+        },
+      );
+
+      test(
+        'a self-conversation never surfaces in the conversations list, '
+        'even if one somehow exists in storage',
+        () async {
+          // setMyNodeId purges known self-conversations, but the
+          // conversations getter also filters them out directly — the
+          // sprint's "seam bitten twice" concern: two independent guards
+          // instead of one that could be missed.
+          await store.saveContact(Contact(nodeId: myId, displayName: 'Я'));
+          expect(store.dmForNode(myId), isNotNull);
+
+          await store.setMyNodeId(myId);
+          expect(
+            store.conversations.map((c) => c.id),
+            isNot(contains('dm_$myId')),
+          );
+        },
+      );
+    });
   });
 }
