@@ -15,10 +15,10 @@ void main() {
     );
   }
 
-  group('SectionCard — верхний отступ', () {
+  group('SectionCard — top spacing', () {
     testWidgets(
-      'карточка без заголовка и без topGap прилипает к предыдущей '
-      '(старое поведение сохранено)',
+      'a card without a title and without topGap sticks to the previous one '
+      '(old behavior preserved)',
       (tester) async {
         await tester.pumpWidget(
           wrap(
@@ -36,13 +36,13 @@ void main() {
 
         final firstRect = tester.getRect(find.text('Первая'));
         final secondRect = tester.getRect(find.text('Вторая'));
-        // Без topGap отступа нет — вторая карточка сразу под первой.
+        // Without topGap there is no spacing — the second card is right under the first.
         expect(secondRect.top, greaterThan(firstRect.bottom));
       },
     );
 
     testWidgets(
-      'карточка без заголовка с topGap: true не пересекается с предыдущей',
+      'a card without a title with topGap: true does not overlap the previous one',
       (tester) async {
         await tester.pumpWidget(
           wrap(
@@ -78,7 +78,7 @@ void main() {
               .first,
         );
 
-        // Карточки не пересекаются и между ними есть видимый зазор.
+        // The cards do not overlap and there is a visible gap between them.
         expect(secondCardRect.top, greaterThan(firstCardRect.bottom));
       },
     );

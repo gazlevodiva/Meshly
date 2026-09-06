@@ -302,10 +302,11 @@ void main() {
       expect(found.avatarEmoji, equals('🏠'));
     });
 
-    // Слот больше ни на что не влияет и в модели не хранится (см. отчёт
-    // спринта «отвязка бесед от слотов Meshtastic») — беседа на приёме
-    // определяется перебором PSK (см. mesh_service_test.dart). Список бесед
-    // сортируется по времени создания.
+    // The slot no longer affects anything and is not stored in the model
+    // (see the sprint report "decoupling conversations from Meshtastic
+    // slots") — an incoming conversation is identified by iterating over
+    // PSKs (see mesh_service_test.dart). The channel list is sorted by
+    // creation time.
     test('channels are sorted by createdAt', () async {
       final first = await store.createChannel(name: 'первая');
       await Future<void>.delayed(const Duration(milliseconds: 5));
@@ -314,9 +315,9 @@ void main() {
       expect(store.channels.map((c) => c.id), [first.id, second.id]);
     });
 
-    // channelsUnsorted — представление для перебора PSK на приёме
-    // (mesh_service.dart): не сортирует, но должно отдавать те же беседы,
-    // что и channels.
+    // channelsUnsorted — a view used for iterating over PSKs on receive
+    // (mesh_service.dart): it does not sort, but must return the same
+    // channels as `channels`.
     test('channelsUnsorted contains the same channels as channels', () async {
       final first = await store.createChannel(name: 'первая');
       final second = await store.createChannel(name: 'вторая');
@@ -327,13 +328,13 @@ void main() {
       );
     });
 
-    // Регрессия: mesh_service.dart перебирает channelsUnsorted с `await`
-    // внутри цикла (расшифровка на каждый канал). Раньше геттер отдавал живое
-    // представление `_channels.values`, и если за время await пользователь
-    // создавал/удалял беседу, Dart бросал ConcurrentModificationError при
-    // попытке продолжить перебор — входящее сообщение терялось, а проход
-    // чтения обрывался. Геттер обязан возвращать снимок (List), сделанный
-    // ДО начала перебора.
+    // Regression: mesh_service.dart iterates channelsUnsorted with `await`
+    // inside the loop (decryption per channel). The getter used to return a
+    // live view of `_channels.values`, and if the user created/deleted a
+    // conversation during the await, Dart threw a
+    // ConcurrentModificationError when trying to continue iterating — the
+    // incoming message was lost and the read pass aborted. The getter must
+    // return a snapshot (List) taken BEFORE iteration starts.
     test(
       'channelsUnsorted iteration survives a channel added mid-loop',
       () async {
@@ -343,8 +344,9 @@ void main() {
         Future<void> iterate() async {
           for (final _ in store.channelsUnsorted) {
             iterations++;
-            // Уступаем event loop, как это делает decryptForChannel в
-            // mesh_service.dart — именно здесь раньше происходил CME.
+            // Yield to the event loop, just like decryptForChannel does in
+            // mesh_service.dart — this is exactly where the CME used to
+            // happen.
             await Future<void>.delayed(Duration.zero);
             if (iterations == 1) {
               await store.createChannel(name: 'вторая');
@@ -353,8 +355,9 @@ void main() {
         }
 
         await expectLater(iterate(), completes);
-        // Снимок сделан до появления второй беседы — перебор видит только ту,
-        // что существовала в момент вызова геттера.
+        // The snapshot was taken before the second conversation appeared —
+        // the iteration only sees the one that existed when the getter was
+        // called.
         expect(iterations, equals(1));
       },
     );

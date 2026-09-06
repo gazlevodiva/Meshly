@@ -51,9 +51,9 @@ void main() {
       },
     );
 
-    // Слот больше не ограничивает беседы: раньше седьмая создавалась
-    // последней, теперь их может быть сколько угодно (см. отчёт спринта
-    // «отвязка бесед от слотов Meshtastic»).
+    // Slots no longer limit conversations: the seventh used to be the last
+    // one created, now there can be any number of them (see the sprint
+    // report "decoupling conversations from Meshtastic slots").
     test('more than seven conversations can be created', () async {
       final meshService = MeshService();
       for (var i = 0; i < 10; i++) {

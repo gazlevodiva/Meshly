@@ -395,20 +395,22 @@ void main() {
       );
     });
 
-    // ── Беседы отвязаны от аппаратных слотов Meshtastic ─────────────
+    // ── Conversations are decoupled from Meshtastic hardware slots ────
     //
-    // Отправка всегда уходит на channel=0 (слот на устройстве никогда и не
-    // настраивался — encodeSetChannel был сломан), а на приёме беседа
-    // определяется перебором известных PSK: пробуем расшифровать конверт
-    // ключом каждой беседы, первая успешная расшифровка и есть искомая
-    // беседа. См. отчёт спринта «отвязка бесед от слотов Meshtastic».
+    // Sending always goes out on channel=0 (the slot on the device was
+    // never actually configured — encodeSetChannel was broken), and on
+    // receive the conversation is identified by iterating over known PSKs:
+    // we try to decrypt the envelope with each conversation's key, and the
+    // first successful decryption is the conversation we're looking for.
+    // See the sprint report "decoupling conversations from Meshtastic
+    // slots".
     group('channel messages are slot-free', () {
       final store = ContactStore.instance;
 
       setUp(() async {
         SharedPreferences.setMockInitialValues({});
-        // Входящее сообщение беседы поднимает локальное уведомление, а
-        // flutter_local_notifications не имеет плагина под flutter_test.
+        // An incoming conversation message raises a local notification, and
+        // flutter_local_notifications has no plugin for flutter_test.
         await NotificationSettings.instance.setEnabled(value: false);
         store.resetForTesting(newTestDb());
         await store.init();
@@ -464,9 +466,10 @@ void main() {
       test(
         'sendText for a conversation sends broadcast with channel = 0',
         () async {
-          // Модель MeshChannel больше не хранит слот вовсе (см. отчёт
-          // спринта «отвязка бесед от слотов») — отправка broadcast'ит на
-          // channel = 0 независимо от беседы.
+          // The MeshChannel model no longer stores a slot at all (see the
+          // sprint report "decoupling conversations from slots") —
+          // sending broadcasts on channel = 0 regardless of the
+          // conversation.
           final ch = await store.createChannel(name: 'Hikers');
           final conv = Conversation.channel(ch.id);
 
@@ -539,15 +542,15 @@ void main() {
         'a garbage broadcast is dropped by the cheap envelope check, never '
         'reaches key trial',
         () async {
-          // Хотя бы одна беседа должна существовать — иначе цикл по ключам и
-          // так пуст, и тест ничего не доказывает.
+          // At least one conversation must exist — otherwise the loop over
+          // keys is empty anyway and the test proves nothing.
           await store.createChannel(name: 'A');
 
           final service = newService();
 
-          // Слишком короткий payload: version+nonce+mac требует минимум 41
-          // байт, тут меньше — дешёвая проверка обязана отбросить пакет ДО
-          // того, как код полезет проверять PSK.
+          // A payload that is too short: version+nonce+mac requires at
+          // least 41 bytes, this one is shorter — the cheap check must drop
+          // the packet BEFORE the code gets to checking PSKs.
           await expectLater(
             service.handleIncomingBytes(
               broadcastFrame(
@@ -557,7 +560,7 @@ void main() {
             completes,
           );
 
-          // Неверный версионный байт при достаточной длине.
+          // A wrong version byte with otherwise sufficient length.
           await expectLater(
             service.handleIncomingBytes(
               broadcastFrame(Uint8List.fromList(List.filled(41, 0x7f))),

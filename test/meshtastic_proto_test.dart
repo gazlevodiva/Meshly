@@ -185,7 +185,7 @@ void main() {
 
     test('encodeTextMessage id roundtrips for max 31-bit value', () {
       const msgId =
-          0x7FFFFFFF; // как в sendText: millisecondsSinceEpoch & 0x7FFFFFFF
+          0x7FFFFFFF; // as in sendText: millisecondsSinceEpoch & 0x7FFFFFFF
       final toRadio = MeshtasticProto.encodeTextMessage(
         'edge',
         fromNode: 0x22222222,
@@ -430,18 +430,18 @@ void main() {
         List<int>.filled(20, 0x80), // varint continuation bytes forever
       );
 
-      // Длина поля, закодированная 10-байтовым варинтом: 9 continuation-байт
-      // (0x80 — сами по себе нулевые биты значения) и терминальный байт
-      // 0x01 на позиции shift=63. До правки _decVarint это задирало 63-й
-      // (знаковый) бит результата, длина поля становилась отрицательной, и
-      // старая проверка `end > data.length` её пропускала — sublist(pos,
-      // end) с end < pos бросал RangeError (Error, не Exception, мимо
-      // `on Exception` в decodeLoraConfig и подобных). Раз получить длину
-      // именно так — реалистичный эфирный пакет.
+      // A field length encoded as a 10-byte varint: 9 continuation bytes
+      // (0x80 — zero value bits by themselves) and a terminal byte 0x01 at
+      // shift=63. Before the _decVarint fix this set the 63rd (sign) bit of
+      // the result, making the field length negative, and the old check
+      // `end > data.length` let it through — sublist(pos, end) with end <
+      // pos threw a RangeError (an Error, not an Exception, bypassing `on
+      // Exception` in decodeLoraConfig and similar). This is a realistic
+      // over-the-air packet that produces exactly such a length.
       final negativeLength = Uint8List.fromList([
         0x12, // field 2 (MeshPacket), wire type 2
-        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, // 9 байт
-        0x01, // 10-й байт: терминальный, младший бит установлен
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, // 9 bytes
+        0x01, // 10th byte: terminal, low bit set
       ]);
 
       final cases = <String, Uint8List>{

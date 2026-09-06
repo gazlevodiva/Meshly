@@ -30,8 +30,9 @@ void main() {
     );
   }
 
-  /// Подменяет локаль платформы (страну телефона), от которой зависит
-  /// подсказка [LoraRegion.suggestedFor], и снимает подмену после теста.
+  /// Substitutes the platform locale (the phone's country), which
+  /// [LoraRegion.suggestedFor]'s suggestion depends on, and removes the
+  /// substitution after the test.
   void setPlatformCountry(WidgetTester tester, String? countryCode) {
     final dispatcher = tester.binding.platformDispatcher
       ..localeTestValue = countryCode == null
@@ -40,8 +41,8 @@ void main() {
     addTearDown(dispatcher.clearLocaleTestValue);
   }
 
-  /// Список — `ListView`, поэтому элементы ниже первого экрана не
-  /// построены, пока их не прокрутили в область видимости.
+  /// The list is a `ListView`, so items below the first screen are not
+  /// built until scrolled into view.
   Future<void> scrollToText(WidgetTester tester, String text) async {
     final finder = find.text(text);
     await tester.scrollUntilVisible(
@@ -49,17 +50,17 @@ void main() {
       400,
       scrollable: find.byType(Scrollable).first,
     );
-    // scrollUntilVisible останавливается, как только виджет ПОСТРОЕН, а
-    // список строит и то, что лежит за краем экрана (cacheExtent). Без
-    // ensureVisible виджет бывает найден, но не виден — и тап по нему
-    // промахивается мимо экрана. Тест не должен зависеть от того, на
-    // сколько пикселей ниже оказалась карточка.
+    // scrollUntilVisible stops as soon as the widget is BUILT, and the list
+    // also builds what lies beyond the screen edge (cacheExtent). Without
+    // ensureVisible the widget can be found but not visible — and a tap on
+    // it misses the screen. The test must not depend on how many pixels
+    // below the screen the card ended up.
     await tester.ensureVisible(finder);
     await tester.pumpAndSettle();
   }
 
-  group('RadioRegionScreen — подсказка в один тап', () {
-    testWidgets('есть подсказка — показана одна кнопка подтверждения', (
+  group('RadioRegionScreen — one-tap suggestion', () {
+    testWidgets('a suggestion is present — one confirm button is shown', (
       tester,
     ) async {
       setPlatformCountry(tester, 'US'); // suggestedFor('US') -> 'US'
@@ -73,15 +74,16 @@ void main() {
         find.widgetWithText(FilledButton, l10n.radioRegionSuggestConfirm),
         findsOneWidget,
       );
-      // Полный список пока не показан.
+      // The full list is not shown yet.
       expect(find.text(l10n.radioRegionAll), findsNothing);
     });
 
-    testWidgets('подтверждение подсказки ведёт к обычному диалогу', (
+    testWidgets('confirming the suggestion leads to the regular dialog', (
       tester,
     ) async {
       setPlatformCountry(tester, 'US');
-      final mesh = MeshService(); // конфиг не пришёл — setRegion вернёт false
+      final mesh =
+          MeshService(); // config hasn't arrived — setRegion will return false
       await tester.pumpWidget(wrap(RadioRegionScreen(meshService: mesh)));
       await tester.pump();
 
@@ -91,7 +93,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Открылась шторка подтверждения с кодом региона.
+      // The confirmation sheet with the region code opened.
       expect(find.text('US'), findsWidgets);
       await tester.tap(
         find.widgetWithText(FilledButton, l10n.radioRegionChoose),
@@ -101,7 +103,7 @@ void main() {
       expect(find.text(l10n.radioRegionFailed), findsOneWidget);
     });
 
-    testWidgets('«выбрать другой регион» открывает полный список', (
+    testWidgets('"choose a different region" opens the full list', (
       tester,
     ) async {
       setPlatformCountry(tester, 'US');
@@ -118,10 +120,10 @@ void main() {
       expect(find.text('EU_868'), findsWidgets);
     });
 
-    testWidgets('нет однозначной подсказки — сразу полный список', (
+    testWidgets('no unambiguous suggestion — full list right away', (
       tester,
     ) async {
-      // Казахстан намеренно не в таблице подсказок (два равноправных кода).
+      // Kazakhstan is deliberately not in the suggestion table (two equally valid codes).
       setPlatformCountry(tester, 'KZ');
       final mesh = MeshService();
       await tester.pumpWidget(wrap(RadioRegionScreen(meshService: mesh)));
@@ -138,8 +140,10 @@ void main() {
     });
   });
 
-  group('RadioRegionScreen — полный список', () {
-    testWidgets('текущий регион помечен галочкой', (tester) async {
+  group('RadioRegionScreen — full list', () {
+    testWidgets('the current region is marked with a checkmark', (
+      tester,
+    ) async {
       setPlatformCountry(tester, null);
       final mesh = MeshService();
       mesh.loraRegion.value = LoraRegion.common[0].value; // EU_868
@@ -154,15 +158,15 @@ void main() {
 
     Future<MeshService> pumpWithEu868(WidgetTester tester) async {
       final mesh = MeshService();
-      // Регион уже задан (EU_868, диапазон 868) — экран сразу открывает
-      // полный список, а не подсказку.
+      // The region is already set (EU_868, range 868) — the screen opens
+      // straight to the full list, not the suggestion.
       mesh.loraRegion.value = LoraRegion.common[0].value; // EU_868
       await tester.pumpWidget(wrap(RadioRegionScreen(meshService: mesh)));
       await tester.pump();
       return mesh;
     }
 
-    testWidgets('«Все регионы» не содержит несовместимый диапазон', (
+    testWidgets('"All regions" does not contain an incompatible range', (
       tester,
     ) async {
       setPlatformCountry(tester, null);
@@ -170,8 +174,8 @@ void main() {
 
       final l10n = await AppLocalizations.delegate.load(const Locale('ru'));
 
-      // «Все регионы» (совместимые, диапазон 868) не содержит 'US'
-      // (диапазон 915) — он отфильтрован в отдельную секцию ниже.
+      // "All regions" (compatible, range 868) does not contain 'US'
+      // (range 915) — it is filtered into a separate section below.
       await scrollToText(tester, l10n.radioRegionAll);
       final allSection = find
           .ancestor(
@@ -185,7 +189,7 @@ void main() {
       );
     });
 
-    testWidgets('несовместимый диапазон — отдельная секция с предупреждением', (
+    testWidgets('incompatible range — a separate section with a warning', (
       tester,
     ) async {
       setPlatformCountry(tester, null);
@@ -193,14 +197,15 @@ void main() {
 
       final l10n = await AppLocalizations.delegate.load(const Locale('ru'));
 
-      // Секция «Другой диапазон» с предупреждением содержит 'US'.
-      // Прокручиваем до заголовка секции, а не до текста предупреждения:
-      // заголовок — самый нижний из проверяемых виджетов (после него в
-      // ListView только сам список), поэтому его видимость не зависит от
-      // того, сколько строк выше (в «Частых» или «Все регионы»).
-      // Заголовок и предупреждение проверяем по очереди: в длинном списке
-      // они не обязаны помещаться на экран одновременно, а невидимые
-      // элементы список не строит.
+      // The "Other range" section with the warning contains 'US'.
+      // We scroll to the section heading, not to the warning text: the
+      // heading is the lowest of the widgets being checked (after it the
+      // ListView has only the list itself), so its visibility does not
+      // depend on how many rows are above it (in "Frequent" or "All
+      // regions").
+      // We check the heading and the warning one after another: in a long
+      // list they don't have to both fit on screen at the same time, and
+      // the list doesn't build invisible elements.
       await scrollToText(tester, l10n.radioRegionIncompatibleWarning);
       expect(find.text(l10n.radioRegionIncompatibleWarning), findsOneWidget);
 
@@ -218,28 +223,35 @@ void main() {
       );
     });
 
-    testWidgets('смена уже заданного региона предупреждает о разрыве связи', (
-      tester,
-    ) async {
-      setPlatformCountry(tester, null);
-      final mesh = MeshService();
-      mesh.loraRegion.value = LoraRegion.common[0].value; // EU_868 задан
-      await tester.pumpWidget(wrap(RadioRegionScreen(meshService: mesh)));
-      await tester.pump();
+    testWidgets(
+      'changing an already-set region warns about losing connection',
+      (
+        tester,
+      ) async {
+        setPlatformCountry(tester, null);
+        final mesh = MeshService();
+        mesh.loraRegion.value = LoraRegion.common[0].value; // EU_868 is set
+        await tester.pumpWidget(wrap(RadioRegionScreen(meshService: mesh)));
+        await tester.pump();
 
-      final l10n = await AppLocalizations.delegate.load(const Locale('ru'));
-      // RU (868) — совместимый регион, отличный от текущего EU_868.
-      await tester.tap(find.widgetWithText(ListTile, 'RU').first);
-      await tester.pumpAndSettle();
+        final l10n = await AppLocalizations.delegate.load(const Locale('ru'));
+        // RU (868) — a compatible region, different from the current EU_868.
+        await tester.tap(find.widgetWithText(ListTile, 'RU').first);
+        await tester.pumpAndSettle();
 
-      expect(find.text(l10n.radioRegionChangeWarning), findsOneWidget);
-    });
+        expect(find.text(l10n.radioRegionChangeWarning), findsOneWidget);
+      },
+    );
 
     testWidgets(
-      'неудачная попытка применить регион показывает ошибку',
+      'a failed attempt to apply a region shows an error',
       (tester) async {
-        setPlatformCountry(tester, 'KZ'); // без подсказки — сразу список
-        final mesh = MeshService(); // конфиг не пришёл — setRegion вернёт false
+        setPlatformCountry(
+          tester,
+          'KZ',
+        ); // no suggestion — straight to the list
+        final mesh =
+            MeshService(); // config hasn't arrived — setRegion will return false
         await tester.pumpWidget(wrap(RadioRegionScreen(meshService: mesh)));
         await tester.pump();
 
@@ -258,8 +270,8 @@ void main() {
     );
   });
 
-  group('RadioRegionScreen — крупный шрифт (2.0)', () {
-    testWidgets('кнопка подтверждения подсказки остаётся на экране', (
+  group('RadioRegionScreen — large font (2.0)', () {
+    testWidgets('the suggestion confirm button stays on screen', (
       tester,
     ) async {
       setPlatformCountry(tester, 'US');
@@ -287,20 +299,20 @@ void main() {
       expect(rect.bottom, lessThanOrEqualTo(screen.height));
       expect(rect.top, greaterThanOrEqualTo(0));
 
-      // Кнопка действительно нажимаема (не перекрыта, не за кадром).
+      // The button is actually tappable (not covered, not off-screen).
       await tester.tap(button);
       await tester.pumpAndSettle();
       expect(find.text(l10n.radioRegionChoose), findsOneWidget);
     });
   });
 
-  group('HomeScreen — карточка «не настроено»', () {
+  group('HomeScreen — "not configured" card', () {
     Future<void> pumpHome(WidgetTester tester, MeshService mesh) async {
       await tester.pumpWidget(wrap(HomeScreen(meshService: mesh)));
       await tester.pump();
     }
 
-    testWidgets('показана, когда регион явно unset', (tester) async {
+    testWidgets('shown when the region is explicitly unset', (tester) async {
       final mesh = MeshService();
       mesh.loraRegion.value = LoraRegion.unset;
       await pumpHome(tester, mesh);
@@ -310,17 +322,17 @@ void main() {
       expect(find.text(l10n.radioRegionChoose), findsOneWidget);
     });
 
-    testWidgets('отсутствует, пока конфиг ещё не пришёл (null)', (
+    testWidgets('absent while the config has not arrived yet (null)', (
       tester,
     ) async {
-      final mesh = MeshService(); // loraRegion.value == null по умолчанию
+      final mesh = MeshService(); // loraRegion.value == null by default
       await pumpHome(tester, mesh);
 
       final l10n = await AppLocalizations.delegate.load(const Locale('ru'));
       expect(find.text(l10n.radioNotConfiguredTitle), findsNothing);
     });
 
-    testWidgets('отсутствует, когда регион уже задан', (tester) async {
+    testWidgets('absent when the region is already set', (tester) async {
       final mesh = MeshService();
       mesh.loraRegion.value = LoraRegion.common[0].value;
       await pumpHome(tester, mesh);
@@ -330,13 +342,13 @@ void main() {
     });
   });
 
-  group('SettingsScreen — строка региона в «Дополнительно»', () {
+  group('SettingsScreen — region row inside "Advanced"', () {
     Future<void> pumpSettings(WidgetTester tester, MeshService mesh) async {
       await tester.pumpWidget(wrap(SettingsScreen(meshService: mesh)));
       await tester.pump();
     }
 
-    testWidgets('на виду только строка «Дополнительно», не сам регион', (
+    testWidgets('only the "Advanced" row is visible, not the region itself', (
       tester,
     ) async {
       final mesh = MeshService();
@@ -344,15 +356,17 @@ void main() {
       await pumpSettings(tester, mesh);
 
       final l10n = await AppLocalizations.delegate.load(const Locale('ru'));
-      // «Дополнительно» — карточка внизу списка, вне первого экрана.
+      // "Advanced" is a card at the bottom of the list, off the first screen.
       await scrollToText(tester, l10n.settingsAdvancedTitle);
       expect(find.text(l10n.settingsAdvancedTitle), findsOneWidget);
-      // Код региона (в отличие от статичного названия строки) на виду не
-      // должен быть — он появляется только внутри подэкрана.
+      // The region code (unlike the static row title) must not be visible —
+      // it only appears inside the sub-screen.
       expect(find.text('EU_868'), findsNothing);
     });
 
-    testWidgets('открывает подэкран, где регион виден', (tester) async {
+    testWidgets('opens the sub-screen where the region is visible', (
+      tester,
+    ) async {
       final mesh = MeshService();
       mesh.loraRegion.value = LoraRegion.common[0].value; // EU_868
       await pumpSettings(tester, mesh);
@@ -366,7 +380,9 @@ void main() {
       expect(find.text('EU_868'), findsOneWidget);
     });
 
-    testWidgets('читаем настройки, пока конфиг не пришёл', (tester) async {
+    testWidgets('reading the settings while the config has not arrived', (
+      tester,
+    ) async {
       final mesh = MeshService();
       await pumpSettings(tester, mesh);
       final l10n = await AppLocalizations.delegate.load(const Locale('ru'));
@@ -378,7 +394,7 @@ void main() {
       expect(find.text(l10n.radioRegionReading), findsOneWidget);
     });
 
-    testWidgets('«не задан» для UNSET', (tester) async {
+    testWidgets('"Не задан" for UNSET', (tester) async {
       final mesh = MeshService();
       mesh.loraRegion.value = LoraRegion.unset;
       await pumpSettings(tester, mesh);
@@ -392,17 +408,17 @@ void main() {
     });
 
     testWidgets(
-      'строка подключения — только в подэкране «Дополнительно», '
-      'на основном экране настроек её нет',
+      'the connection row is only in the "Advanced" sub-screen, '
+      'the main settings screen does not have it',
       (tester) async {
         final mesh = MeshService();
         mesh.loraRegion.value = LoraRegion.common[0].value; // EU_868
         await pumpSettings(tester, mesh);
         final l10n = await AppLocalizations.delegate.load(const Locale('ru'));
 
-        // Устройство не подключено — на основном экране нет ни секции
-        // «Устройство», ни строки статуса подключения (даже прокрутив
-        // список целиком).
+        // The device is not connected — the main screen has neither the
+        // "Device" section nor the connection status row (even after
+        // scrolling through the whole list).
         await scrollToText(tester, l10n.settingsAdvancedTitle);
         expect(find.text(l10n.statusNoConnection), findsNothing);
         expect(find.text(l10n.settingsSectionDevice), findsNothing);
@@ -410,8 +426,9 @@ void main() {
         await tester.tap(find.text(l10n.settingsAdvancedTitle));
         await tester.pumpAndSettle();
 
-        // В подэкране «Дополнительно» строка подключения на виду вместе
-        // с регионом радио, сгруппированные секцией «Устройство».
+        // In the "Advanced" sub-screen the connection row is visible
+        // together with the radio region, grouped under the "Device"
+        // section.
         expect(find.text(l10n.settingsSectionDevice), findsOneWidget);
         expect(find.text(l10n.statusNoConnection), findsOneWidget);
         expect(find.text('EU_868'), findsOneWidget);

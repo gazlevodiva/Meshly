@@ -229,11 +229,12 @@ void main() {
       );
     });
 
-    // ── Кэш выведенных ключей ────────────────────────────────
+    // ── Derived-key cache ────────────────────────────────
     //
-    // Кэш ключей keyed по самому PSK (см. crypto_service.dart), а не по id
-    // беседы: главное свойство, которое он обязан сохранять при этом — не
-    // путать ключи разных PSK и не отдавать протухший ключ после смены PSK.
+    // The key cache is keyed by the PSK itself (see crypto_service.dart),
+    // not by conversation id: the main property it must preserve is not
+    // mixing up keys from different PSKs and not returning a stale key
+    // after a PSK change.
     group('deriveChannelKey cache', () {
       test(
         'two derivations with the same PSK return an equal key (cache hit)',
@@ -266,8 +267,8 @@ void main() {
           final oldPsk = psk(31);
           final newPsk = psk(32);
 
-          // Разогреваем кэш старым PSK — как будто беседа уже получала
-          // сообщения до смены ключа.
+          // Warm up the cache with the old PSK — as if the conversation had
+          // already received messages before the key change.
           await crypto.deriveChannelKey(oldPsk);
 
           final envelope = await crypto.encryptForChannel(
@@ -275,15 +276,16 @@ void main() {
             plaintext: 'сообщение после смены ключа',
           );
 
-          // Если бы кэш был keyed по id беседы, а не по PSK, здесь могла бы
-          // подставиться старая запись — расшифровка тихо сломалась бы.
+          // If the cache were keyed by conversation id instead of PSK, the
+          // old entry could be substituted here — decryption would fail
+          // silently.
           final decrypted = await crypto.decryptForChannel(
             psk: newPsk,
             envelope: envelope,
           );
           expect(decrypted, equals('сообщение после смены ключа'));
 
-          // Старый ключ по-прежнему не читает новые сообщения.
+          // The old key still cannot read new messages.
           final withOldKey = await crypto.decryptForChannel(
             psk: oldPsk,
             envelope: envelope,

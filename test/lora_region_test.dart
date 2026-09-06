@@ -4,9 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:meshly/services/lora_region.dart';
 import 'package:meshly/services/meshtastic_proto.dart';
 
-// ── Минимальный protobuf-ридер для проверки того, что мы закодировали ──
-// Тест не должен доверять кодировщику, который сам же и проверяет, поэтому
-// разбор здесь написан независимо от MeshtasticProto.
+// ── Minimal protobuf reader for checking what we encoded ──
+// The test must not trust the encoder that it is itself verifying, so the
+// parsing here is written independently of MeshtasticProto.
 
 (int, int) _varint(Uint8List d, int pos) {
   var r = 0;
@@ -21,7 +21,7 @@ import 'package:meshly/services/meshtastic_proto.dart';
   return (r, c);
 }
 
-/// Все поля сообщения: номер → значение (varint как int, bytes как Uint8List).
+/// All message fields: number → value (varint as int, bytes as Uint8List).
 Map<int, Object> _fields(Uint8List msg) {
   final out = <int, Object>{};
   var pos = 0;
@@ -77,21 +77,21 @@ Uint8List _tagBytes(int field, Uint8List data) => Uint8List.fromList([
 Uint8List _concat(List<Uint8List> parts) =>
     Uint8List.fromList(parts.expand((p) => p).toList());
 
-/// LoRaConfig, как его прислала бы прошивка: пресет, hop limit, мощность
-/// и (опционально) регион.
+/// LoRaConfig as the firmware would send it: preset, hop limit, power
+/// and (optionally) region.
 Uint8List _loraConfig({int? region}) => _concat([
   _tagVarint(1, 1), // use_preset = true
   _tagVarint(2, 3), // modem_preset
   if (region != null) _tagVarint(7, region),
   _tagVarint(8, 5), // hop_limit
   _tagVarint(10, 27), // tx_power
-  _tagVarint(104, 1), // ignore_mqtt — поле из «хвоста», за пределами 1..15
+  _tagVarint(104, 1), // ignore_mqtt — a field from the "tail", beyond 1..15
 ]);
 
 /// FromRadio { config { lora } }
 Uint8List _fromRadio(Uint8List lora) => _tagBytes(5, _tagBytes(6, lora));
 
-/// Разворачивает кадр ToRadio до AdminMessage.
+/// Unwraps a ToRadio frame down to AdminMessage.
 Map<int, Object> _adminOf(Uint8List frame) {
   final toRadio = _fields(frame);
   final packet = _fields(toRadio[1]! as Uint8List);
@@ -101,7 +101,7 @@ Map<int, Object> _adminOf(Uint8List frame) {
 
 void main() {
   group('decodeLoraConfig', () {
-    test('достаёт регион и сырые байты конфига', () {
+    test('extracts the region and the raw config bytes', () {
       final got = MeshtasticProto.decodeLoraConfig(
         _fromRadio(_loraConfig(region: 3)),
       );
@@ -111,13 +111,13 @@ void main() {
       expect(_fields(got.raw)[7], 3);
     });
 
-    test('регион не задан → UNSET, а не null', () {
+    test('region not set → UNSET, not null', () {
       final got = MeshtasticProto.decodeLoraConfig(_fromRadio(_loraConfig()));
 
       expect(got!.region, LoraRegion.unset);
     });
 
-    test('кадр без конфига игнорируется', () {
+    test('a frame without a config is ignored', () {
       expect(
         MeshtasticProto.decodeLoraConfig(_tagBytes(4, _loraConfig())),
         isNull,
@@ -133,7 +133,7 @@ void main() {
           fromNode: 0x1f8e42c9,
         );
 
-    test('три кадра: begin_edit → set_config → commit_edit', () {
+    test('three frames: begin_edit → set_config → commit_edit', () {
       final frames = framesFor(_loraConfig(region: 3), 15);
 
       expect(frames, hasLength(3));
@@ -142,68 +142,75 @@ void main() {
       expect(_adminOf(frames[2]).keys, [65]); // commit_edit_settings
     });
 
-    test('пакет не уходит в эфир: hop_limit=1, порт ADMIN_APP', () {
+    test('the packet never goes over the air: hop_limit=1, ADMIN_APP port', () {
       final packet = _fields(
         _fields(framesFor(_loraConfig(), 3).first)[1]! as Uint8List,
       );
 
-      expect(packet[2], 0x1f8e42c9, reason: 'адресовано самому устройству');
+      expect(packet[2], 0x1f8e42c9, reason: 'addressed to the device itself');
       expect(packet[9], 1, reason: 'hop_limit');
-      // ADMIN_APP = 6 (meshtastic/protobufs → portnums.proto). Раньше здесь
-      // стояло 68 (ZPS_APP) — из-за этого AdminModule прошивки никогда не
-      // видел наши админ-команды: диспетчер модулей роняет пакет, для
-      // portnum которого нет подписчика, ещё до AdminModule::
-      // handleReceivedProtobuf. Отсюда и тишина в эфире при GATT_SUCCESS на
-      // запись характеристики.
+      // ADMIN_APP = 6 (meshtastic/protobufs → portnums.proto). This used to
+      // be 68 (ZPS_APP) — because of that the firmware's AdminModule never
+      // saw our admin commands: the module dispatcher drops a packet whose
+      // portnum has no subscriber, before it ever reaches
+      // AdminModule::handleReceivedProtobuf. Hence the silence over the air
+      // despite a GATT_SUCCESS on the characteristic write.
       expect(_fields(packet[4]! as Uint8List)[1], 6, reason: 'ADMIN_APP');
     });
 
-    // Прошивка доверяет админ-команде только при from == 0: свой номер она
-    // подставляет сама. С ненулевым from команда считается удалённой, требует
-    // сессионный ключ и молча отвергается.
-    test('from = 0, иначе прошивка отвергнет команду как неавторизованную', () {
-      for (final frame in framesFor(_loraConfig(), 3)) {
-        final packet = _fields(_fields(frame)[1]! as Uint8List);
-        expect(packet[1] ?? 0, 0);
-      }
-    });
+    // The firmware only trusts an admin command when from == 0: it fills in
+    // its own node number itself. With a nonzero from, the command is
+    // treated as remote, requires a session key, and is silently rejected.
+    test(
+      'from = 0, otherwise the firmware rejects the command as unauthorized',
+      () {
+        for (final frame in framesFor(_loraConfig(), 3)) {
+          final packet = _fields(_fields(frame)[1]! as Uint8List);
+          expect(packet[1] ?? 0, 0);
+        }
+      },
+    );
 
-    test('у трёх кадров разные id — иначе радио сочтёт их дублями', () {
-      final ids = framesFor(
-        _loraConfig(),
-        3,
-      ).map((f) => _fields(_fields(f)[1]! as Uint8List)[6]).toSet();
+    test(
+      'the three frames have different ids — otherwise the radio treats them as duplicates',
+      () {
+        final ids = framesFor(
+          _loraConfig(),
+          3,
+        ).map((f) => _fields(_fields(f)[1]! as Uint8List)[6]).toSet();
 
-      expect(ids, hasLength(3));
-    });
+        expect(ids, hasLength(3));
+      },
+    );
 
-    // Главное: set_config заменяет LoRaConfig целиком, поэтому все чужие
-    // настройки обязаны пережить смену региона байт в байт.
-    test('остальные настройки не затираются', () {
+    // The key point: set_config replaces the entire LoRaConfig, so all
+    // unrelated settings must survive the region change byte for byte.
+    test('other settings are not wiped out', () {
       final frames = framesFor(_loraConfig(region: 3), 15);
       final config = _fields(_adminOf(frames[1])[34]! as Uint8List);
       final lora = _fields(config[6]! as Uint8List);
 
-      expect(lora[7], 15, reason: 'регион сменился');
+      expect(lora[7], 15, reason: 'the region changed');
       expect(lora[1], 1, reason: 'use_preset');
       expect(lora[2], 3, reason: 'modem_preset');
       expect(lora[8], 5, reason: 'hop_limit');
       expect(lora[10], 27, reason: 'tx_power');
-      expect(lora[104], 1, reason: 'поле из хвоста, которого мы не знаем');
+      expect(lora[104], 1, reason: 'a tail field we do not know about');
     });
 
-    test('регион дописывается, если его в конфиге не было', () {
+    test('the region is appended if it was missing from the config', () {
       final frames = framesFor(_loraConfig(), 3);
       final config = _fields(_adminOf(frames[1])[34]! as Uint8List);
       final lora = _fields(config[6]! as Uint8List);
 
       expect(lora[7], 3);
-      expect(lora[8], 5, reason: 'остальное на месте');
+      expect(lora[8], 5, reason: 'the rest is unchanged');
     });
 
-    test('испорченный конфиг переносится как есть, а не обрезается', () {
-      // Длина поля больше самого сообщения: лучше не менять регион вовсе,
-      // чем отправить в устройство огрызок конфига.
+    test('a corrupted config is carried over as-is, not truncated', () {
+      // The field length is larger than the message itself: better not to
+      // change the region at all than to send the device a truncated
+      // config.
       final broken = Uint8List.fromList([
         ..._encVarint((2 << 3) | 2),
         99,
@@ -217,19 +224,22 @@ void main() {
     });
   });
 
-  group('диагностика ответов устройства', () {
-    test('routingErrorName даёт имена ошибок из mesh.proto Routing.Error', () {
-      expect(MeshtasticProto.routingErrorName(0), 'NONE');
-      expect(MeshtasticProto.routingErrorName(33), 'NOT_AUTHORIZED');
-      expect(MeshtasticProto.routingErrorName(36), 'ADMIN_BAD_SESSION_KEY');
-      expect(
-        MeshtasticProto.routingErrorName(37),
-        'ADMIN_PUBLIC_KEY_UNAUTHORIZED',
-      );
-      expect(MeshtasticProto.routingErrorName(999), 'UNKNOWN(999)');
-    });
+  group('device response diagnostics', () {
+    test(
+      'routingErrorName gives error names from mesh.proto Routing.Error',
+      () {
+        expect(MeshtasticProto.routingErrorName(0), 'NONE');
+        expect(MeshtasticProto.routingErrorName(33), 'NOT_AUTHORIZED');
+        expect(MeshtasticProto.routingErrorName(36), 'ADMIN_BAD_SESSION_KEY');
+        expect(
+          MeshtasticProto.routingErrorName(37),
+          'ADMIN_PUBLIC_KEY_UNAUTHORIZED',
+        );
+        expect(MeshtasticProto.routingErrorName(999), 'UNKNOWN(999)');
+      },
+    );
 
-    test('decodeRoutingAck прикладывает errorName к errorCode', () {
+    test('decodeRoutingAck attaches errorName to errorCode', () {
       // Data { portnum=5(ROUTING_APP), payload=Routing{error_reason=33},
       // request_id=fixed32 }
       final routing = _tagVarint(
@@ -256,31 +266,34 @@ void main() {
       expect(ack.errorName, 'NOT_AUTHORIZED');
     });
 
-    test('decodeAdminResponse узнаёт portnum ADMIN_APP и variantTag', () {
-      // Data { portnum=6(ADMIN_APP), payload=AdminMessage{get_config_response
-      // (tag 90) = <пусто>}, request_id }
-      final admin = _tagBytes(90, Uint8List(0));
-      final data = _concat([
-        _tagVarint(1, 6),
-        _tagBytes(2, admin),
-        Uint8List.fromList([
-          ..._encVarint((6 << 3) | 5),
-          0x2a,
-          0x00,
-          0x00,
-          0x00,
-        ]),
-      ]);
-      final fromRadio = _tagBytes(2, _tagBytes(4, data));
+    test(
+      'decodeAdminResponse recognizes the ADMIN_APP portnum and variantTag',
+      () {
+        // Data { portnum=6(ADMIN_APP), payload=AdminMessage{get_config_response
+        // (tag 90) = <empty>}, request_id }
+        final admin = _tagBytes(90, Uint8List(0));
+        final data = _concat([
+          _tagVarint(1, 6),
+          _tagBytes(2, admin),
+          Uint8List.fromList([
+            ..._encVarint((6 << 3) | 5),
+            0x2a,
+            0x00,
+            0x00,
+            0x00,
+          ]),
+        ]);
+        final fromRadio = _tagBytes(2, _tagBytes(4, data));
 
-      final resp = MeshtasticProto.decodeAdminResponse(fromRadio);
+        final resp = MeshtasticProto.decodeAdminResponse(fromRadio);
 
-      expect(resp, isNotNull);
-      expect(resp!.meshId, 0x2a);
-      expect(resp.variantTag, 90);
-    });
+        expect(resp, isNotNull);
+        expect(resp!.meshId, 0x2a);
+        expect(resp.variantTag, 90);
+      },
+    );
 
-    test('decodeAdminResponse игнорирует пакеты с другим portnum', () {
+    test('decodeAdminResponse ignores packets with a different portnum', () {
       final data = _concat([_tagVarint(1, 1), _tagBytes(2, Uint8List(0))]);
       final fromRadio = _tagBytes(2, _tagBytes(4, data));
 
@@ -289,11 +302,11 @@ void main() {
   });
 
   group('decodeHwModel', () {
-    // FromRadio { metadata: DeviceMetadata { hw_model } } — field 13, поле 9.
+    // FromRadio { metadata: DeviceMetadata { hw_model } } — field 13, field 9.
     Uint8List fromRadioWithMetadata(Uint8List metadata) =>
         _tagBytes(13, metadata);
 
-    test('достаёт модель платы по её числовому коду', () {
+    test('extracts the board model from its numeric code', () {
       // DeviceMetadata: firmware_version(1), hw_model(9)=43 (HELTEC_V3).
       final metadata = _concat([
         _tagBytes(1, Uint8List.fromList('2.5.0'.codeUnits)),
@@ -306,7 +319,7 @@ void main() {
       );
     });
 
-    test('незнакомый код модели (новая прошивка) → null, а не выдумка', () {
+    test('an unfamiliar model code (new firmware) → null, not a guess', () {
       final metadata = _tagVarint(9, 9999);
 
       expect(
@@ -315,14 +328,14 @@ void main() {
       );
     });
 
-    test('кадр без metadata игнорируется', () {
+    test('a frame without metadata is ignored', () {
       expect(
         MeshtasticProto.decodeHwModel(_tagBytes(5, _tagVarint(9, 43))),
         isNull,
       );
     });
 
-    test('UNSET (0) распознаётся как модель, а не как "нет данных"', () {
+    test('UNSET (0) is recognized as a model, not as "no data"', () {
       final metadata = _tagVarint(9, 0);
 
       expect(
@@ -333,32 +346,35 @@ void main() {
   });
 
   group('LoraRegion', () {
-    test('коды уникальны и совпадают в common и all', () {
+    test('codes are unique and match between common and all', () {
       final byValue = {for (final r in LoraRegion.all) r.value: r.code};
 
-      expect(byValue.length, LoraRegion.all.length, reason: 'нет дублей');
+      expect(byValue.length, LoraRegion.all.length, reason: 'no duplicates');
       for (final r in LoraRegion.common) {
-        expect(byValue[r.value], r.code, reason: 'common расходится с all');
+        expect(byValue[r.value], r.code, reason: 'common diverges from all');
       }
     });
 
-    test('codeOf не знает UNSET и незнакомые коды из новой прошивки', () {
-      expect(LoraRegion.codeOf(3), 'EU_868');
-      expect(LoraRegion.codeOf(LoraRegion.unset), isNull);
-      expect(LoraRegion.codeOf(999), isNull);
-    });
+    test(
+      'codeOf does not know UNSET or unfamiliar codes from new firmware',
+      () {
+        expect(LoraRegion.codeOf(3), 'EU_868');
+        expect(LoraRegion.codeOf(LoraRegion.unset), isNull);
+        expect(LoraRegion.codeOf(999), isNull);
+      },
+    );
 
-    test('в common нет устаревших (deprecated) кодов, включая UA_868', () {
-      // UA_868 помечен `deprecated = true` в config.proto → не должен
-      // предлагаться первым делом. В all он остаётся: у людей могут быть
-      // устройства, уже настроенные на него.
+    test('common has no deprecated codes, including UA_868', () {
+      // UA_868 is marked `deprecated = true` in config.proto → must not be
+      // suggested as a first choice. It remains in all: some people may
+      // already have devices configured for it.
       expect(LoraRegion.common.map((r) => r.code), isNot(contains('UA_868')));
       expect(LoraRegion.all.map((r) => r.code), contains('UA_868'));
     });
   });
 
   group('LoraRegion.suggestedFor', () {
-    test('известная страна с однозначным регионом', () {
+    test('a known country with an unambiguous region', () {
       expect(LoraRegion.suggestedFor('ES')!.code, 'EU_868');
       expect(LoraRegion.suggestedFor('US')!.code, 'US');
       expect(LoraRegion.suggestedFor('JP')!.code, 'JP');
@@ -366,22 +382,22 @@ void main() {
       expect(LoraRegion.suggestedFor('BR')!.code, 'BR_902');
     });
 
-    test('регистр страны не важен', () {
+    test('country case does not matter', () {
       expect(LoraRegion.suggestedFor('es')!.code, 'EU_868');
     });
 
-    test('Украина — действующий UA_433, а не deprecated UA_868', () {
+    test('Ukraine — the current UA_433, not the deprecated UA_868', () {
       expect(LoraRegion.suggestedFor('UA')!.code, 'UA_433');
     });
 
-    test('неизвестная страна → null', () {
+    test('an unknown country → null', () {
       expect(LoraRegion.suggestedFor('ZZ'), isNull);
       expect(LoraRegion.suggestedFor(null), isNull);
       expect(LoraRegion.suggestedFor(''), isNull);
     });
 
     test(
-      'Казахстан → null: KZ_433 и KZ_863 равноправны, угадывать нельзя',
+      'Kazakhstan → null: KZ_433 and KZ_863 are equally valid, cannot guess',
       () {
         expect(LoraRegion.suggestedFor('KZ'), isNull);
       },
@@ -389,7 +405,7 @@ void main() {
   });
 
   group('LoraRegion.bandOf', () {
-    test('числовые коды берут диапазон из суффикса', () {
+    test('numeric codes take the band from the suffix', () {
       expect(LoraRegion.bandOf('EU_868'), 868);
       expect(LoraRegion.bandOf('EU_433'), 433);
       expect(LoraRegion.bandOf('UA_433'), 433);
@@ -399,22 +415,25 @@ void main() {
       expect(LoraRegion.bandOf('EU_N_868'), 868, reason: 'EU_N_868 → 868');
     });
 
-    test('LORA_24 — особый случай, суффикс "24" это не МГц', () {
+    test('LORA_24 is a special case, the "24" suffix is not MHz', () {
       expect(LoraRegion.bandOf('LORA_24'), 2400);
     });
 
-    test('именные коды без числа берутся из таблицы regions[] прошивки', () {
-      // Значения сверены с meshtastic/firmware → RadioInterface.cpp:
-      // RDEF(US, 902.0f, 928.0f, ...) → номинал 915 (US915) и т.д.
-      expect(LoraRegion.bandOf('US'), 915);
-      expect(LoraRegion.bandOf('CN'), 470);
-      expect(LoraRegion.bandOf('ANZ'), 915);
-      expect(LoraRegion.bandOf('RU'), 868);
-      expect(LoraRegion.bandOf('IN'), 865);
-    });
+    test(
+      'named codes without a number come from the firmware regions[] table',
+      () {
+        // Values checked against meshtastic/firmware → RadioInterface.cpp:
+        // RDEF(US, 902.0f, 928.0f, ...) → nominal 915 (US915), etc.
+        expect(LoraRegion.bandOf('US'), 915);
+        expect(LoraRegion.bandOf('CN'), 470);
+        expect(LoraRegion.bandOf('ANZ'), 915);
+        expect(LoraRegion.bandOf('RU'), 868);
+        expect(LoraRegion.bandOf('IN'), 865);
+      },
+    );
 
     test(
-      'ITU-коды (длина волны, не МГц, и не реализованы в прошивке) → null',
+      'ITU codes (wavelength, not MHz, and not implemented in firmware) → null',
       () {
         expect(LoraRegion.bandOf('ITU1_2M'), isNull);
         expect(LoraRegion.bandOf('ITU2_70CM'), isNull);
@@ -422,11 +441,11 @@ void main() {
       },
     );
 
-    test('незнакомый код → null', () {
+    test('an unfamiliar code → null', () {
       expect(
         LoraRegion.bandOf('MARS'),
         isNull,
-        reason: 'нет ни суффикса, ни записи в таблице',
+        reason: 'no suffix and no table entry',
       );
       expect(LoraRegion.bandOf('QQ'), isNull);
     });
@@ -434,13 +453,13 @@ void main() {
 
   group('LoraRegion.compatibleWith', () {
     test(
-      'UNSET → предлагаем весь список, плата ещё ничем не проявила себя',
+      'UNSET → offer the whole list, the board has not shown itself yet',
       () {
         expect(LoraRegion.compatibleWith(LoraRegion.unset), LoraRegion.all);
       },
     );
 
-    test('868-плата не получает 433-регионы (и наоборот)', () {
+    test('an 868 board does not get 433 regions (and vice versa)', () {
       final euRegion = LoraRegion.all.firstWhere((r) => r.code == 'EU_868');
       final compatible = LoraRegion.compatibleWith(euRegion.value);
 
@@ -448,13 +467,13 @@ void main() {
       expect(compatible.map((r) => r.code), contains('UA_868'));
       expect(compatible.map((r) => r.code), isNot(contains('EU_433')));
       expect(compatible.map((r) => r.code), isNot(contains('UA_433')));
-      // Все результаты реально на 868, а не просто "не 433".
+      // All results are actually on 868, not just "not 433".
       for (final r in compatible) {
         expect(LoraRegion.bandOf(r.code), 868);
       }
     });
 
-    test('плата на 433 не получает 868/915-регионы', () {
+    test('a board on 433 does not get 868/915 regions', () {
       final euRegion = LoraRegion.all.firstWhere((r) => r.code == 'EU_433');
       final compatible = LoraRegion.compatibleWith(euRegion.value);
 
@@ -464,7 +483,7 @@ void main() {
     });
 
     test(
-      'код с неизвестным диапазоном (ITU) → весь список, сужать нечего',
+      'a code with an unknown range (ITU) → the whole list, nothing to narrow',
       () {
         final ituRegion = LoraRegion.all.firstWhere(
           (r) => r.code == 'ITU1_2M',

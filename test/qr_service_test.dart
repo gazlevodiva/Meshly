@@ -93,9 +93,10 @@ void main() {
 
       expect(decoded, isNotNull);
       expect(decoded!.name, equals('семья'));
-      // Печать `slot=1` — намеренная совместимость со старыми версиями (см.
-      // отчёт спринта), не зависящая от беседы: модель MeshChannel слот
-      // больше не хранит вовсе, а декодер это поле не парсит.
+      // Printing `slot=1` is intentional backward compatibility with old
+      // versions (see the sprint report), independent of the conversation:
+      // the MeshChannel model no longer stores a slot at all, and the
+      // decoder doesn't parse this field.
       expect(url, contains('slot=1'));
       expect(decoded.avatarEmoji, equals('🏠'));
       expect(decoded.psk, equals(psk));
@@ -152,12 +153,12 @@ void main() {
       );
     });
 
-    // ── Слот беседы: переходный период ──────────────────────
+    // ── Conversation slot: transition period ──────────────────────
     //
-    // Слот отвязан от аппаратного канала (см. отчёт спринта) и больше ни на
-    // что не влияет. Старые коды несут `slot=<N>` — читаются как раньше;
-    // новые коды поле не несут вовсе — раньше это отвергало код целиком,
-    // теперь `slot` просто необязателен.
+    // The slot is decoupled from the hardware channel (see the sprint
+    // report) and no longer affects anything. Old codes carry `slot=<N>` —
+    // they are read as before; new codes don't carry the field at all —
+    // this used to reject the code entirely, now `slot` is simply optional.
 
     test('decodeChannel accepts any slot value (no longer validated)', () {
       final validPsk = base64Url.encode(Uint8List(16));
