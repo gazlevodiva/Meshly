@@ -49,7 +49,11 @@ class ChannelInfoScreen extends StatelessWidget {
     );
     if (confirmed == true && context.mounted) {
       await ContactStore.instance.deleteChannel(channel.id);
-      if (context.mounted) Navigator.pop(context, 'deleted');
+      // No result value: the chat screen below now closes itself once the
+      // channel's conversation disappears from the store (see
+      // ChatScreen._onStoreChanged), so nothing reads a return signal here
+      // any more — this pop only needs to take this screen off the stack.
+      if (context.mounted) Navigator.pop(context);
     }
   }
 

@@ -365,6 +365,69 @@ void main() {
     // `ch_<id>` conversation behind in memory and in the DB. HomeScreen then
     // rendered it as a permanent, unremovable row (channelById returns null,
     // so the UI fell back to showing the raw uuid).
+    test('deleteChannel removes the channel conversation too', () async {
+      final ch = await store.createChannel(name: 'удаляемая');
+      final convId = 'ch_${ch.id}';
+      expect(store.conversationById(convId), isNotNull);
+
+      await store.deleteChannel(ch.id);
+
+      expect(store.conversationById(convId), isNull);
+      expect(store.conversations.any((c) => c.id == convId), isFalse);
+    });
+
+    test(
+      'deleteChannel removes its conversation from the DB, not just memory',
+      () async {
+        final db = openTestDb();
+        store.resetForTesting(db);
+        await store.init();
+
+        final ch = await store.createChannel(name: 'персистентная');
+        final convId = 'ch_${ch.id}';
+        await store.deleteChannel(ch.id);
+
+        // Reload from a fresh in-memory cache backed by the same db file —
+        // if the conversation row survived in the DB, it would resurface
+        // here even though deleteChannel already "removed" it in memory.
+        store.resetForTesting(db);
+        await store.init();
+
+        expect(store.conversationById(convId), isNull);
+      },
+    );
+
+    test(
+      'deleteChannel removes the channel messages, not just the chat',
+      () async {
+        final db = openTestDb();
+        store.resetForTesting(db);
+        await store.init();
+
+        final ch = await store.createChannel(name: 'с сообщениями');
+        final convId = 'ch_${ch.id}';
+        await store.addMessage(
+          Message(
+            meshId: 42,
+            fromNodeId: '!broadcast',
+            conversationId: convId,
+            text: 'привет всем',
+            time: DateTime.now(),
+            isMe: false,
+          ),
+        );
+        expect(store.messagesFor(convId), isNotEmpty);
+
+        await store.deleteChannel(ch.id);
+        expect(store.messagesFor(convId), isEmpty);
+
+        // Reload from the same underlying db: if the row survived only the
+        // in-memory cache was cleared, it would resurface here.
+        store.resetForTesting(db);
+        await store.init();
+        expect(store.messagesFor(convId), isEmpty);
+      },
+    );
 
     // ── addMessage atomicity ───────────────────────────────
 
@@ -499,6 +562,39 @@ void main() {
     // deleteContact already dropped the `dm_<id>` conversation, but its
     // messages had no FK cascade (see app_database.dart) and stayed in the
     // DB forever.
+    test(
+      'deleteContact removes the DM messages, not just the chat',
+      () async {
+        final db = openTestDb();
+        store.resetForTesting(db);
+        await store.init();
+
+        await store.saveContact(
+          Contact(nodeId: '!dead0001', displayName: 'С сообщениями'),
+        );
+        const convId = 'dm_!dead0001';
+        await store.addMessage(
+          Message(
+            meshId: 1,
+            fromNodeId: '!dead0001',
+            conversationId: convId,
+            text: 'привет',
+            time: DateTime.now(),
+            isMe: false,
+          ),
+        );
+        expect(store.messagesFor(convId), isNotEmpty);
+
+        await store.deleteContact('!dead0001');
+        expect(store.messagesFor(convId), isEmpty);
+
+        // Reload from the same underlying db: if the row survived only the
+        // in-memory cache was cleared, it would resurface here.
+        store.resetForTesting(db);
+        await store.init();
+        expect(store.messagesFor(convId), isEmpty);
+      },
+    );
 
     test('addMessage notifies listeners', () async {
       final contact = Contact(nodeId: '!aaaabbbb', displayName: 'МессагНотиф');

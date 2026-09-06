@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:drift/native.dart';
@@ -6,8 +7,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:meshly/l10n/app_localizations.dart';
 import 'package:meshly/models/contact.dart';
 import 'package:meshly/models/conversation.dart';
+import 'package:meshly/models/mesh_channel.dart';
 import 'package:meshly/models/message.dart';
 import 'package:meshly/screens/add_contact_screen.dart';
+import 'package:meshly/screens/channel_info_screen.dart';
 import 'package:meshly/screens/chat_screen.dart';
 import 'package:meshly/services/app_database.dart'
     hide Channel, Contact, Conversation, Message;
@@ -59,6 +62,37 @@ void main() {
     );
     await tester.pump();
     return mesh;
+  }
+
+  /// Pumps the chat screen pushed onto a real [Navigator], on top of a
+  /// placeholder "chat list" route — for tests that check where navigation
+  /// lands after the chat closes itself (deletion, back button).
+  Future<(MeshService, GlobalKey<NavigatorState>)> pumpChatPushed(
+    WidgetTester tester, {
+    required Conversation conversation,
+  }) async {
+    final mesh = MeshService();
+    mesh.connectionStatus.value = MeshConnectionStatus.connected;
+    final navigatorKey = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorKey: navigatorKey,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('ru'),
+        home: const Scaffold(body: Text('Список чатов')),
+      ),
+    );
+    unawaited(
+      navigatorKey.currentState!.push(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              ChatScreen(meshService: mesh, conversation: conversation),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    return (mesh, navigatorKey);
   }
 
   /// One hour ago — timestamp for the leftover unreadable bubble.
@@ -1038,6 +1072,153 @@ void main() {
         expect(find.byIcon(Icons.done_all), findsNothing);
 
         await tester.pumpWidget(const SizedBox());
+        mesh.dispose();
+      },
+    );
+  });
+
+  group('closing when the conversation disappears', () {
+    testWidgets(
+      'deleting a channel from its info card returns to the chat list, not '
+      'to the deleted chat',
+      (tester) async {
+        final ch = MeshChannel(id: 'gen1', name: 'Общий', psk: Uint8List(32));
+        await store.saveChannel(ch);
+        final conv = Conversation.channel(ch.id);
+        await store.saveConversation(conv);
+        final (mesh, navigatorKey) = await pumpChatPushed(
+          tester,
+          conversation: conv,
+        );
+
+        // Open the channel-info card on top of the chat, exactly like the
+        // reported bug path: chat → card → delete.
+        unawaited(
+          navigatorKey.currentState!.push(
+            MaterialPageRoute<void>(
+              builder: (_) => ChannelInfoScreen(channel: ch),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(ChannelInfoScreen), findsOneWidget);
+
+        // "Delete channel" sits at the bottom of a ListView, below the fold
+        // at the test surface's default size — not built until scrolled in.
+        final deleteFinder = find.text('Удалить беседу');
+        await tester.scrollUntilVisible(
+          deleteFinder,
+          400,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.ensureVisible(deleteFinder);
+        await tester.pumpAndSettle();
+        await tester.tap(deleteFinder);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Удалить'));
+        await tester.pumpAndSettle();
+
+        // Both the card and the chat are gone; only the list remains.
+        expect(find.byType(ChannelInfoScreen), findsNothing);
+        expect(find.byType(ChatScreen), findsNothing);
+        expect(find.text('Список чатов'), findsOneWidget);
+
+        mesh.dispose();
+      },
+    );
+
+    testWidgets(
+      'the chat screen closes itself if the channel conversation is removed '
+      'from the store some other way',
+      (tester) async {
+        final conv = Conversation.channel('gen2');
+        await store.saveConversation(conv);
+        final (mesh, navigatorKey) = await pumpChatPushed(
+          tester,
+          conversation: conv,
+        );
+        expect(find.byType(ChatScreen), findsOneWidget);
+
+        // Simulate the future "removed by the group owner" path directly on
+        // the store, without going through any screen this chat reads a
+        // result from.
+        await store.deleteChannel('gen2');
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ChatScreen), findsNothing);
+        expect(find.text('Список чатов'), findsOneWidget);
+        expect(navigatorKey.currentState, isNotNull);
+
+        mesh.dispose();
+      },
+    );
+
+    testWidgets(
+      'a DM chat does not close itself when its contact disappears from the '
+      'store outside the normal edit-contact flow',
+      (tester) async {
+        await store.saveContact(
+          Contact(nodeId: '!feedface', displayName: 'Аня'),
+        );
+        final conv = store.dmForNode('!feedface')!;
+        final (mesh, navigatorKey) = await pumpChatPushed(
+          tester,
+          conversation: conv,
+        );
+        expect(find.byType(ChatScreen), findsOneWidget);
+
+        // Deleting the contact removes the DM conversation from the store
+        // too, but nothing in ChatScreen watches for that on DMs: only the
+        // explicit edit-contact result path closes a DM chat.
+        await store.deleteContact('!feedface');
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ChatScreen), findsOneWidget);
+        expect(navigatorKey.currentState, isNotNull);
+
+        mesh.dispose();
+      },
+    );
+
+    testWidgets(
+      'plain back navigation out of a channel chat and its info card still '
+      'works',
+      (tester) async {
+        final ch = MeshChannel(
+          id: 'gen3',
+          name: 'Ещё один',
+          psk: Uint8List(32),
+        );
+        await store.saveChannel(ch);
+        await store.saveConversation(Conversation.channel(ch.id));
+        final (mesh, navigatorKey) = await pumpChatPushed(
+          tester,
+          conversation: Conversation.channel(ch.id),
+        );
+
+        unawaited(
+          navigatorKey.currentState!.push(
+            MaterialPageRoute<void>(
+              builder: (_) => ChannelInfoScreen(channel: ch),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Back out of the info card (same call its own back arrow makes):
+        // chat still there, list not reached yet.
+        navigatorKey.currentState!.pop();
+        await tester.pumpAndSettle();
+        expect(find.byType(ChannelInfoScreen), findsNothing);
+        expect(find.byType(ChatScreen), findsOneWidget);
+
+        // Back out of the chat itself: lands on the list, no exceptions.
+        navigatorKey.currentState!.pop();
+        await tester.pumpAndSettle();
+        expect(find.byType(ChatScreen), findsNothing);
+        expect(find.text('Список чатов'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+
         mesh.dispose();
       },
     );

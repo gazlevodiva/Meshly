@@ -62,6 +62,18 @@ class _ChatScreenState extends State<ChatScreen> {
   /// transition only — never when a healthy chat is simply opened.
   late bool _wasSecureOk;
 
+  /// Set once this screen has scheduled its own close because the channel
+  /// conversation it shows vanished from the store (deleted here, or — soon
+  /// — by an owner removing this device from the group). Guards against
+  /// scheduling the close more than once across repeated store notifications.
+  ///
+  /// DMs are deliberately excluded: a contact is only ever removed through a
+  /// screen this one already reads the result of (`_openEditContact`), so
+  /// there is no known path where the DM conversation disappears out from
+  /// under an open chat. Auto-closing DMs too would risk popping the chat on
+  /// a transient absence with no way to tell it apart from a real deletion.
+  bool _channelGoneHandled = false;
+
   /// Whether the view is following the tail of the conversation. Flipped only
   /// by user-driven scrolling, so a bottom area that grows (or the very first
   /// measurement of it) can safely re-align to the real end of the list.
@@ -127,6 +139,21 @@ class _ChatScreenState extends State<ChatScreen> {
   /// vanishing looks the same as accidentally dismissing it.
   void _onStoreChanged() {
     final conv = _conversation;
+    if (conv.isChannel &&
+        !_channelGoneHandled &&
+        _store.conversationById(widget.conversation.id) == null) {
+      _channelGoneHandled = true;
+      // Never pop mid-notification: the store can call this while it is
+      // itself mid-frame (e.g. right after `deleteChannel`'s notifyListeners,
+      // while the channel-info screen above us is still on screen). Popping
+      // one frame later lets that screen finish popping itself first, so the
+      // two closes never race for the same top-of-stack route.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.pop(context);
+      });
+      return;
+    }
     if (!conv.isDm) return;
     final ok = conv.secureOk;
     final restored = ok && !_wasSecureOk;

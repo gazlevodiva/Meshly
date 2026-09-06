@@ -40,9 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // but HomeScreen itself reacts to ContactStore notifications.
     NotificationService.instance.onNotificationTap = (convId) {
       if (!mounted) return;
-      final conv = _store.conversations
-          .where((c) => c.id == convId)
-          .firstOrNull;
+      final conv = _conversations.where((c) => c.id == convId).firstOrNull;
       if (conv != null) _openChat(conv);
     };
   }
@@ -67,14 +65,27 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  List<Conversation> get _conversations => _store.conversations;
+  // A conversation whose contact/channel no longer exists is a data-integrity
+  // error (deleteContact/deleteChannel are supposed to remove it together
+  // with its conversation), not something to show the user. Filtering it out
+  // here — instead of falling back to a raw internal id in the UI — keeps
+  // such rows from lingering forever as an unremovable, unopenable entry.
+  List<Conversation> get _conversations => _store.conversations.where((c) {
+    if (c.isDm && c.peerId != null) {
+      return _store.contactByNodeId(c.peerId!) != null;
+    }
+    if (c.isChannel && c.channelId != null) {
+      return _store.channelById(c.channelId!) != null;
+    }
+    return false;
+  }).toList();
 
   String _titleFor(Conversation conv) {
     if (conv.isDm && conv.peerId != null) {
-      return _store.contactByNodeId(conv.peerId!)?.displayName ?? conv.peerId!;
+      return _store.contactByNodeId(conv.peerId!)?.displayName ?? '—';
     }
     if (conv.isChannel && conv.channelId != null) {
-      return _store.channelById(conv.channelId!)?.name ?? conv.channelId!;
+      return _store.channelById(conv.channelId!)?.name ?? '—';
     }
     return '—';
   }

@@ -252,6 +252,12 @@ class ContactStore extends ChangeNotifier {
       await (_db.delete(
         _db.conversations,
       )..where((t) => t.id.equals(dmId))).go();
+      // No FK cascade on Messages (see app_database.dart) — drop its
+      // messages explicitly, or they stay behind as orphans forever.
+      _messages.remove(dmId);
+      await (_db.delete(
+        _db.messages,
+      )..where((t) => t.conversationId.equals(dmId))).go();
     }
     notifyListeners();
   }
@@ -378,6 +384,22 @@ class ContactStore extends ChangeNotifier {
   Future<void> deleteChannel(String id) async {
     _channels.remove(id);
     await (_db.delete(_db.channels)..where((t) => t.id.equals(id))).go();
+    // Remove the associated channel conversation (same as deleteContact) —
+    // otherwise it lingers with no channel behind it and the chat list shows
+    // a raw internal id instead of a name.
+    final convId = 'ch_$id';
+    if (_conversations.containsKey(convId)) {
+      _conversations.remove(convId);
+      await (_db.delete(
+        _db.conversations,
+      )..where((t) => t.id.equals(convId))).go();
+      // No FK cascade on Messages (see app_database.dart) — drop its
+      // messages explicitly, or they stay behind as orphans forever.
+      _messages.remove(convId);
+      await (_db.delete(
+        _db.messages,
+      )..where((t) => t.conversationId.equals(convId))).go();
+    }
     notifyListeners();
   }
 
