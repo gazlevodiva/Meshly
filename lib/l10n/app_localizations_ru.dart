@@ -223,6 +223,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get onboardingStart => 'Начать';
 
   @override
+  String get onboardingNameTitle => 'Как вас будут видеть';
+
+  @override
+  String get onboardingNameText =>
+      'Ваше имя увидят те, кому вы напишете, — вместо номера устройства.';
+
+  @override
   String get addContact => 'Добавить контакт';
 
   @override
@@ -359,10 +366,11 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsSectionProfile => 'Профиль';
 
   @override
-  String get myProfileQrTitle => 'Мой профиль и QR-код';
+  String get myProfileQrTitle => 'Имя, эмодзи и QR-код';
 
   @override
-  String get shareYourContactSubtitle => 'Поделитесь своим контактом';
+  String get shareYourContactSubtitle =>
+      'Как вас видят другие — и как поделиться контактом';
 
   @override
   String get settingsSectionDevice => 'Устройство';
@@ -621,9 +629,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get chooseIconTitle => 'Выберите иконку';
 
   @override
-  String get defaultMyName => 'Я';
-
-  @override
   String get askScanQr =>
       'Попросите собеседника отсканировать этот QR\nили поделитесь ссылкой';
 
@@ -632,6 +637,13 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get yourNameHint => 'Ваше имя';
+
+  @override
+  String get myCardNoNameTitle => 'Имя ещё не задано';
+
+  @override
+  String get myCardNoNameMessage =>
+      'Укажите имя выше, чтобы поделиться своим контактом: собеседник, отсканировавший QR-код, сохранит вас под этим именем.';
 
   @override
   String get dateToday => 'Сегодня';

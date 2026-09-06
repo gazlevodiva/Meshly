@@ -36,15 +36,25 @@ class _MyCardScreenState extends State<MyCardScreen> {
   // crash).
   Uint8List? _myPublicKey;
 
+  Contact? get _existingContact => _store.contactByNodeId(_nodeId);
+
+  /// Whether a name has actually been set for this device. False until the
+  /// first successful [_saveName] — [_existingContact] doesn't exist before
+  /// that, since nothing ever persists an empty name (see [_saveName]).
+  /// Gates the QR/share section below: showing a code before a name is set
+  /// would encode whatever placeholder we invented, and the person who
+  /// scans it would save that placeholder as this device's name — see the
+  /// sprint brief's "Я" leak.
+  bool get _hasName => _existingContact != null;
+
   Contact get _myContact {
-    final existing = _store.contactByNodeId(_nodeId);
+    final existing = _existingContact;
+    // No placeholder name here: when nothing is set yet, this stays empty
+    // and [_hasName] keeps the QR/share section (which is what reads this)
+    // from ever being shown, so the empty name is never encoded or seen.
     final base =
         existing ??
-        Contact(
-          nodeId: _nodeId,
-          displayName: context.l10n.defaultMyName,
-          avatarEmoji: _emoji,
-        );
+        Contact(nodeId: _nodeId, displayName: '', avatarEmoji: _emoji);
     if (_myPublicKey == null) return base;
     return Contact(
       nodeId: base.nodeId,
@@ -79,13 +89,14 @@ class _MyCardScreenState extends State<MyCardScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // _myContact needs Localizations from the tree (default display name),
-    // so the one-time init lives here instead of initState.
     if (_initialized) return;
     _initialized = true;
-    final c = _myContact;
-    _nameController.text = c.displayName;
-    _emoji = c.avatarEmoji ?? '😊';
+    final existing = _existingContact;
+    _nameController.text = existing?.displayName ?? '';
+    _emoji = existing?.avatarEmoji ?? '😊';
+    // No name set yet — open the field immediately instead of showing a
+    // blank headline with nothing to explain it.
+    _editingName = existing == null;
   }
 
   @override
@@ -95,10 +106,18 @@ class _MyCardScreenState extends State<MyCardScreen> {
   }
 
   Future<void> _saveName() async {
-    final name = _nameController.text.trim();
+    final name = sanitizeDisplayName(_nameController.text);
     if (name.isEmpty) return;
+    _nameController.text = name;
     setState(() => _editingName = false);
-    final c = Contact(nodeId: _nodeId, displayName: name, avatarEmoji: _emoji);
+    final existing = _existingContact;
+    final c = Contact(
+      nodeId: _nodeId,
+      displayName: name,
+      avatarEmoji: _emoji,
+      publicKey: existing?.publicKey,
+      addedAt: existing?.addedAt,
+    );
     await _store.saveContact(c);
     setState(() {});
   }
@@ -109,17 +128,21 @@ class _MyCardScreenState extends State<MyCardScreen> {
       builder: (_) => _EmojiPickerDialog(current: _emoji),
     );
     if (!mounted) return;
-    if (picked != null) {
-      setState(() => _emoji = picked);
-      final c = Contact(
-        nodeId: _nodeId,
-        displayName: _nameController.text.trim().isNotEmpty
-            ? _nameController.text.trim()
-            : context.l10n.defaultMyName,
-        avatarEmoji: picked,
-      );
-      await _store.saveContact(c);
-    }
+    if (picked == null) return;
+    setState(() => _emoji = picked);
+    // No name set yet — nothing to persist under (Contact needs one); the
+    // emoji is applied once a name is actually saved via [_saveName].
+    final name = sanitizeDisplayName(_nameController.text);
+    if (name.isEmpty) return;
+    final existing = _existingContact;
+    final c = Contact(
+      nodeId: _nodeId,
+      displayName: name,
+      avatarEmoji: picked,
+      publicKey: existing?.publicKey,
+      addedAt: existing?.addedAt,
+    );
+    await _store.saveContact(c);
   }
 
   void _copyLink() {
@@ -179,6 +202,7 @@ class _MyCardScreenState extends State<MyCardScreen> {
                 child: TextField(
                   controller: _nameController,
                   autofocus: true,
+                  inputFormatters: const [_DisplayNameInputFormatter()],
                   decoration: InputDecoration(
                     hintText: context.l10n.yourNameHint,
                   ),
@@ -241,35 +265,92 @@ class _MyCardScreenState extends State<MyCardScreen> {
             _buildHeader(context),
             const SizedBox(height: AppSpacing.s24),
 
-            // QR + link
-            SectionCard(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.s16),
-                child: Column(
-                  children: [
-                    Text(
-                      context.l10n.askScanQr,
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.subtitle(context),
-                    ),
-                    const SizedBox(height: AppSpacing.s16),
-                    QrCard(data: _qrData, size: AppSizes.qrMedium),
-                    const SizedBox(height: AppSpacing.s16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: _copyLink,
-                        icon: const Icon(Icons.link),
-                        label: Text(context.l10n.copyLinkButton),
+            // QR + link — withheld until a name is set (see [_hasName]):
+            // otherwise the code would encode an unset name, and whoever
+            // scans it would save that as this device's name.
+            if (_hasName)
+              SectionCard(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.s16),
+                  child: Column(
+                    children: [
+                      Text(
+                        context.l10n.askScanQr,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.subtitle(context),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: AppSpacing.s16),
+                      QrCard(data: _qrData, size: AppSizes.qrMedium),
+                      const SizedBox(height: AppSpacing.s16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _copyLink,
+                          icon: const Icon(Icons.link),
+                          label: Text(context.l10n.copyLinkButton),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              SectionCard(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.s16),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: context.appColors.warning,
+                      ),
+                      const SizedBox(height: AppSpacing.s8),
+                      Text(
+                        context.l10n.myCardNoNameTitle,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.subtitle(context),
+                      ),
+                      const SizedBox(height: AppSpacing.s8),
+                      Text(
+                        context.l10n.myCardNoNameMessage,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.bodyLargeSecondary(context),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Keeps a typed display name within [kDisplayNameMaxLength] Unicode code
+/// points and free of newlines/control characters as the person types —
+/// the same treatment [sanitizeDisplayName] applies before saving, surfaced
+/// here so the field visibly refuses what would otherwise be silently
+/// cleaned up later (see the sprint brief: a name typed without limit but
+/// truncated only where it's used, with nothing to explain the mismatch).
+class _DisplayNameInputFormatter extends TextInputFormatter {
+  const _DisplayNameInputFormatter();
+
+  static final _controlChars = RegExp(r'[\x00-\x1f\x7f]');
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final flattened = newValue.text.replaceAll(_controlChars, ' ');
+    final capped = flattened.runes.length > kDisplayNameMaxLength
+        ? String.fromCharCodes(flattened.runes.take(kDisplayNameMaxLength))
+        : flattened;
+    if (capped == newValue.text) return newValue;
+    return TextEditingValue(
+      text: capped,
+      selection: TextSelection.collapsed(offset: capped.length),
     );
   }
 }

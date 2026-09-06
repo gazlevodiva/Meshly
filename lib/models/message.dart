@@ -1,3 +1,6 @@
+import 'package:meshly/models/contact.dart'
+    show kDisplayNameMaxLength, sanitizeDisplayName;
+
 /// Placeholder text of an incoming DM that could not be decrypted. Newly
 /// received unreadable DMs are no longer stored at all (the conversation is
 /// flagged broken instead) — this only matches leftovers written by earlier
@@ -56,22 +59,15 @@ enum SystemEventKind {
 /// SECURITY.md says so.
 const _systemEventPrefix = '\u0000meshly:v1:';
 
-/// Max length, in Unicode code points, of the display name carried by a
-/// [encodeSystemEvent] announcement. The LoRa text budget is ~200 bytes; a
-/// name this long already leaves ample room for the envelope and prefix.
-const kSystemEventNameMaxLength = 32;
-
-/// Builds the plaintext for a join/leave announcement. [displayName] is
-/// capped at [kSystemEventNameMaxLength] *code points* (not UTF-16 code
-/// units), so truncation cannot split a surrogate pair (e.g. an emoji) in
-/// half.
+/// Builds the plaintext for a join/leave announcement. [displayName] is run
+/// through [sanitizeDisplayName], which caps it at [kDisplayNameMaxLength]
+/// *code points* (not UTF-16 code units, so truncation cannot split a
+/// surrogate pair, e.g. an emoji, in half) and flattens newlines/control
+/// characters to spaces — the same limit that's enforced where a name is
+/// typed (see `contact.dart`), so a name already stored as someone's
+/// display name never gets truncated again, silently, here.
 String encodeSystemEvent(SystemEventKind kind, String displayName) {
-  // Newlines and control characters would let a name blow the single
-  // centred line up to full height, or hide text behind a fake line break.
-  final flattened = displayName.replaceAll(RegExp(r'[\x00-\x1f\x7f]'), ' ');
-  final capped = String.fromCharCodes(
-    flattened.runes.take(kSystemEventNameMaxLength),
-  );
+  final capped = sanitizeDisplayName(displayName);
   return '$_systemEventPrefix${kind.wireName}:$capped';
 }
 

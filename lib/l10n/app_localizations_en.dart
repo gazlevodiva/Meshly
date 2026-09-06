@@ -223,6 +223,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingStart => 'Get started';
 
   @override
+  String get onboardingNameTitle => 'How others will see you';
+
+  @override
+  String get onboardingNameText =>
+      'Your name is shown to people you message — instead of a device number.';
+
+  @override
   String get addContact => 'Add contact';
 
   @override
@@ -358,10 +365,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSectionProfile => 'Profile';
 
   @override
-  String get myProfileQrTitle => 'My profile & QR code';
+  String get myProfileQrTitle => 'Name, emoji & QR code';
 
   @override
-  String get shareYourContactSubtitle => 'Share your contact with others';
+  String get shareYourContactSubtitle =>
+      'How others see you — and how to share your contact';
 
   @override
   String get settingsSectionDevice => 'Device';
@@ -619,9 +627,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chooseIconTitle => 'Choose an icon';
 
   @override
-  String get defaultMyName => 'Me';
-
-  @override
   String get askScanQr =>
       'Ask the other person to scan this QR\nor share the link';
 
@@ -630,6 +635,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get yourNameHint => 'Your name';
+
+  @override
+  String get myCardNoNameTitle => 'No name set yet';
+
+  @override
+  String get myCardNoNameMessage =>
+      'Set a name above to share your contact: whoever scans the QR code will save you under it.';
 
   @override
   String get dateToday => 'Today';

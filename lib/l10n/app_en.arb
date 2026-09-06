@@ -95,6 +95,8 @@
   "onboardingSkip": "Skip",
   "onboardingNext": "Next",
   "onboardingStart": "Get started",
+  "onboardingNameTitle": "How others will see you",
+  "onboardingNameText": "Your name is shown to people you message — instead of a device number.",
 
   "addContact": "Add contact",
   "createChannel": "Create conversation",
@@ -142,8 +144,8 @@
 
   "settingsTitle": "Settings",
   "settingsSectionProfile": "Profile",
-  "myProfileQrTitle": "My profile & QR code",
-  "shareYourContactSubtitle": "Share your contact with others",
+  "myProfileQrTitle": "Name, emoji & QR code",
+  "shareYourContactSubtitle": "How others see you — and how to share your contact",
   "settingsSectionDevice": "Device",
   "connectedToName": "Connected: {name}",
   "tapToDisconnect": "Tap to disconnect",
@@ -235,10 +237,11 @@
   "channelCreateInfo": "The conversation will be created with a unique encryption key. Share the QR code with the people you want to add. Keep in mind: you can't remove anyone from a conversation later — the key is shared by everyone and never changes.",
   "chooseIconTitle": "Choose an icon",
 
-  "defaultMyName": "Me",
   "askScanQr": "Ask the other person to scan this QR\nor share the link",
   "chooseEmojiTitle": "Choose an emoji",
   "yourNameHint": "Your name",
+  "myCardNoNameTitle": "No name set yet",
+  "myCardNoNameMessage": "Set a name above to share your contact: whoever scans the QR code will save you under it.",
 
   "dateToday": "Today",
   "dateYesterday": "Yesterday",

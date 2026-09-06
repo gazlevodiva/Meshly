@@ -187,6 +187,8 @@
   "onboardingSkip": "Пропустить",
   "onboardingNext": "Далее",
   "onboardingStart": "Начать",
+  "onboardingNameTitle": "Как вас будут видеть",
+  "onboardingNameText": "Ваше имя увидят те, кому вы напишете, — вместо номера устройства.",
 
   "addContact": "Добавить контакт",
   "@addContact": {
@@ -330,8 +332,8 @@
 
   "settingsTitle": "Настройки",
   "settingsSectionProfile": "Профиль",
-  "myProfileQrTitle": "Мой профиль и QR-код",
-  "shareYourContactSubtitle": "Поделитесь своим контактом",
+  "myProfileQrTitle": "Имя, эмодзи и QR-код",
+  "shareYourContactSubtitle": "Как вас видят другие — и как поделиться контактом",
   "settingsSectionDevice": "Устройство",
   "connectedToName": "Подключено: {name}",
   "@connectedToName": {
@@ -522,13 +524,17 @@
   "channelCreateInfo": "Беседа создастся с уникальным ключом шифрования. Поделитесь QR-кодом с теми, кого хотите добавить. Учтите: убрать кого-то из беседы нельзя — ключ общий для всех и не меняется.",
   "chooseIconTitle": "Выберите иконку",
 
-  "defaultMyName": "Я",
-  "@defaultMyName": {
-    "description": "Default display name on the user's own card before they set a name"
-  },
   "askScanQr": "Попросите собеседника отсканировать этот QR\nили поделитесь ссылкой",
   "chooseEmojiTitle": "Выберите эмодзи",
   "yourNameHint": "Ваше имя",
+  "myCardNoNameTitle": "Имя ещё не задано",
+  "@myCardNoNameTitle": {
+    "description": "Title shown instead of the QR code on the own-contact screen when no display name has been set yet"
+  },
+  "myCardNoNameMessage": "Укажите имя выше, чтобы поделиться своим контактом: собеседник, отсканировавший QR-код, сохранит вас под этим именем.",
+  "@myCardNoNameMessage": {
+    "description": "Explains why the QR code/share link are hidden until a display name is set, and what a scanner would see once it is"
+  },
 
   "dateToday": "Сегодня",
   "@dateToday": {

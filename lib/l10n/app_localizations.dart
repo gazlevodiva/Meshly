@@ -488,6 +488,18 @@ abstract class AppLocalizations {
   /// **'Начать'**
   String get onboardingStart;
 
+  /// No description provided for @onboardingNameTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Как вас будут видеть'**
+  String get onboardingNameTitle;
+
+  /// No description provided for @onboardingNameText.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ваше имя увидят те, кому вы напишете, — вместо номера устройства.'**
+  String get onboardingNameText;
+
   /// Add-options sheet item, empty-state button and add-contact dialog title
   ///
   /// In ru, this message translates to:
@@ -743,13 +755,13 @@ abstract class AppLocalizations {
   /// No description provided for @myProfileQrTitle.
   ///
   /// In ru, this message translates to:
-  /// **'Мой профиль и QR-код'**
+  /// **'Имя, эмодзи и QR-код'**
   String get myProfileQrTitle;
 
   /// No description provided for @shareYourContactSubtitle.
   ///
   /// In ru, this message translates to:
-  /// **'Поделитесь своим контактом'**
+  /// **'Как вас видят другие — и как поделиться контактом'**
   String get shareYourContactSubtitle;
 
   /// No description provided for @settingsSectionDevice.
@@ -1220,12 +1232,6 @@ abstract class AppLocalizations {
   /// **'Выберите иконку'**
   String get chooseIconTitle;
 
-  /// Default display name on the user's own card before they set a name
-  ///
-  /// In ru, this message translates to:
-  /// **'Я'**
-  String get defaultMyName;
-
   /// No description provided for @askScanQr.
   ///
   /// In ru, this message translates to:
@@ -1243,6 +1249,18 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Ваше имя'**
   String get yourNameHint;
+
+  /// Title shown instead of the QR code on the own-contact screen when no display name has been set yet
+  ///
+  /// In ru, this message translates to:
+  /// **'Имя ещё не задано'**
+  String get myCardNoNameTitle;
+
+  /// Explains why the QR code/share link are hidden until a display name is set, and what a scanner would see once it is
+  ///
+  /// In ru, this message translates to:
+  /// **'Укажите имя выше, чтобы поделиться своим контактом: собеседник, отсканировавший QR-код, сохранит вас под этим именем.'**
+  String get myCardNoNameMessage;
 
   /// Chat date chip for messages sent today
   ///

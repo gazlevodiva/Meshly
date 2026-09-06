@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:meshly/models/contact.dart';
 import 'package:meshly/models/conversation.dart';
 import 'package:meshly/models/message.dart';
 
@@ -175,7 +176,7 @@ void main() {
       );
     });
 
-    test('the display name is capped at kSystemEventNameMaxLength code '
+    test('the display name is capped at kDisplayNameMaxLength code '
         'points, without splitting a surrogate pair', () {
       // 40 emoji, each a surrogate pair in UTF-16 (2 code units) but a
       // single rune/code point — a naive substring(0, 32) on the UTF-16
@@ -183,8 +184,8 @@ void main() {
       final longName = '🐧' * 40;
       final plaintext = encodeSystemEvent(SystemEventKind.joined, longName);
       final decoded = decodeSystemEvent(plaintext)!;
-      expect(decoded.name.runes.length, equals(kSystemEventNameMaxLength));
-      expect(decoded.name, equals('🐧' * kSystemEventNameMaxLength));
+      expect(decoded.name.runes.length, equals(kDisplayNameMaxLength));
+      expect(decoded.name, equals('🐧' * kDisplayNameMaxLength));
     });
 
     test(
